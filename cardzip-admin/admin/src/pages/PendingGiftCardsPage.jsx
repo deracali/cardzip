@@ -1,7 +1,59 @@
 import { useEffect, useState } from 'react'
-import { CheckCircle2, Eye, X, XCircle } from 'lucide-react'
+import { CheckCircle2, Copy, Eye, X, XCircle } from 'lucide-react'
 import { adminApi } from '../services/api'
 import { subscribeToGiftCardTradeChanges } from '../services/giftCardRealtime'
+
+const naira = (amount) => `₦${Number(amount || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+
+async function copyGiftCardImages(imageUrls) {
+  if (!navigator.clipboard?.write || !window.ClipboardItem) {
+    throw new Error('This browser does not support copying images to the clipboard.')
+  }
+
+  const images = await Promise.all(imageUrls.map(async (url) => {
+    const response = await fetch(url, { mode: 'cors', credentials: 'omit' })
+    if (!response.ok) throw new Error('Could not retrieve a gift-card image.')
+    const imageBlob = await response.blob()
+    if (!imageBlob.type.startsWith('image/')) throw new Error('A submitted file is not a supported image.')
+    return createImageBitmap(imageBlob)
+  }))
+
+  try {
+    const gap = 16
+    const maxWidth = 1600
+    const sizes = images.map((image) => {
+      const scale = Math.min(1, maxWidth / image.width)
+      return { width: Math.round(image.width * scale), height: Math.round(image.height * scale) }
+    })
+    const width = Math.max(...sizes.map(({ width: imageWidth }) => imageWidth))
+    const height = sizes.reduce((total, { height: imageHeight }) => total + imageHeight, 0) + gap * (images.length - 1)
+    if (height > 30000) throw new Error('The selected images are too large to copy together.')
+
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const context = canvas.getContext('2d')
+    if (!context) throw new Error('Could not prepare the images for copying.')
+    context.fillStyle = '#ffffff'
+    context.fillRect(0, 0, width, height)
+
+    let top = 0
+    images.forEach((image, index) => {
+      context.drawImage(image, 0, top, sizes[index].width, sizes[index].height)
+      top += sizes[index].height + gap
+    })
+
+    const png = await new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob)
+        else reject(new Error('Could not encode the images for copying.'))
+      }, 'image/png')
+    })
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })])
+  } finally {
+    images.forEach((image) => image.close())
+  }
+}
 
 export default function PendingGiftCardsPage() {
   const [cards, setCards] = useState([])
@@ -13,6 +65,9 @@ export default function PendingGiftCardsPage() {
   const [saving, setSaving] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const [error, setError] = useState('')
+  const [copyStatus, setCopyStatus] = useState('')
+  const [copyError, setCopyError] = useState(false)
+  const [copyingImage, setCopyingImage] = useState(null)
 
   useEffect(() => {
     let active = true
@@ -58,6 +113,25 @@ export default function PendingGiftCardsPage() {
     }
   }
 
+  const copyImages = async (imageUrls, imageKey) => {
+    setCopyingImage(imageKey)
+    setCopyStatus('')
+    setCopyError(false)
+    try {
+      await copyGiftCardImages(imageUrls)
+      setCopyStatus(imageUrls.length === 1 ? 'Image copied to clipboard.' : `${imageUrls.length} images copied together as one image.`)
+    } catch (requestError) {
+      setCopyStatus(`Unable to copy images: ${requestError.message}`)
+      setCopyError(true)
+    } finally {
+      setCopyingImage(null)
+    }
+  }
+
+  const referralReward = Math.round((Number(payoutAmount) || 0) * 0.02 * 100) / 100
+  const referralRewardPreview = Number(payoutAmount) > 0 ? naira(referralReward) : 'Enter payout to calculate'
+  const selectedImageUrls = selectedCard?.imageUrls || []
+
   return (
     <div className="pending-gc-page">
       <div className="page-header">
@@ -88,7 +162,7 @@ export default function PendingGiftCardsPage() {
                   <td className="font-bold text-emerald">{card.ngnAmount ? `₦${Number(card.ngnAmount).toLocaleString('en-NG')}` : '—'}</td>
                   <td>{card.user?.name || card.user?.email || 'Unknown user'}</td>
                   <td className="text-muted">{new Date(card.createdAt).toLocaleString()}</td>
-                  <td className="text-right"><button type="button" className="btn-review" onClick={() => { setSelectedCard(card); setDeclineReason(''); setPayoutAmount(card.ngnAmount ? String(card.ngnAmount) : '') }}><Eye size={13} /> Review Card</button></td>
+                  <td className="text-right"><button type="button" className="btn-review" onClick={() => { setSelectedCard(card); setDeclineReason(''); setPayoutAmount(card.ngnAmount ? String(card.ngnAmount) : ''); setCopyStatus(''); setCopyError(false) }}><Eye size={13} /> Review Card</button></td>
                 </tr>
               ))}
               {!loading && cards.length === 0 && <tr><td colSpan="7" className="empty-state">No pending gift cards requiring review.</td></tr>}
@@ -112,20 +186,37 @@ export default function PendingGiftCardsPage() {
               <button type="button" className="btn-close" disabled={saving} onClick={() => setSelectedCard(null)} aria-label="Close review"><X size={18} /></button>
             </div>
             <div className="modal-body gc-review-grid">
-              <div className="card-image-preview">
-                {selectedCard.imageUrls?.length
-                  ? selectedCard.imageUrls.map((url) => <img key={url} src={url} alt={`${selectedCard.type} gift card submission`} />)
-                  : <p>No card images were attached to this submission.</p>}
+              <div className="review-images">
+                <div className="review-images-header">
+                  <h4>Submitted images ({selectedImageUrls.length})</h4>
+                  <button type="button" className="copy-images-button" disabled={!selectedImageUrls.length || copyingImage !== null} onClick={() => copyImages(selectedImageUrls, 'all')}>
+                    <Copy size={14} /> {copyingImage === 'all' ? 'Copying…' : 'Copy all images'}
+                  </button>
+                </div>
+                <div className="card-image-preview">
+                  {selectedImageUrls.length
+                    ? selectedImageUrls.map((url, index) => (
+                      <div className="card-image-item" key={`${url}-${index}`}>
+                        <img src={url} alt={`${selectedCard.type} gift card submission ${index + 1}`} />
+                        <button type="button" className="copy-images-button" disabled={copyingImage !== null} onClick={() => copyImages([url], String(index))}>
+                          <Copy size={13} /> {copyingImage === String(index) ? 'Copying…' : `Copy image ${index + 1}`}
+                        </button>
+                      </div>
+                    ))
+                    : <p>No card images were attached to this submission.</p>}
+                </div>
+                {copyStatus && <p className={`copy-image-status${copyError ? ' error' : ''}`} role={copyError ? 'alert' : 'status'}>{copyStatus}</p>}
               </div>
               <div className="review-details">
                 <div className="review-row"><span>Brand:</span><strong>{selectedCard.type}</strong></div>
                 <div className="review-row"><span>Face Value:</span><strong>{Number(selectedCard.amount).toLocaleString()} {selectedCard.currency}</strong></div>
                 <div className="review-row"><span>Estimated payout:</span><strong className="text-emerald">{selectedCard.ngnAmount != null ? `₦${Number(selectedCard.ngnAmount).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Not provided'}</strong></div>
                 <div className="review-row"><span>Customer:</span><strong>{selectedCard.user?.name || selectedCard.user?.email || 'Unknown user'}</strong></div>
+                <div className="review-row"><span>Referrer reward (2%):</span><strong className={selectedCard.user?.referrer ? 'text-emerald' : ''}>{selectedCard.user?.referrer ? referralRewardPreview : 'No referral reward'}</strong></div>
                 <label className="decline-box" htmlFor="trade-payout-amount">
                   Final payout (NGN)
                   <input id="trade-payout-amount" type="number" min="0.01" step="0.01" value={payoutAmount} onChange={(event) => setPayoutAmount(event.target.value)} placeholder="Enter final naira payout" />
-                  <small>Prefilled from the customer’s catalog rate. You may adjust it after checking the card. Approval credits this amount to the customer’s wallet; referred customers earn a 2% reward.</small>
+                  <small>Prefilled from the customer’s catalog rate. You may adjust it after checking the card. Approval credits the final payout to the customer’s wallet and the displayed 2% reward to their referrer.</small>
                 </label>
                 <div className="decline-box">
                   <label htmlFor="decline-reason">Reason for rejection:</label>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { CheckCircle2, Clock, Download, Filter, Search, XCircle } from 'lucide-react'
 import { adminApi } from '../services/api'
 import CardzipLoader from '../components/CardzipLoader'
+import CustomSelect from '../components/CustomSelect'
 
 const kycLabels = {
   not_submitted: 'Not submitted',
@@ -11,6 +12,19 @@ const kycLabels = {
 }
 
 const naira = (amount) => `₦${Number(amount || 0).toLocaleString('en-NG')}`
+const kycFilterOptions = [
+  { value: '', label: 'KYC: All' },
+  { value: 'not_submitted', label: 'Not submitted' },
+  { value: 'approved', label: 'Verified' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'rejected', label: 'Rejected' },
+]
+const registrationDateOptions = [
+  { value: '30', label: 'Last 30 days' },
+  { value: '90', label: 'Last 90 days' },
+  { value: 'month', label: 'This month' },
+  { value: 'all', label: 'All time' },
+]
 
 function exportUsers(users) {
   const columns = ['Name', 'Email', 'KYC status', 'Wallet balance', 'Joined']
@@ -101,23 +115,24 @@ export default function UsersPage({ onViewUser }) {
           />
         </div>
         <div className="filter-group">
-          <div className="select-wrapper">
+          <div className="user-filter-select has-filter-icon">
             <Filter size={14} className="filter-icon" />
-            <select aria-label="Filter users by KYC status" value={kycFilter} onChange={(event) => changeFilter(setKycFilter, event.target.value)}>
-              <option value="">KYC: All</option>
-              <option value="not_submitted">Not submitted</option>
-              <option value="approved">Verified</option>
-              <option value="pending">Pending</option>
-              <option value="rejected">Rejected</option>
-            </select>
+            <CustomSelect
+              className="user-filter-select-control"
+              ariaLabel="Filter users by KYC status"
+              value={kycFilter}
+              options={kycFilterOptions}
+              onChange={(value) => changeFilter(setKycFilter, value)}
+            />
           </div>
-          <div className="select-wrapper">
-            <select aria-label="Filter users by registration date" value={range} onChange={(event) => changeFilter(setRange, event.target.value)}>
-              <option value="30">Last 30 days</option>
-              <option value="90">Last 90 days</option>
-              <option value="month">This month</option>
-              <option value="all">All time</option>
-            </select>
+          <div className="user-filter-select">
+            <CustomSelect
+              className="user-filter-select-control"
+              ariaLabel="Filter users by registration date"
+              value={range}
+              options={registrationDateOptions}
+              onChange={(value) => changeFilter(setRange, value)}
+            />
           </div>
         </div>
       </div>

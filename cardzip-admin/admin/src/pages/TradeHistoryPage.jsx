@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ArrowDownLeft, Download, Search } from 'lucide-react'
 import { adminApi } from '../services/api'
 
@@ -37,11 +37,8 @@ export default function TradeHistoryPage() {
   const [search, setSearch] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('')
   const [range, setRange] = useState('30')
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    let active = true
+  const [completedRequest, setCompletedRequest] = useState({ key: '', error: '' })
+  const queryString = useMemo(() => {
     const query = new URLSearchParams({ page: String(pagination.page), limit: '20' })
     if (search.trim()) query.set('search', search.trim())
     if (selectedStatus) query.set('status', selectedStatus)
@@ -51,19 +48,30 @@ export default function TradeHistoryPage() {
       from.setDate(from.getDate() - Number(range))
       query.set('from', from.toISOString())
     }
-    setLoading(true)
-    setError('')
-    adminApi.giftCardTrades(`?${query}`)
+    return query.toString()
+  }, [pagination.page, range, search, selectedStatus])
+  const loading = completedRequest.key !== queryString
+  const error = completedRequest.key === queryString ? completedRequest.error : ''
+
+  useEffect(() => {
+    let active = true
+    adminApi.giftCardTrades(`?${queryString}`)
       .then((result) => {
         if (!active) return
         setTrades(result.data)
         setSummary(result.summary)
         setPagination(result.pagination)
       })
-      .catch((requestError) => { if (active) setError(requestError.message) })
-      .finally(() => { if (active) setLoading(false) })
+      .catch((requestError) => {
+        if (active) setCompletedRequest({ key: queryString, error: requestError.message })
+      })
+      .finally(() => {
+        if (active) setCompletedRequest((current) => (
+          current.key === queryString ? current : { key: queryString, error: '' }
+        ))
+      })
     return () => { active = false }
-  }, [pagination.page, search, selectedStatus, range])
+  }, [queryString])
 
   const changeFilter = (setter, value) => {
     setPagination((current) => ({ ...current, page: 1 }))

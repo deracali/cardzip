@@ -28,6 +28,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+}
+
+.brand-icon-box img,
+.logo-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(2.5);
 }
 
 .brand-icon {
@@ -307,6 +316,36 @@
 
 
 
+
+.floating-support-button {
+  position: fixed;
+  z-index: 9999;
+  right: 22px;
+  bottom: 22px;
+  display: inline-flex;
+  min-height: 50px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  background: #059669;
+  box-shadow: 0 10px 28px rgba(5, 150, 105, .32);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: background .18s ease, transform .18s ease;
+}
+
+.floating-support-button:hover,
+.floating-support-button:focus-visible {
+  transform: translateY(-2px);
+  background: #047857;
+  outline: 3px solid rgba(16, 185, 129, .25);
+}
 
 
 
@@ -1061,17 +1100,6 @@
     display: none;
   }
 
-  .header-logout-btn {
-    width: 34px;
-    min-width: 34px;
-    height: 34px;
-    padding: 0;
-  }
-
-  .header-logout-btn span {
-    display: none;
-  }
-
   .mobile-nav-toggle {
     padding: 6px;
   }
@@ -1774,8 +1802,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  color: #0b1120;
+  flex: 0 0 auto;
+  overflow: hidden;
 }
 
 .brand-tagline {

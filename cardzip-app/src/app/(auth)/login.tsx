@@ -1,23 +1,23 @@
 import React, { useState } from 'react';
-import {
-  StyleSheet,
+import { StyleSheet,
   Text,
   View,
+  Image,
   TextInput,
   TouchableOpacity,
   Dimensions,
-  SafeAreaView,
-  StatusBar,
   ActivityIndicator,
-  Platform,
-} from 'react-native';
+  Platform, } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { GoogleSignin, isSuccessResponse } from '@react-native-google-signin/google-signin';
-import { useAppDispatch, useAppSelector } from '../store';
-import { loginUser, googleSignInUser, clearError } from '../store/slices/authSlice';
+import Constants from 'expo-constants';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import { useAppDispatch, useAppSelector } from '../../store';
+import { loginUser, googleSignInUser, appleSignInUser, clearError } from '../../store/slices/authSlice';
 import FeedbackModal from '../(main)/components/FeedbackModal';
 import KeyboardAwareScrollView from '../../components/KeyboardAwareScrollView';
+import GoogleLogo from '../../components/GoogleLogo';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -26,14 +26,14 @@ const hp = (percentage: number): number => Math.round((percentage * SCREEN_HEIGH
 const scale = (size: number): number => wp((size / SCREEN_WIDTH) * 100);
 
 const COLORS = {
-  bgDark: '#0A111F',
-  primaryGreen: '#1DB954',
-  inputBg: '#1C2637',
-  textMain: '#FFFFFF',
-  textMuted: '#A1ACB9',
-  border: '#2A3C55',
-  errorRed: '#FF4D4D',
-  accentYellow: '#FFD166',
+  bgDark: '#FFFFFF',
+  primaryGreen: '#10B981',
+  inputBg: '#F7F8FA',
+  textMain: '#111827',
+  textMuted: '#64748B',
+  border: '#E5E7EB',
+  errorRed: '#DC2626',
+  accentYellow: '#059669',
 };
 
 export default function LoginScreen() {
@@ -45,6 +45,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [passwordVisibility, setPasswordVisibility] = useState(true);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ title: string; message: string; tone?: 'error' | 'info' } | null>(null);
 
   const handleSignIn = () => {
@@ -57,6 +58,18 @@ export default function LoginScreen() {
   };
 
   const handleGoogleSignIn = async () => {
+    if (Constants.executionEnvironment === 'storeClient') {
+      setFeedback({
+        title: 'Google sign-in unavailable in Expo Go',
+        message: 'Use a Cardzip development build to sign in with Google. Email and password sign-in are still available here.',
+        tone: 'info',
+      });
+      return;
+    }
+    if (Platform.OS !== 'android' && Platform.OS !== 'ios') {
+      setFeedback({ title: 'Google sign-in unavailable', message: 'Google sign-in is only available in the Cardzip Android and iOS apps.', tone: 'error' });
+      return;
+    }
     const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim();
     if (!webClientId) {
       setFeedback({ title: 'Google sign-in unavailable', message: 'Google sign-in is not configured for this app build.', tone: 'error' });
@@ -64,6 +77,7 @@ export default function LoginScreen() {
     }
     setGoogleLoading(true);
     try {
+      const { GoogleSignin, isSuccessResponse } = await import('@react-native-google-signin/google-signin');
       GoogleSignin.configure({
         webClientId,
         ...(process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ? { iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID } : {}),
@@ -84,19 +98,62 @@ export default function LoginScreen() {
     }
   };
 
+  const handleAppleSignIn = async () => {
+    setAppleLoading(true);
+    try {
+      if (!(await AppleAuthentication.isAvailableAsync())) {
+        setFeedback({
+          title: 'Apple sign-in unavailable',
+          message: 'Expo Go supports Apple sign-in on iOS. This runtime did not load the native Apple module. Open the app in Expo Go on an iPhone or iPad, update Expo Go, and make sure an Apple ID is set up on the device. A rebuild is only needed for a custom development or standalone app after native configuration changes. Google and email sign-in are still available.',
+          tone: 'info',
+        });
+        return;
+      }
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+      if (!credential.identityToken) throw new Error('Apple did not return an identity token. Please try again.');
+      const name = [credential.fullName?.givenName, credential.fullName?.middleName, credential.fullName?.familyName]
+        .filter(Boolean)
+        .join(' ');
+      const result = await dispatch(appleSignInUser({ idToken: credential.identityToken, ...(name ? { name } : {}) })).unwrap();
+      if (result.token) router.replace('/(main)/(tabs)/home' as any);
+    } catch (error) {
+      if ((error as { code?: string }).code === 'ERR_REQUEST_CANCELED') return;
+      setFeedback({ title: 'Apple sign-in failed', message: error instanceof Error ? error.message : 'Could not sign in with Apple.', tone: 'error' });
+    } finally {
+      setAppleLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.bgDark} />
 
       <KeyboardAwareScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <View style={styles.logoContainer}>
-            <View style={styles.logoCircle}>
-              <Text style={styles.logoText}>G</Text>
-            </View>
+        <View style={styles.brandBar}>
+          <View style={styles.brandRow}>
+            <Image source={require('../../../assets/images/logo.jpg')} style={styles.brandMark} />
+            <Text style={styles.brandName}>Cardzip</Text>
           </View>
-          <Text style={styles.welcomeText}>Welcome Back</Text>
-          <Text style={styles.subtitleText}>Sign in to continue trading</Text>
+          <View style={styles.secureLabel}>
+            <Ionicons name="shield-checkmark-outline" size={scale(13)} color={COLORS.primaryGreen} />
+            <Text style={styles.secureLabelText}>SECURE LOGIN</Text>
+          </View>
+        </View>
+        <View style={styles.authTabs}>
+          <View style={[styles.authTab, styles.authTabActive]}>
+            <Text style={[styles.authTabText, styles.authTabTextActive]}>Sign In</Text>
+          </View>
+          <TouchableOpacity style={styles.authTab} onPress={() => router.replace('/(auth)/register' as any)}>
+            <Text style={styles.authTabText}>Sign Up</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.header}>
+          <Text style={styles.welcomeText}>Welcome Back to Cardzip</Text>
+          <Text style={styles.subtitleText}>Your everyday essentials, on one secure account. Pick up where you left off.</Text>
         </View>
 
         {error && (
@@ -106,6 +163,7 @@ export default function LoginScreen() {
         )}
 
         <View style={styles.formContainer}>
+          <Text style={styles.fieldLabel}>Email address</Text>
           <View style={styles.inputContainer}>
             <MaterialCommunityIcons name="email-outline" size={scale(20)} color={COLORS.textMuted} style={styles.inputIcon} />
             <TextInput
@@ -122,6 +180,7 @@ export default function LoginScreen() {
             />
           </View>
 
+          <Text style={styles.fieldLabel}>Password</Text>
           <View style={styles.inputContainer}>
             <Ionicons name="lock-closed-outline" size={scale(20)} color={COLORS.textMuted} style={styles.inputIcon} />
             <TextInput
@@ -172,16 +231,37 @@ export default function LoginScreen() {
 
         <TouchableOpacity style={styles.googleButton} onPress={() => { void handleGoogleSignIn(); }} activeOpacity={0.8} disabled={googleLoading}>
           <View style={styles.googleButtonContent}>
-            {googleLoading ? <ActivityIndicator color={COLORS.primaryGreen} /> : <MaterialCommunityIcons name="google" size={scale(20)} color="#4285F4" style={styles.googleIcon} />}
+            {googleLoading ? <ActivityIndicator color={COLORS.primaryGreen} /> : <GoogleLogo size={scale(20)} />}
             <Text style={styles.googleButtonText}>{googleLoading ? 'Signing in…' : 'Continue with Google'}</Text>
           </View>
         </TouchableOpacity>
+        {Platform.OS === 'ios' && (
+          <View style={styles.appleButtonContainer}>
+            <TouchableOpacity
+              style={styles.appleButton}
+              onPress={() => { void handleAppleSignIn(); }}
+              disabled={appleLoading}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Sign in with Apple"
+            >
+              {appleLoading ? <ActivityIndicator color="#FFFFFF" /> : <>
+                <Ionicons name="logo-apple" size={scale(19)} color="#FFFFFF" />
+                <Text style={styles.appleButtonText}>Sign in with Apple</Text>
+              </>}
+            </TouchableOpacity>
+          </View>
+        )}
 
         <View style={styles.registerContainer}>
-          <Text style={styles.dontHaveText}>Don't have an account? </Text>
+          <Text style={styles.dontHaveText}>Don&apos;t have an account? </Text>
           <TouchableOpacity onPress={() => router.replace('/(auth)/register' as any)}>
             <Text style={styles.registerText}>Register</Text>
           </TouchableOpacity>
+        </View>
+        <View style={styles.securityFooter}>
+          <Ionicons name="shield-checkmark-outline" size={scale(14)} color={COLORS.primaryGreen} />
+          <Text style={styles.securityText}>Your account is protected with secure encryption</Text>
         </View>
       </KeyboardAwareScrollView>
       <FeedbackModal
@@ -202,27 +282,57 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bgDark,
   },
   scrollContent: {
-    paddingBottom: hp(10), // Bottom padding for scrollability
+    flexGrow: 1,
+    paddingHorizontal: wp(5),
+    paddingBottom: hp(4),
   },
+  brandBar: {
+    minHeight: hp(7),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  brandMark: { width: 25, height: 25, borderRadius: 7 },
+  brandName: { color: COLORS.textMain, fontSize: 17, fontWeight: '800' },
+  secureLabel: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  secureLabelText: { color: COLORS.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 0.4 },
+  authTabs: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 3,
+    minHeight: 44,
+    borderRadius: 24,
+    backgroundColor: '#F7F8FA',
+    borderWidth: 1,
+    borderColor: '#EEF0F3',
+    marginTop: 8,
+    marginBottom: 25,
+  },
+  authTab: { flex: 1, minHeight: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 20 },
+  authTabActive: { backgroundColor: '#111827' },
+  authTabText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600' },
+  authTabTextActive: { color: '#FFFFFF' },
   errorBanner: {
-    marginHorizontal: wp(6),
+    marginHorizontal: 0,
     marginBottom: hp(2),
     padding: wp(3),
     borderRadius: wp(2),
-    backgroundColor: '#3A1D24',
+    backgroundColor: '#FEF2F2',
     borderWidth: 1,
     borderColor: COLORS.errorRed,
   },
   errorText: {
     color: COLORS.errorRed,
+    fontFamily: 'Poppins',
     fontSize: scale(14),
   },
+  fieldLabel: { color: COLORS.textMain, fontSize: scale(12), fontWeight: '600', marginBottom: 7 },
 
   /* Header Section */
   header: {
-    paddingHorizontal: wp(6),
-    alignItems: 'center',
-    marginBottom: hp(5),
+    alignItems: 'flex-start',
+    marginBottom: hp(3),
   },
   statusBarMock: {
     flexDirection: 'row',
@@ -234,6 +344,7 @@ const styles = StyleSheet.create({
   },
   statusTime: {
     color: 'white',
+    fontFamily: 'Poppins',
     fontSize: scale(15),
     fontWeight: '700',
   },
@@ -270,31 +381,35 @@ const styles = StyleSheet.create({
   },
   logoText: {
     color: 'white',
+    fontFamily: 'Poppins',
     fontSize: scale(32),
     fontWeight: '900',
   },
   welcomeText: {
     color: COLORS.textMain,
-    fontSize: scale(28),
+    fontFamily: 'Poppins',
+    fontSize: scale(25),
     fontWeight: '800',
     marginBottom: 6,
   },
   subtitleText: {
     color: COLORS.textMuted,
-    fontSize: scale(16),
+    fontFamily: 'Poppins',
+    fontSize: scale(13),
     fontWeight: '400',
+    lineHeight: scale(19),
   },
 
   /* Input Form Section (Matching Reference layout precisely) */
   formContainer: {
-    paddingHorizontal: wp(6),
-    marginBottom: hp(4),
+    paddingHorizontal: 0,
+    marginBottom: hp(2),
   },
   tabSelector: {
     flexDirection: 'row',
     backgroundColor: COLORS.inputBg,
     borderRadius: wp(3),
-    height: hp(6), // Dynamic height
+    height: hp(6),
     marginBottom: hp(3),
     padding: 3,
   },
@@ -306,11 +421,12 @@ const styles = StyleSheet.create({
     borderRadius: wp(2.5),
   },
   activeTab: {
-    backgroundColor: COLORS.primaryGreen,
+    backgroundColor: '#111827',
   },
   tabText: {
     color: COLORS.textMuted,
     marginLeft: 8,
+    fontFamily: 'Poppins',
     fontSize: scale(14),
     fontWeight: '600',
   },
@@ -323,12 +439,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.inputBg,
-    borderRadius: wp(3),
-    height: hp(7), // Dynamic height
-    paddingHorizontal: wp(4),
-    marginBottom: hp(2.5),
+    borderRadius: 11,
+    height: hp(6.5),
+    paddingHorizontal: wp(3.5),
+    marginBottom: hp(1.8),
     borderWidth: 1,
-    borderColor: 'transparent', // Prepare for dynamic border changes
+    borderColor: COLORS.border,
   },
   // Container for dynamic phone input layout
   phoneInputRow: {
@@ -348,6 +464,7 @@ const styles = StyleSheet.create({
   },
   countryCodeText: {
     color: COLORS.textMain,
+    fontFamily: 'Poppins',
     fontSize: scale(14),
     fontWeight: '600',
     marginRight: 4,
@@ -362,33 +479,35 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     color: COLORS.textMain,
-    fontSize: scale(16),
+    fontFamily: 'Poppins',
+    fontSize: scale(14),
     height: '100%',
   },
 
   // Link/Buttons (Matching Reference styles)
   forgotPasswordLink: {
     alignSelf: 'flex-end',
-    marginBottom: hp(4),
+    marginBottom: hp(2.2),
   },
   forgotPasswordText: {
-    color: COLORS.accentYellow,
-    fontSize: scale(13),
+    color: COLORS.primaryGreen,
+    fontFamily: 'Poppins',
+    fontSize: scale(11),
     fontWeight: '600',
   },
   // Main Sign In button with Glow effect
   signInButton: {
     width: '100%',
-    height: hp(7),
+    height: hp(6.5),
     backgroundColor: COLORS.primaryGreen,
-    borderRadius: wp(3),
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: COLORS.primaryGreen,
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 8, // android depth
+    shadowOpacity: 0.12,
+    shadowRadius: 5,
+    elevation: 3,
   },
   signInButtonContent: {
     flexDirection: 'row',
@@ -396,6 +515,7 @@ const styles = StyleSheet.create({
   },
   signInButtonText: {
     color: 'white',
+    fontFamily: 'Poppins',
     fontSize: scale(18),
     fontWeight: '700',
   },
@@ -408,31 +528,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: wp(6),
-    marginBottom: hp(4),
+    paddingHorizontal: 0,
+    marginBottom: hp(2),
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: COLORS.border,
+    backgroundColor: '#E5E7EB',
   },
   dividerText: {
     color: COLORS.textMuted,
+    fontFamily: 'Poppins',
     fontSize: scale(13),
     marginHorizontal: wp(4),
   },
 
   /* Social Button (Google) style matching reference */
   googleButton: {
-    marginHorizontal: wp(6),
-    height: hp(7),
-    backgroundColor: COLORS.inputBg,
-    borderRadius: wp(3),
+    marginHorizontal: 0,
+    height: hp(6),
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: COLORS.border,
-    marginBottom: hp(6),
+    marginBottom: hp(2.5),
   },
   googleButtonContent: {
     flexDirection: 'row',
@@ -442,8 +563,29 @@ const styles = StyleSheet.create({
     marginRight: wp(3),
   },
   googleButtonText: {
-    color: 'white',
+    color: COLORS.textMain,
+    fontFamily: 'Poppins',
     fontSize: scale(16),
+    fontWeight: '600',
+  },
+  appleButtonContainer: {
+    position: 'relative',
+    marginBottom: hp(2.5),
+  },
+  appleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    width: '100%',
+    height: hp(6),
+    borderRadius: 10,
+    backgroundColor: '#000000',
+  },
+  appleButtonText: {
+    color: '#FFFFFF',
+    fontFamily: 'Poppins',
+    fontSize: scale(15),
     fontWeight: '600',
   },
 
@@ -452,15 +594,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: hp(8),
+    marginBottom: hp(2),
   },
   dontHaveText: {
     color: COLORS.textMuted,
+    fontFamily: 'Poppins',
     fontSize: scale(14),
     marginRight: 6,
   },
   registerText: {
-    color: COLORS.accentYellow,
+    color: COLORS.primaryGreen,
+    fontFamily: 'Poppins',
     fontSize: scale(14),
     fontWeight: '700',
   },
@@ -474,6 +618,7 @@ const styles = StyleSheet.create({
   },
   securityText: {
     color: COLORS.textMuted,
+    fontFamily: 'Poppins',
     fontSize: scale(12),
     marginLeft: 6,
   },

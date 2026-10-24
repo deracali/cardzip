@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, SafeAreaView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useAppDispatch, useAppSelector } from '../../store';
-import { fetchGiftCards } from '../../store/slices/giftCardSlice';
+import { useAppDispatch, useAppSelector } from '../../../store';
+import { fetchGiftCards } from '../../../store/slices/giftCardSlice';
 import KeyboardAwareScrollView from '../../../components/KeyboardAwareScrollView';
 
 export default function RateCalculatorScreen() {
@@ -27,7 +28,6 @@ export default function RateCalculatorScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F4F6F5" />
       <KeyboardAwareScrollView contentContainerStyle={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.iconButton}>

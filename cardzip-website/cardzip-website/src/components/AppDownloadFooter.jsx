@@ -62,8 +62,10 @@ export default function AppDownloadFooter({ onNavigate }) {
         <div className="footer-links-grid">
           <div className="brand-col">
             <div className="brand-logo">
-              <div className="logo-box">⚡</div>
-              <span>cardzip</span>
+              <span className="logo-box">
+                <img src="/cardzip-logo.jpg" alt="" />
+              </span>
+              <span>Cardzip</span>
             </div>
             <p className="brand-tagline">
               Your everyday digital economy. Trade, connect, shop and pay — all in one place.
@@ -72,15 +74,17 @@ export default function AppDownloadFooter({ onNavigate }) {
 
           <div className="links-col">
             <h4>Explore</h4>
-            <a href="#gift-cards">Gift cards</a>
-            <a href="/virtual-numbers">Virtual numbers</a>
-            <a href="#shop">Shop</a>
-            <a href="#bills">Bills & WAEC</a>
+            <a href="/gift-cards" onClick={(event) => { event.preventDefault(); onNavigate?.('/gift-cards') }}>Gift cards</a>
+            <a href="/virtual-numbers" onClick={(event) => { event.preventDefault(); onNavigate?.('/virtual-numbers') }}>Virtual numbers</a>
+            <a href="/shop" onClick={(event) => { event.preventDefault(); onNavigate?.('/shop') }}>Shop</a>
+            <a href="/bills" onClick={(event) => { event.preventDefault(); onNavigate?.('/bills') }}>Bills &amp; WAEC</a>
+            <a href="/community-market" onClick={(event) => { event.preventDefault(); onNavigate?.('/community-market') }}>Community market</a>
+            <a href="/digital-assets" onClick={(event) => { event.preventDefault(); onNavigate?.('/digital-assets') }}>Websites &amp; apps</a>
           </div>
 
           <div className="links-col">
             <h4>Cardzip</h4>
-            <a href="#about">About us</a>
+            <a href="/about" onClick={(event) => { event.preventDefault(); onNavigate?.('/about') }}>About us</a>
             <a href="/support" onClick={(event) => { event.preventDefault(); onNavigate?.('/support') }}>Help center</a>
             <a href="/support" onClick={(event) => { event.preventDefault(); onNavigate?.('/support') }}>Contact us</a>
             <a href="#careers">Careers</a>

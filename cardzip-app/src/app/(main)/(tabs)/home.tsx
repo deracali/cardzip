@@ -1,31 +1,37 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  Modal,
+import { Modal,
   StyleSheet,
   Text,
   View,
   Image,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
-  StatusBar,
   Dimensions,
-  Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useAppDispatch, useAppSelector } from '../../store';
-import { fetchGiftCards, fetchGiftCardTrades } from '../../store/slices/giftCardSlice';
-import { fetchWalletBalance } from '../../store/slices/walletSlice';
-import { GiftCard, GiftCardTrade } from '../../types/giftCard';
+import { Href, router, useFocusEffect } from 'expo-router';
+import { useAppDispatch, useAppSelector } from '../../../store';
+import { fetchGiftCards, fetchGiftCardTrades } from '../../../store/slices/giftCardSlice';
+import { fetchStoreProducts } from '../../../store/slices/storeSlice';
+import { fetchWalletBalance } from '../../../store/slices/walletSlice';
+import { GiftCard, GiftCardTrade } from '../../../types/giftCard';
+import { StoreProduct } from '../../../types/store';
 import CardzipLoader from '../../../components/CardzipLoader';
+import AdvertisementBanner from '../../../components/AdvertisementBanner';
 import {
   fetchNotificationsApi,
   markAllNotificationsReadApi,
   markNotificationReadApi,
   UserNotification,
-} from '../../services/api/notificationApi';
+} from '../../../services/api/notificationApi';
+import { getGiftCardLogoUrls } from '../../../utils/giftCardLogos';
+import { formatNaira } from '../../../utils/currency';
+import { getStorefrontPreferences } from '../../../services/storePreferences';
+import { getStoreImageUrl } from '../../../utils/storeImages';
+import { Image as CachedImage } from 'expo-image';
+import { fetchDigitalProductsApi } from '../../../services/api/storeApi';
 
 
 // Screen Dimensions for responsiveness
@@ -36,53 +42,15 @@ const wp = (percentage: number): number => {
   return (percentage * SCREEN_WIDTH) / 100;
 };
 
-const giftCardLogoDomains: Record<string, string> = {
-  amazon: 'amazon.com',
-  apple: 'apple.com',
-  itunes: 'apple.com',
-  googleplay: 'play.google.com',
-  google: 'google.com',
-  steam: 'steampowered.com',
-  xbox: 'xbox.com',
-  playstation: 'playstation.com',
-  sonyplaystation: 'playstation.com',
-  psn: 'playstation.com',
-  netflix: 'netflix.com',
-  spotify: 'spotify.com',
-  sephora: 'sephora.com',
-  walmart: 'walmart.com',
-  target: 'target.com',
-  nike: 'nike.com',
-  adidas: 'adidas.com',
-  razer: 'razer.com',
-  goldrazer: 'razer.com',
-  goldrazor: 'razer.com',
-  nintendo: 'nintendo.com',
-  roblox: 'roblox.com',
-  riotgames: 'riotgames.com',
-  epicgames: 'epicgames.com',
-  twitch: 'twitch.tv',
-  disneyplus: 'disneyplus.com',
-  disney: 'disney.com',
-  footlocker: 'footlocker.com',
-};
-
-const getGiftCardLogoUrls = (name: string, catalogLogo?: string): string[] => {
-  const normalizedName = name.toLowerCase().replace(/[^a-z0-9]/g, '');
-  const matchedBrand = Object.keys(giftCardLogoDomains).find((brand) => normalizedName.includes(brand));
-  const domain = matchedBrand ? giftCardLogoDomains[matchedBrand] : null;
-  const onlineLogo = domain
-    ? `https://www.google.com/s2/favicons?domain=${domain}&sz=128`
-    : null;
-  return [onlineLogo, catalogLogo].filter((url): url is string => Boolean(url));
-};
-
 export default function HomeScreen() {
   const [balanceVisible, setBalanceVisible] = useState(true);
   const [notificationsVisible, setNotificationsVisible] = useState(false);
   const [seeAllModal, setSeeAllModal] = useState<'giftCards' | 'transactions' | null>(null);
+  const [selectedTransaction, setSelectedTransaction] = useState<GiftCardTrade | null>(null);
   const [seeAllPage, setSeeAllPage] = useState(0);
   const [failedGiftCardLogos, setFailedGiftCardLogos] = useState<Record<string, string[]>>({});
+  const [promotedProducts, setPromotedProducts] = useState<StoreProduct[]>([]);
+  const [promotedProductsError, setPromotedProductsError] = useState('');
   const [notifications, setNotifications] = useState<UserNotification[]>([]);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
@@ -92,6 +60,8 @@ export default function HomeScreen() {
   const { token, user, sessionReady } = useAppSelector((state) => state.auth);
   const notificationsEnabled = useAppSelector((state) => state.preferences.notificationsEnabled);
   const { balance } = useAppSelector((state) => state.wallet);
+  const { products: featuredProducts, loading: featuredProductsLoading } = useAppSelector((state) => state.store);
+  const homeStoreProducts = (promotedProducts.length ? promotedProducts : featuredProducts).slice(0, 50);
   const {
     catalog,
     transactions,
@@ -121,6 +91,29 @@ export default function HomeScreen() {
   useEffect(() => {
     dispatch(fetchGiftCards({ page: 1 }));
   }, [dispatch]);
+
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    const scheduleIdle = globalThis.requestIdleCallback ?? ((callback: IdleRequestCallback) => setTimeout(callback, 0) as unknown as number);
+    const cancelIdle = globalThis.cancelIdleCallback ?? ((handle: number) => clearTimeout(handle));
+    const preloadHandle = scheduleIdle(() => {
+      void getStorefrontPreferences().then((preferences) => {
+        if (!active) return [];
+        void dispatch(fetchStoreProducts({ page: 1, limit: 50, preferences, force: true }));
+        return fetchDigitalProductsApi('all', '', preferences);
+      }).then((digitalProducts) => {
+        if (!active) return;
+        setPromotedProducts(digitalProducts.filter((product) => product.isPromoted).slice(0, 50));
+        setPromotedProductsError('');
+      }).catch((error: unknown) => {
+        if (active) setPromotedProductsError(error instanceof Error ? error.message : 'Could not load promoted products.');
+      });
+    });
+    return () => {
+      active = false;
+      cancelIdle(preloadHandle);
+    };
+  }, [dispatch]));
 
   useEffect(() => {
     if (token) {
@@ -154,6 +147,13 @@ export default function HomeScreen() {
     }
   };
 
+  const openNotification = async (notification: UserNotification) => {
+    if (!notification.readAt) await markNotificationRead(notification);
+    if (!notification.route || !notification.route.startsWith('/(main)/') || notification.route.includes('..') || notification.route.includes('\\')) return;
+    setNotificationsVisible(false);
+    router.push(notification.route as Href);
+  };
+
   const markAllNotificationsRead = async () => {
     if (!token || unreadNotifications === 0 || updatingNotificationId) return;
     setUpdatingNotificationId('all');
@@ -177,7 +177,7 @@ export default function HomeScreen() {
     if (brand.includes('itunes')) return '#121214';
     if (brand.includes('steam')) return '#171D25';
     if (brand.includes('foot locker') || brand.includes('footlocker')) return '#171717';
-    if (brand.includes('goldrazer')) return '#171717';
+    if (brand.includes('goldrazer') || brand.includes('goldrazor')) return '#171717';
     if (brand.includes('sephora')) return '#1F1416';
     if (brand.includes('walmart')) return '#0071CE';
     if (brand.includes('target')) return '#CC0000';
@@ -212,16 +212,18 @@ export default function HomeScreen() {
     if (brand.includes('apple')) return <FontAwesome5 name="apple" size={wp(6)} color="#FFFFFF" />;
     if (brand.includes('steam')) return <Ionicons name="logo-steam" size={wp(6)} color="#66C0F4" />;
     if (brand.includes('foot locker') || brand.includes('footlocker')) return <FontAwesome5 name="shoe-prints" size={wp(5.5)} color="#E31837" />;
-    if (brand.includes('goldrazer')) return <FontAwesome5 name="coins" size={wp(5.5)} color="#D4AF37" />;
+    if (brand.includes('goldrazer') || brand.includes('goldrazor')) return <FontAwesome5 name="coins" size={wp(5.5)} color="#D4AF37" />;
     if (brand.includes('sephora')) return <Text style={styles.sephoraIcon}>S</Text>;
     if (brand.includes('facebook')) return <FontAwesome5 name="facebook" size={wp(6)} color="#1877F2" />;
     if (brand.includes('instagram')) return <FontAwesome5 name="instagram" size={wp(6)} color="#E4405F" />;
     if (brand.includes('walmart')) return <FontAwesome5 name="shopping-basket" size={wp(5.5)} color="#FFC220" />;
-    if (brand.includes('google')) return <FontAwesome5 name="google" size={wp(6)} color="#4285F4" />;
+    if (brand.includes('google')) return <Text style={[styles.cardFallbackLogo, styles.googleFallbackLogo]}>G</Text>;
+    if (brand.includes('roblox')) return <Text style={[styles.cardFallbackLogo, styles.robloxFallbackLogo]}>R</Text>;
     if (brand.includes('netflix')) return <FontAwesome5 name="netflix" size={wp(6)} color="#E50914" />;
     if (brand.includes('playstation')) return <FontAwesome5 name="playstation" size={wp(6)} color="#FFFFFF" />;
     if (brand.includes('xbox')) return <FontAwesome5 name="xbox" size={wp(6)} color="#107C10" />;
-    return <MaterialCommunityIcons name="card-account-details-outline" size={wp(6)} color="#D1D5DB" />;
+    const initials = card.name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+    return <Text style={styles.cardFallbackLogo}>{initials || '?'}</Text>;
   };
 
   const formatTransactionDate = (value: string) => {
@@ -288,9 +290,9 @@ export default function HomeScreen() {
     const statusColor = isSuccessful ? '#047857' : transaction.status === 'failed' ? '#B91C1C' : '#B45309';
     const statusBackground = isSuccessful ? '#D1FAE5' : transaction.status === 'failed' ? '#FEE2E2' : '#FEF3C7';
     return (
-      <View key={transaction.id} style={styles.txCard}>
-        <View style={[styles.txIconContainer, { backgroundColor: '#10B981' }]}>
-          <MaterialCommunityIcons name="shopping" size={wp(5.5)} color="#FFFFFF" />
+      <TouchableOpacity key={transaction.id} style={styles.txCard} activeOpacity={0.75} onPress={() => setSelectedTransaction(transaction)} accessibilityRole="button" accessibilityLabel={`View ${transaction.type} transaction details`}>
+        <View style={[styles.txIconContainer, { backgroundColor: statusBackground }]}>
+          <MaterialCommunityIcons name="shopping" size={wp(5.5)} color={statusColor} />
         </View>
         <View style={styles.txDetails}>
           <Text style={styles.txTitle} numberOfLines={1}>{transaction.type} · {transaction.currency} {transaction.amount.toLocaleString()}</Text>
@@ -305,14 +307,12 @@ export default function HomeScreen() {
             <Text style={[styles.statusText, { color: statusColor }]}>{transaction.status}</Text>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F5F7F8" translucent={false} />
-
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
@@ -321,18 +321,15 @@ export default function HomeScreen() {
         {/* ================= HEADER SECTION ================= */}
         <View style={styles.header}>
           <View style={styles.userInfo}>
-            <Image
-              source={{
-                uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop',
-              }}
-              style={styles.avatar}
-            />
+            {user?.profileImage
+              ? <Image source={{ uri: user.profileImage }} style={styles.avatar} />
+              : <View style={[styles.avatar, styles.avatarPlaceholder]}><Ionicons name="person" size={wp(5.5)} color="#FFFFFF" /></View>}
             <View style={styles.userTextContainer}>
               <View style={styles.greetingRow}>
                 <Text style={styles.greetingText}>Good morning</Text>
                 <Text style={styles.waveEmoji}> 👋</Text>
               </View>
-              <Text style={styles.userName}>{user?.name ?? (sessionReady ? 'Your account' : 'Cardzip account')}</Text>
+              <Text style={styles.userName} numberOfLines={1} ellipsizeMode="tail" adjustsFontSizeToFit minimumFontScale={0.75}>{user?.name ?? (sessionReady ? 'Your account' : 'Cardzip account')}</Text>
             </View>
           </View>
 
@@ -415,20 +412,20 @@ export default function HomeScreen() {
 
     <View style={styles.badgePercentage}>
       <Ionicons
-        name="arrow-up"
-        size={wp(3)}
-        color="#00E676"
+        name="wallet-outline"
+        size={wp(3.4)}
+        color="#B3F05C"
       />
-      <Text style={styles.badgeText}>12.5%</Text>
+      <Text style={styles.badgeText}>YOUR WALLET</Text>
     </View>
   </View>
 
-  <Text style={styles.balanceAmount}>
+  <Text style={styles.balanceAmount} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65}>
     {balanceVisible ? `₦${balance.toLocaleString('en-US')}.00` : '₦ ••••••••'}
   </Text>
 
   <Text style={styles.updatedText}>
-    ≈ $701.20 · Updated Just now
+    Your Cardzip balance, ready when you are
   </Text>
 
   <View style={styles.actionRow}>
@@ -463,6 +460,16 @@ export default function HomeScreen() {
     </TouchableOpacity>
   </View>
 </LinearGradient>
+
+        <AdvertisementBanner placementKey="app-home-hero" />
+        <TouchableOpacity
+          activeOpacity={0.82}
+          onPress={() => router.push('/(main)/market/advertise' as never)}
+          style={{ marginBottom: 12, padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 11, borderWidth: 1, borderColor: '#D7E9DD', backgroundColor: '#F4FAF6' }}
+        >
+          <View><Text style={{ color: '#087A4C', fontSize: 12, fontWeight: '800' }}>Advertise on Cardzip</Text><Text style={{ marginTop: 3, color: '#64746A', fontSize: 10 }}>Promote your business across the app.</Text></View>
+          <Ionicons name="arrow-forward" size={17} color="#087A4C" />
+        </TouchableOpacity>
 
         {/* ================= QUICK ACTIONS GRID ================= */}
         <View style={styles.quickGrid}>
@@ -499,13 +506,6 @@ export default function HomeScreen() {
             <Text style={styles.quickLabel}>Calculator</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.quickItem} activeOpacity={0.7}>
-            <View style={styles.quickIconContainer}>
-              <Ionicons name="gift-outline" size={wp(5.5)} color="#10B981" />
-            </View>
-            <Text style={styles.quickLabel}>Buy Gift</Text>
-          </TouchableOpacity>
-
           <TouchableOpacity
             style={styles.quickItem}
             activeOpacity={0.7}
@@ -517,6 +517,69 @@ export default function HomeScreen() {
             <Text style={styles.quickLabel}>Support</Text>
           </TouchableOpacity>
         </View>
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Store products</Text>
+          <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/(main)/(tabs)/store')}><Text style={styles.seeAllText}>Explore store</Text></TouchableOpacity>
+        </View>
+        <Text style={styles.homeSectionSubtitle}>{promotedProducts.length ? 'Promoted products from Cardzip sellers.' : 'Everyday essentials picked for you.'}</Text>
+        {promotedProductsError ? <Text style={styles.txSub}>Promoted products are temporarily unavailable. Showing products picked for you.</Text> : null}
+        {featuredProductsLoading && featuredProducts.length === 0 ? <CardzipLoader label="Loading store products…" compact /> : null}
+        {!featuredProductsLoading && featuredProducts.length === 0 ? <Text style={styles.txSub}>No store products are available right now.</Text> : null}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.homeProductRow}>
+          {homeStoreProducts.map((product: StoreProduct) => {
+            const image = product.image || product.images?.[0];
+            const homePrice = product.productType && product.productType !== 'product'
+              ? Number(product.price) > 0 ? product.price : product.usePrice || product.templatePrice || 0
+              : product.price;
+            const productPath = product.productType && product.productType !== 'product'
+              ? `/(main)/market/digital-assets/${encodeURIComponent(product.slug ?? String(product._id ?? product.id))}`
+              : `/market/product/${encodeURIComponent(product.slug ?? String(product._id ?? product.id))}`;
+            return (
+              <TouchableOpacity key={product._id ?? product.id} style={styles.homeProductCard} activeOpacity={0.82} onPress={() => router.push(productPath as never)}>
+                {image ? <CachedImage source={{ uri: getStoreImageUrl(image, 520) }} style={styles.homeProductImage} contentFit="cover" cachePolicy="disk" transition={120} /> : <View style={[styles.homeProductImage, styles.homeProductImageEmpty]}><MaterialCommunityIcons name="storefront-outline" size={wp(7)} color="#7D9184" /></View>}
+                <Text style={styles.homeProductName} numberOfLines={1}>{product.name}</Text>
+                <Text style={styles.homeProductPrice} numberOfLines={1}>{formatNaira(Number(homePrice))}</Text>
+                <Text style={styles.homeProductCondition} numberOfLines={1}>{product.productType && product.productType !== 'product' ? 'Digital product' : product.isSold ? 'Sold' : product.condition === 'used' ? 'Used' : 'Brand new'}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+        <TouchableOpacity style={styles.homePromotionBanner} activeOpacity={0.85} onPress={() => router.push('/market/community' as never)}>
+          <View style={styles.homePromotionTag}><Text style={styles.homePromotionTagText}>AD</Text></View>
+          <View style={styles.homePromotionCopy}><Text style={styles.homePromotionTitle}>Promote your product to local buyers</Text><Text style={styles.homePromotionSubtitle}>Post a community listing. No Cardzip payment.</Text></View>
+          <Ionicons name="arrow-forward" size={wp(4.5)} color="#8B651F" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.homeNumberHubCard}
+          activeOpacity={0.88}
+          onPress={() => router.push({ pathname: '/(main)/(tabs)/esims', params: { tab: 'catalog' } })}
+          accessibilityRole="button"
+          accessibilityLabel="Explore virtual numbers and SMS verification"
+        >
+          <LinearGradient
+            colors={['#102D22', '#0A4932', '#087A4C']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.homeNumberHubGradient}
+          >
+            <View style={styles.homeNumberHubTop}>
+              <View style={styles.homeNumberHubIcon}>
+                <MaterialCommunityIcons name="sim" size={wp(6)} color="#C8F7D7" />
+              </View>
+              <View style={styles.homeNumberHubBadge}><View style={styles.homeNumberHubDot} /><Text style={styles.homeNumberHubBadgeText}>NUMBER HUB</Text></View>
+              <Ionicons name="arrow-forward" size={wp(5)} color="#D8FBE2" />
+            </View>
+            <Text style={styles.homeNumberHubTitle}>Virtual numbers, made simple.</Text>
+            <Text style={styles.homeNumberHubDescription}>Get a number for your chosen service and read verification texts in one place.</Text>
+            <View style={styles.homeNumberHubFeatures}>
+              <View style={styles.homeNumberHubFeature}><Ionicons name="globe-outline" size={wp(4)} color="#C8F7D7" /><Text style={styles.homeNumberHubFeatureText}>Choose a destination</Text></View>
+              <View style={styles.homeNumberHubFeature}><Ionicons name="chatbubble-ellipses-outline" size={wp(4)} color="#C8F7D7" /><Text style={styles.homeNumberHubFeatureText}>SMS inbox included</Text></View>
+            </View>
+            <View style={styles.homeNumberHubAction}><Text style={styles.homeNumberHubActionText}>Explore virtual numbers</Text><Ionicons name="chevron-forward" size={wp(4)} color="#0D3826" /></View>
+          </LinearGradient>
+        </TouchableOpacity>
 
         {/* ================= NEW BILLS & UTILITIES SECTION ================= */}
         <View style={styles.sectionHeader}>
@@ -555,13 +618,6 @@ export default function HomeScreen() {
             <Text style={styles.billLabel}>Television</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.billItem} activeOpacity={0.7} onPress={() => router.push({ pathname: '/(main)/property/bills', params: { tab: 'jamb' } })}>
-            <View style={[styles.billIconBg, { backgroundColor: '#E0F2FE' }]}>
-              <MaterialCommunityIcons name="school-outline" size={wp(5.5)} color="#0369A1" />
-            </View>
-            <Text style={styles.billLabel}>JAMB</Text>
-          </TouchableOpacity>
-
           <TouchableOpacity style={styles.billItem} activeOpacity={0.7} onPress={() => router.push({ pathname: '/(main)/property/bills', params: { tab: 'waec' } })}>
             <View style={[styles.billIconBg, { backgroundColor: '#FEF3C7' }]}>
               <MaterialCommunityIcons name="book-open-page-variant" size={wp(5.5)} color="#B45309" />
@@ -596,7 +652,7 @@ export default function HomeScreen() {
         {transactionsLoading && transactions.length === 0 ? <CardzipLoader label="Loading transactions…" compact /> : null}
         {transactionsError ? <Text style={styles.txSub}>{transactionsError}</Text> : null}
         {!transactionsLoading && transactions.length === 0 && !transactionsError ? <Text style={styles.txSub}>No recent transactions.</Text> : null}
-        {transactions.slice(0, 3).map(renderTransaction)}
+        {transactions.slice(0, 6).map(renderTransaction)}
 
       </ScrollView>
 
@@ -655,6 +711,38 @@ export default function HomeScreen() {
       </Modal>
 
       <Modal
+        visible={selectedTransaction !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedTransaction(null)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.transactionDetailsModal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Transaction details</Text>
+              <TouchableOpacity onPress={() => setSelectedTransaction(null)} style={styles.modalClose} accessibilityLabel="Close transaction details">
+                <Ionicons name="close" size={wp(5)} color="#1F2937" />
+              </TouchableOpacity>
+            </View>
+            {selectedTransaction ? (
+              <>
+                <View style={styles.transactionDetailStatus}>
+                  <View style={[styles.statusDot, { backgroundColor: selectedTransaction.status === 'successful' ? '#047857' : selectedTransaction.status === 'failed' ? '#B91C1C' : '#B45309' }]} />
+                  <Text style={styles.transactionDetailStatusText}>{selectedTransaction.status.toUpperCase()}</Text>
+                </View>
+                <View style={styles.transactionDetailRow}><Text style={styles.transactionDetailLabel}>Transaction type</Text><Text style={styles.transactionDetailValue}>{selectedTransaction.type}</Text></View>
+                <View style={styles.transactionDetailRow}><Text style={styles.transactionDetailLabel}>Gift card amount</Text><Text style={styles.transactionDetailValue}>{selectedTransaction.currency} {selectedTransaction.amount.toLocaleString()}</Text></View>
+                <View style={styles.transactionDetailRow}><Text style={styles.transactionDetailLabel}>Naira value</Text><Text style={styles.transactionDetailValue}>{selectedTransaction.ngnAmount == null ? 'Pending' : formatNaira(selectedTransaction.ngnAmount)}</Text></View>
+                {selectedTransaction.exchangeRate != null ? <View style={styles.transactionDetailRow}><Text style={styles.transactionDetailLabel}>Exchange rate</Text><Text style={styles.transactionDetailValue}>{formatNaira(selectedTransaction.exchangeRate)} per {selectedTransaction.currency}</Text></View> : null}
+                <View style={styles.transactionDetailRow}><Text style={styles.transactionDetailLabel}>Date</Text><Text style={styles.transactionDetailValue}>{formatTransactionDate(selectedTransaction.createdAt)}</Text></View>
+                <Text style={styles.transactionDetailReference}>Transaction ID: {selectedTransaction.id}</Text>
+              </>
+            ) : null}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
         visible={notificationsVisible}
         transparent
         animationType="slide"
@@ -688,13 +776,13 @@ export default function HomeScreen() {
                   <TouchableOpacity
                     key={notification._id}
                     activeOpacity={0.85}
-                    disabled={Boolean(notification.readAt) || updatingNotificationId !== ''}
+                    disabled={updatingNotificationId !== ''}
                     style={[styles.notificationRow, !notification.readAt && styles.unreadNotificationRow]}
-                    onPress={() => { void markNotificationRead(notification); }}
+                    onPress={() => { void openNotification(notification); }}
                   >
                     <View style={styles.txIconContainer}>
                       <MaterialCommunityIcons
-                        name={notification.category === 'withdrawal' ? 'bank-transfer' : notification.category === 'bill_payment' ? 'receipt-text-check' : notification.category === 'virtual_number' ? 'sim' : notification.category === 'gift_card' ? 'gift' : 'shopping'}
+                        name={notification.category === 'business_appointment' ? 'calendar-check' : notification.category === 'withdrawal' ? 'bank-transfer' : notification.category === 'bill_payment' ? 'receipt-text-check' : notification.category === 'virtual_number' ? 'sim' : notification.category === 'gift_card' ? 'gift' : 'shopping'}
                         size={wp(5)}
                         color="#FFFFFF"
                       />
@@ -720,15 +808,14 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F5F7F8',
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    backgroundColor: '#F2F7F3',
   },
   container: {
     flex: 1,
   },
   scrollContent: {
     paddingHorizontal: wp(4.5),
-    paddingBottom: wp(8),
+    paddingBottom: wp(26),
   },
 
   /* Header */
@@ -742,31 +829,45 @@ const styles = StyleSheet.create({
   userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+    minWidth: 0,
   },
   avatar: {
     width: wp(11),
     height: wp(11),
     borderRadius: wp(5.5),
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  avatarPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#537260',
   },
   userTextContainer: {
     marginLeft: wp(3),
+    flex: 1,
+    minWidth: 0,
   },
   greetingRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   greetingText: {
+    fontFamily: 'Poppins',
     fontSize: wp(3.3),
-    color: '#6B7280',
-    fontWeight: '400',
+    color: '#527461',
+    fontWeight: '500',
   },
   waveEmoji: {
+    fontFamily: 'Poppins',
     fontSize: wp(3.3),
   },
   userName: {
+    fontFamily: 'Poppins',
     fontSize: wp(4.2),
     fontWeight: '700',
-    color: '#111827',
+    color: '#12291D',
     marginTop: 1,
   },
   headerActions: {
@@ -779,16 +880,17 @@ const styles = StyleSheet.create({
     height: wp(10.5),
     paddingHorizontal: wp(2.8),
     borderRadius: wp(5.25),
-    backgroundColor: '#EAFBF3',
+    backgroundColor: '#E7F7ED',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#B7F0D3',
+    borderColor: '#C6E8D2',
     flexDirection: 'row',
   },
   historyBtnText: {
     color: '#0F172A',
     fontWeight: '700',
+    fontFamily: 'Poppins',
     fontSize: wp(3),
     marginLeft: 4,
   },
@@ -800,7 +902,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#DFE8E2',
   },
   notificationBadge: {
     position: 'absolute',
@@ -820,11 +922,18 @@ const styles = StyleSheet.create({
 
   /* Balance Card */
 balanceCard: {
-  borderRadius: wp(5),
-  padding: wp(4.5),
+  borderRadius: wp(5.5),
+  padding: wp(5),
   marginBottom: wp(4),
   overflow: 'hidden',
   position: 'relative',
+  borderWidth: 1,
+  borderColor: 'rgba(190, 255, 210, 0.18)',
+  shadowColor: '#073A21',
+  shadowOffset: { width: 0, height: 8 },
+  shadowOpacity: 0.16,
+  shadowRadius: 14,
+  elevation: 5,
 },
 rightGlow: {
   position: 'absolute',
@@ -853,7 +962,8 @@ topGlow: {
     alignItems: 'center',
   },
   balanceTitle: {
-    color: '#9CA3AF',
+    color: '#C5D9CC',
+    fontFamily: 'Poppins',
     fontSize: wp(3.3),
     fontWeight: '500',
     marginLeft: 6,
@@ -861,25 +971,29 @@ topGlow: {
   badgePercentage: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
     paddingHorizontal: wp(2.5),
     paddingVertical: wp(1),
     borderRadius: wp(4),
   },
   badgeText: {
-    color: '#00E676',
-    fontSize: wp(3.1),
-    fontWeight: '600',
-    marginLeft: 2,
+    color: '#D5F3A0',
+    fontFamily: 'Poppins',
+    fontSize: wp(2.5),
+    fontWeight: '700',
+    marginLeft: 4,
   },
   balanceAmount: {
+    fontFamily: 'Poppins',
     fontSize: wp(8),
     fontWeight: '800',
     color: '#FFFFFF',
     marginTop: wp(2.5),
+    maxWidth: '100%',
   },
   updatedText: {
-    color: '#6B7280',
+    color: '#B3C8B9',
+    fontFamily: 'Poppins',
     fontSize: wp(3),
     marginTop: wp(1),
     fontWeight: '400',
@@ -891,7 +1005,7 @@ topGlow: {
   },
   withdrawBtn: {
     flex: 1,
-    backgroundColor: '#059669',
+    backgroundColor: '#159B63',
     borderRadius: wp(3),
     paddingVertical: wp(3),
     flexDirection: 'row',
@@ -902,12 +1016,13 @@ topGlow: {
   withdrawText: {
     color: '#FFFFFF',
     fontWeight: '700',
+    fontFamily: 'Poppins',
     fontSize: wp(3.6),
     marginLeft: 6,
   },
   sellBtn: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: wp(3),
@@ -920,6 +1035,7 @@ topGlow: {
   sellText: {
     color: '#FFFFFF',
     fontWeight: '700',
+    fontFamily: 'Poppins',
     fontSize: wp(3.6),
     marginLeft: 6,
   },
@@ -933,16 +1049,28 @@ topGlow: {
   quickItem: {
     width: wp(21),
     backgroundColor: '#FFFFFF',
-    borderRadius: wp(3.5),
-    paddingVertical: wp(3.5),
+    borderRadius: wp(4),
+    paddingVertical: wp(4),
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#DCE9DF',
+    shadowColor: '#163D2A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.05,
+    shadowRadius: 7,
+    elevation: 2,
   },
   quickIconContainer: {
+    width: wp(11),
+    height: wp(11),
     marginBottom: wp(2),
+    borderRadius: wp(3.5),
+    backgroundColor: '#E5F5E9',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   quickLabel: {
+    fontFamily: 'Poppins',
     fontSize: wp(2.9),
     fontWeight: '600',
     color: '#1F2937',
@@ -952,18 +1080,24 @@ topGlow: {
   billsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
+    columnGap: wp(3),
     marginBottom: wp(5),
   },
   billItem: {
-    width: wp(28),
+    width: '31%',
     backgroundColor: '#FFFFFF',
-    borderRadius: wp(3.5),
+    borderRadius: wp(4),
     paddingVertical: wp(3),
     marginBottom: wp(3),
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#E0EAE3',
+    shadowColor: '#163D2A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 5,
+    elevation: 1,
   },
   billIconBg: {
     width: wp(10),
@@ -974,6 +1108,7 @@ topGlow: {
     marginBottom: wp(1.5),
   },
   billLabel: {
+    fontFamily: 'Poppins',
     fontSize: wp(2.8),
     fontWeight: '600',
     color: '#374151',
@@ -984,15 +1119,48 @@ topGlow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: wp(3.5),
-    marginTop: wp(1),
+    marginBottom: wp(3),
+    marginTop: wp(2.5),
+    paddingBottom: wp(2.2),
+    borderBottomWidth: 1,
+    borderBottomColor: '#DDEAE0',
   },
   sectionTitle: {
-    fontSize: wp(4.2),
+    fontFamily: 'Poppins',
+    fontSize: wp(4.1),
     fontWeight: '700',
-    color: '#111827',
+    color: '#153426',
   },
+  homeSectionSubtitle: { marginTop: -wp(1.5), marginBottom: wp(3), color: '#718078', fontFamily: 'Poppins', fontSize: wp(3), lineHeight: wp(4.5) },
+  homeProductRow: { gap: wp(2.5), paddingBottom: wp(3) },
+  homeProductCard: { width: wp(40), padding: wp(2.5), borderRadius: wp(3.5), borderWidth: 1, borderColor: '#DFE8E2', backgroundColor: '#FFFFFF', shadowColor: '#163D2A', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+  homeProductImage: { width: '100%', height: wp(30), borderRadius: wp(2.5), backgroundColor: '#EDF2EE' },
+  homeProductImageEmpty: { alignItems: 'center', justifyContent: 'center' },
+  homeProductName: { marginTop: wp(2), color: '#153426', fontFamily: 'Poppins', fontSize: wp(3.1), fontWeight: '700' },
+  homeProductPrice: { marginTop: wp(1), color: '#087A4C', fontFamily: 'Poppins', fontSize: wp(3.2), fontWeight: '800' },
+  homeProductCondition: { marginTop: wp(0.7), color: '#728077', fontFamily: 'Poppins', fontSize: wp(2.6), fontWeight: '600' },
+  homePromotionBanner: { minHeight: wp(18), marginBottom: wp(4), paddingHorizontal: wp(3), paddingVertical: wp(2.5), flexDirection: 'row', alignItems: 'center', gap: wp(2.5), borderWidth: 1, borderColor: '#D9C698', borderRadius: wp(2), backgroundColor: '#FFF8E8' },
+  homePromotionTag: { width: wp(9), height: wp(7), alignItems: 'center', justifyContent: 'center', borderRadius: wp(1), backgroundColor: '#966519' },
+  homePromotionTagText: { color: '#FFFFFF', fontFamily: 'Poppins', fontSize: wp(2.4), fontWeight: '800' },
+  homePromotionCopy: { flex: 1, minWidth: 0 },
+  homePromotionTitle: { color: '#49381D', fontFamily: 'Poppins', fontSize: wp(3.1), fontWeight: '800' },
+  homePromotionSubtitle: { marginTop: wp(0.7), color: '#766442', fontFamily: 'Poppins', fontSize: wp(2.5), lineHeight: wp(3.6) },
+  homeNumberHubCard: { overflow: 'hidden', marginTop: wp(2), marginBottom: wp(4), borderRadius: wp(5), shadowColor: '#0B3A25', shadowOffset: { width: 0, height: 7 }, shadowOpacity: 0.16, shadowRadius: 13, elevation: 4 },
+  homeNumberHubGradient: { padding: wp(4.5), borderWidth: 1, borderColor: 'rgba(206, 250, 221, 0.2)', borderRadius: wp(5) },
+  homeNumberHubTop: { flexDirection: 'row', alignItems: 'center', gap: wp(2.2) },
+  homeNumberHubIcon: { width: wp(11), height: wp(11), alignItems: 'center', justifyContent: 'center', borderRadius: wp(3.5), borderWidth: 1, borderColor: 'rgba(211, 255, 225, 0.24)', backgroundColor: 'rgba(220, 255, 231, 0.12)' },
+  homeNumberHubBadge: { flexDirection: 'row', alignItems: 'center', gap: wp(1.5), marginRight: 'auto', paddingHorizontal: wp(2.5), paddingVertical: wp(1.2), borderRadius: wp(5), backgroundColor: 'rgba(220, 255, 231, 0.12)' },
+  homeNumberHubDot: { width: wp(1.6), height: wp(1.6), borderRadius: wp(1), backgroundColor: '#8EF0AF' },
+  homeNumberHubBadgeText: { color: '#D5F8E0', fontFamily: 'Poppins', fontSize: wp(2.35), fontWeight: '800', letterSpacing: 0.7 },
+  homeNumberHubTitle: { marginTop: wp(4), color: '#FFFFFF', fontFamily: 'Poppins', fontSize: wp(5), fontWeight: '800', lineHeight: wp(6.5) },
+  homeNumberHubDescription: { marginTop: wp(1.3), color: '#D4E9DC', fontFamily: 'Poppins', fontSize: wp(3), lineHeight: wp(4.6) },
+  homeNumberHubFeatures: { flexDirection: 'row', flexWrap: 'wrap', gap: wp(2.5), marginTop: wp(3.5) },
+  homeNumberHubFeature: { flexDirection: 'row', alignItems: 'center', gap: wp(1.5), paddingHorizontal: wp(2.5), paddingVertical: wp(1.8), borderWidth: 1, borderColor: 'rgba(211, 255, 225, 0.2)', borderRadius: wp(2.5), backgroundColor: 'rgba(7, 31, 21, 0.18)' },
+  homeNumberHubFeatureText: { color: '#E3F4E8', fontFamily: 'Poppins', fontSize: wp(2.5), fontWeight: '600' },
+  homeNumberHubAction: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: wp(1.5), marginTop: wp(4), paddingVertical: wp(3), borderRadius: wp(3), backgroundColor: '#D9F9E3' },
+  homeNumberHubActionText: { color: '#0D3826', fontFamily: 'Poppins', fontSize: wp(3.1), fontWeight: '800' },
   seeAllText: {
+    fontFamily: 'Poppins',
     fontSize: wp(3.3),
     color: '#059669',
     fontWeight: '600',
@@ -1008,11 +1176,16 @@ topGlow: {
   cardBox: {
     width: wp(43.5),
     backgroundColor: '#FFFFFF',
-    borderRadius: wp(4),
+    borderRadius: wp(4.5),
     padding: wp(3),
     marginBottom: wp(3.5),
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#DFE8E2',
+    shadowColor: '#163D2A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.05,
+    shadowRadius: 7,
+    elevation: 2,
   },
   cardHeaderBanner: {
     borderRadius: wp(3),
@@ -1028,17 +1201,33 @@ topGlow: {
     width: wp(8),
     height: wp(8),
   },
+  cardFallbackLogo: {
+    color: '#FFFFFF',
+    fontFamily: 'Poppins',
+    fontSize: wp(5.5),
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  googleFallbackLogo: {
+    color: '#4285F4',
+  },
+  robloxFallbackLogo: {
+    color: '#E2231A',
+  },
   cardBrand: {
     color: '#FFFFFF',
     fontWeight: '700',
+    fontFamily: 'Poppins',
     fontSize: wp(3.3),
   },
   cardSub: {
     color: '#9CA3AF',
+    fontFamily: 'Poppins',
     fontSize: wp(2.5),
   },
   sephoraIcon: {
     color: '#EC4899',
+    fontFamily: 'Poppins',
     fontSize: wp(5.5),
     fontWeight: '900',
   },
@@ -1048,17 +1237,19 @@ topGlow: {
     alignItems: 'center',
   },
   rateBadge: {
-    backgroundColor: '#E6F4EA',
+    backgroundColor: '#E7F7ED',
     paddingHorizontal: wp(2),
     paddingVertical: wp(1),
     borderRadius: wp(1.5),
   },
   rateText: {
+    fontFamily: 'Poppins',
     fontSize: wp(2.6),
     fontWeight: '700',
     color: '#059669',
   },
   changeText: {
+    fontFamily: 'Poppins',
     fontSize: wp(2.8),
     fontWeight: '700',
   },
@@ -1072,7 +1263,12 @@ topGlow: {
     padding: wp(3.5),
     marginBottom: wp(3),
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#DFE8E2',
+    shadowColor: '#163D2A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 5,
+    elevation: 1,
   },
   txIconContainer: {
     width: wp(11),
@@ -1086,11 +1282,13 @@ topGlow: {
     marginLeft: wp(3),
   },
   txTitle: {
+    fontFamily: 'Poppins',
     fontSize: wp(3.6),
     fontWeight: '700',
     color: '#111827',
   },
   txSub: {
+    fontFamily: 'Poppins',
     fontSize: wp(3),
     color: '#9CA3AF',
     marginTop: 2,
@@ -1099,6 +1297,7 @@ topGlow: {
     alignItems: 'flex-end',
   },
   txAmount: {
+    fontFamily: 'Poppins',
     fontSize: wp(3.8),
     fontWeight: '800',
     color: '#111827',
@@ -1118,6 +1317,7 @@ topGlow: {
     marginRight: 4,
   },
   statusText: {
+    fontFamily: 'Poppins',
     fontSize: wp(2.5),
     fontWeight: '700',
   },
@@ -1133,6 +1333,13 @@ topGlow: {
     borderRadius: wp(4),
     padding: wp(4),
   },
+  transactionDetailsModal: { width: '100%', maxWidth: 420, padding: wp(5), borderRadius: wp(4), backgroundColor: '#FFFFFF' },
+  transactionDetailStatus: { marginBottom: wp(3), paddingHorizontal: wp(3), paddingVertical: wp(2), flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: wp(2), borderRadius: wp(4), backgroundColor: '#F1F6F2' },
+  transactionDetailStatusText: { color: '#33473B', fontSize: wp(2.8), fontWeight: '800' },
+  transactionDetailRow: { minHeight: wp(11), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: wp(3), borderBottomWidth: 1, borderBottomColor: '#EDF1EE' },
+  transactionDetailLabel: { color: '#64746A', fontSize: wp(3), fontWeight: '600' },
+  transactionDetailValue: { flex: 1, color: '#14231C', fontSize: wp(3.1), fontWeight: '700', textAlign: 'right' },
+  transactionDetailReference: { marginTop: wp(4), color: '#849188', fontSize: wp(2.6) },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1141,6 +1348,7 @@ topGlow: {
   },
   modalTitle: {
     color: '#111827',
+    fontFamily: 'Poppins',
     fontSize: wp(4.2),
     fontWeight: '700',
   },
@@ -1190,6 +1398,7 @@ topGlow: {
   },
   notificationTitle: {
     color: '#111827',
+    fontFamily: 'Poppins',
     fontSize: wp(3.4),
     fontWeight: '700',
     textTransform: 'capitalize',
@@ -1199,6 +1408,7 @@ topGlow: {
   },
   modalEmptyText: {
     color: '#6B7280',
+    fontFamily: 'Poppins',
     fontSize: wp(3.4),
     paddingVertical: wp(8),
     textAlign: 'center',
@@ -1225,11 +1435,13 @@ topGlow: {
   },
   pageButtonText: {
     color: '#FFFFFF',
+    fontFamily: 'Poppins',
     fontSize: wp(3),
     fontWeight: '700',
   },
   pageNumber: {
     color: '#374151',
+    fontFamily: 'Poppins',
     fontSize: wp(3),
     fontWeight: '600',
   },

@@ -1,28 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import {
-  StyleSheet,
+import { StyleSheet,
   View,
   Text,
   TextInput,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
-  StatusBar,
   useWindowDimensions,
   Platform,
   ActivityIndicator,
-  Alert,
-  Modal
-} from 'react-native';
+  Modal } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Contact, requestPermissionsAsync } from 'expo-contacts';
 import { router, useLocalSearchParams } from 'expo-router';
 import PaymentOptionsSheet from '../../../components/PaymentOptionsSheet';
 import KeyboardAwareScrollView from '../../../components/KeyboardAwareScrollView';
-import { API_BASE_URL as API_ROOT_URL } from '../../services/api/config';
+import { API_BASE_URL as API_ROOT_URL } from '../../../services/api/config';
 import * as Linking from 'expo-linking';
-import * as WebBrowser from 'expo-web-browser';
-import { useAppDispatch, useAppSelector } from '../../store';
-import { fetchWalletBalance } from '../../store/slices/walletSlice';
+import { isDefinitivePaystackFailure, openPaystackCheckout } from '../../../services/api/paystackFlow';
+import { useAppDispatch, useAppSelector } from '../../../store';
+import { fetchWalletBalance } from '../../../store/slices/walletSlice';
 
 const API_BASE_URL = `${API_ROOT_URL}/api`;
 const configuredPaymentCallbackUrl = process.env.EXPO_PUBLIC_PAYSTACK_CALLBACK_URL?.trim();
@@ -136,7 +133,7 @@ export default function BillsScreen() {
   // Helper to normalize route params
   const normalizeTab = (paramTab?: string): CategoryType => {
     if (paramTab === 'television') return 'tv';
-    if (paramTab === 'data' || paramTab === 'electricity' || paramTab === 'tv' || paramTab === 'jamb' || paramTab === 'waec') {
+    if (paramTab === 'data' || paramTab === 'electricity' || paramTab === 'tv' || paramTab === 'waec') {
       return paramTab;
     }
     return 'airtime';
@@ -174,6 +171,7 @@ const [providerDropdownOpen, setProviderDropdownOpen] = useState(false);
   const [loadingJambVariations, setLoadingJambVariations] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [paymentSheetVisible, setPaymentSheetVisible] = useState(false);
+  const [pendingBillPaystackReference, setPendingBillPaystackReference] = useState<string | null>(null);
 
   const [alertConfig, setAlertConfig] = useState<{
   visible: boolean;
@@ -220,6 +218,63 @@ useEffect(() => {
   if (token) void dispatch(fetchWalletBalance(token));
 }, [dispatch, token]);
 
+useEffect(() => {
+  if (!token || !pendingBillPaystackReference || isSubmitting) return undefined;
+  let stopped = false;
+  let checking = false;
+  const checkBillPaystackPayment = async () => {
+    if (checking || stopped) return;
+    checking = true;
+    try {
+      const response = await fetch(`${API_BASE_URL}/bills/paystack/verify`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ reference: pendingBillPaystackReference }),
+      });
+      const result = await response.json().catch(() => ({}));
+      const billPayment = result.data?.billPayment;
+      if (billPayment?.status === 'processing' || billPayment?.status === 'completed') {
+        stopped = true;
+        setPendingBillPaystackReference(null);
+        const transaction = billPayment.providerResponse?.content?.transactions || {};
+        const purchaseCode = billPayment.providerResponse?.purchased_code || transaction.token || transaction.purchased_code;
+        setAlertConfig({
+          visible: true,
+          title: 'Payment successful',
+          message: purchaseCode
+            ? `Your purchase is complete.\nPIN / token: ${purchaseCode}`
+            : billPayment.status === 'processing'
+              ? 'Paystack confirmed your payment. The bill provider is completing the purchase; your bill history will update automatically.'
+              : 'Your bill payment was completed successfully.',
+          type: 'success',
+        });
+        return;
+      }
+      const message = String(result.message || billPayment?.failureReason || '');
+      if (billPayment?.status === 'failed' || (message && isDefinitivePaystackFailure(new Error(message)))) {
+        stopped = true;
+        setPendingBillPaystackReference(null);
+        setAlertConfig({ visible: true, title: 'Payment not completed', message: message || 'Paystack did not complete this bill payment.', type: 'error' });
+      }
+    } catch {
+      // A transient network error leaves the reference pending for the next automatic check.
+    } finally {
+      checking = false;
+    }
+  };
+
+  void checkBillPaystackPayment();
+  const retryTimer = setInterval(() => { void checkBillPaystackPayment(); }, 4000);
+  return () => {
+    stopped = true;
+    clearInterval(retryTimer);
+  };
+}, [isSubmitting, pendingBillPaystackReference, token]);
+
   // Sync activeTab whenever user navigates with a different 'tab' param
   useEffect(() => {
     if (tab) {
@@ -229,6 +284,11 @@ useEffect(() => {
 
   // Sync default selected provider when activeTab changes
  useEffect(() => {
+  setAmount('0');
+  setSelectedBundleCode('');
+  setSelectedPlan('');
+  setWaecQuantity(1);
+
   if (activeTab === 'airtime') {
     setSelectedProvider('mtn');
   } else if (activeTab === 'data') {
@@ -503,6 +563,38 @@ const handlePhoneNumberChange = (text: string) => {
   }
 };
 
+const openPhoneContactPicker = async (target: 'phone' | 'electricity' | 'tv') => {
+  try {
+    const permission = await requestPermissionsAsync();
+    if (!permission.granted) {
+      showAlert('Contacts permission needed', 'Allow Cardzip to access contacts to select a phone number.', 'warning');
+      return;
+    }
+
+    const contact = await Contact.presentPicker();
+    if (!contact) return;
+
+    const phone = (await contact.getPhones()).find((entry) => entry.number?.trim())?.number;
+    if (!phone) {
+      showAlert('No phone number', 'This contact does not have a phone number saved.', 'warning');
+      return;
+    }
+
+    const digits = phone.replace(/\D/g, '');
+    const localNumber = digits.startsWith('234') ? `0${digits.slice(3)}` : digits;
+    const selectedNumber = localNumber.slice(0, 11);
+    if (target === 'electricity') {
+      setElectricityPhoneNumber(selectedNumber);
+    } else if (target === 'tv') {
+      setTvPhoneNumber(selectedNumber);
+    } else {
+      handlePhoneNumberChange(selectedNumber);
+    }
+  } catch (error) {
+    showAlert('Contacts unavailable', error instanceof Error ? error.message : 'Could not open your contacts.', 'error');
+  }
+};
+
 
 
   // Fetch WAEC Variations from Backend
@@ -517,11 +609,11 @@ const handlePhoneNumberChange = (text: string) => {
         setWaecVariations(variations);
         setSelectedWaecVariation(variations[0]); // Default to 'waecdirect'
       } else {
-        Alert.alert('Notice', 'Could not load WAEC packages. Please try again.');
+        showAlert('WAEC packages', 'Could not load WAEC packages. Please try again.', 'warning');
       }
     } catch (error) {
       console.error('Error fetching WAEC variations:', error);
-      Alert.alert('Error', 'Failed to connect to the server for WAEC packages.');
+      showAlert('WAEC packages', 'Failed to connect to the server for WAEC packages.', 'error');
     } finally {
       setLoadingWaecVariations(false);
     }
@@ -529,6 +621,10 @@ const handlePhoneNumberChange = (text: string) => {
 
   // Handle Purchase Submission
  const submitBillPayment = async (paymentMethod: 'wallet' | 'paystack') => {
+  if (paymentMethod === 'paystack' && pendingBillPaystackReference) {
+    showAlert('Payment is being confirmed', 'Your existing Paystack payment is being checked automatically. Do not start another payment.', 'info');
+    return;
+  }
   if (!token) {
     showAlert('Sign in required', 'Sign in before paying for bills.', 'warning');
     return;
@@ -633,6 +729,7 @@ const handlePhoneNumberChange = (text: string) => {
 
   setIsSubmitting(true);
   try {
+    let paystackPaymentConfirmed = false;
     const callbackUrl = configuredPaymentCallbackUrl || Linking.createURL('payment/callback', { scheme: 'cardzip' });
     const endpoint = paymentMethod === 'wallet' ? '/bills/pay' : '/bills/paystack/initialize';
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -658,26 +755,9 @@ const handlePhoneNumberChange = (text: string) => {
       const authorizationUrl = result.data?.authorizationUrl;
       const returnUrl = result.data?.callbackUrl || callbackUrl;
       if (!reference || !authorizationUrl) throw new Error('Paystack checkout did not return a payment reference.');
-      const browserResult = await WebBrowser.openAuthSessionAsync(authorizationUrl, returnUrl);
-      if (browserResult.type !== 'success') {
-        showAlert('Payment pending', `Checkout was closed. If you completed payment, Paystack will confirm it automatically. Reference: ${reference}`, 'info');
-        return;
-      }
-      const verificationResponse = await fetch(`${API_BASE_URL}/bills/paystack/verify`, {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ reference }),
-      });
-      const verification = await verificationResponse.json().catch(() => ({}));
-      if (!verificationResponse.ok || verification.data?.billPayment?.status !== 'completed') {
-        showAlert('Payment processing', verification.message || 'Paystack is confirming the payment. Check your bill history shortly.', 'info');
-        return;
-      }
-      billPayment = verification.data.billPayment;
+      setPendingBillPaystackReference(reference);
+      await openPaystackCheckout(authorizationUrl, returnUrl);
+      return;
     }
 
     let walletRefreshFailed = false;
@@ -690,13 +770,17 @@ const handlePhoneNumberChange = (text: string) => {
     const purchaseCode = billPayment?.providerResponse?.purchased_code || providerTransaction.token || providerTransaction.purchased_code;
     const walletRefreshNote = walletRefreshFailed ? '\nWallet balance could not refresh; reopen your wallet to check the updated balance.' : '';
     showAlert(
-      billPayment?.status === 'processing' ? 'Payment processing' : 'Payment successful',
+      billPayment?.status === 'processing'
+        ? paystackPaymentConfirmed ? 'Payment successful' : 'Payment processing'
+        : 'Payment successful',
       purchaseCode
         ? `Your purchase is complete.\nPIN / token: ${purchaseCode}${walletRefreshNote}`
         : billPayment?.status === 'processing'
-          ? `Your payment is recorded and the provider is still processing the purchase.${walletRefreshNote}`
+          ? paystackPaymentConfirmed
+            ? `Paystack confirmed your payment. The bill provider is completing the purchase; your bill history will update automatically.${walletRefreshNote}`
+            : `Your payment is recorded and the provider is still processing the purchase.${walletRefreshNote}`
           : `Your bill payment was completed successfully.${walletRefreshNote}`,
-      billPayment?.status === 'processing' ? 'info' : 'success',
+      billPayment?.status === 'processing' && !paystackPaymentConfirmed ? 'info' : 'success',
     );
   } catch (error) {
     showAlert('Payment failed', error instanceof Error ? error.message : 'Could not complete this bill payment.', 'error');
@@ -1502,7 +1586,6 @@ const getIconBgColor = (type: 'success' | 'error' | 'warning' | 'info') => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F4F6F5" />
       <KeyboardAwareScrollView
         contentContainerStyle={[
           styles.container,
@@ -1542,11 +1625,6 @@ const getIconBgColor = (type: 'success' | 'error' | 'warning' | 'info') => {
               <Text style={[styles.categoryTabText, activeTab === 'tv' && styles.activeCategoryTabText]}>TV</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.categoryTab, activeTab === 'jamb' && styles.activeCategoryTab]} onPress={() => setActiveTab('jamb')}>
-              <MaterialCommunityIcons name="school-outline" size={scale(14)} color={activeTab === 'jamb' ? '#FFFFFF' : '#82918B'} />
-              <Text style={[styles.categoryTabText, activeTab === 'jamb' && styles.activeCategoryTabText]}>JAMB</Text>
-            </TouchableOpacity>
-
             <TouchableOpacity style={[styles.categoryTab, activeTab === 'waec' && styles.activeCategoryTab]} onPress={() => setActiveTab('waec')}>
               <MaterialCommunityIcons name="book-open-page-variant" size={scale(14)} color={activeTab === 'waec' ? '#FFFFFF' : '#82918B'} />
               <Text style={[styles.categoryTabText, activeTab === 'waec' && styles.activeCategoryTabText]}>WAEC</Text>
@@ -1570,6 +1648,7 @@ const getIconBgColor = (type: 'success' | 'error' | 'warning' | 'info') => {
     style={[
       styles.sectionTitle,
       {
+        fontFamily: 'Poppins',
         fontSize: scale(12),
         marginBottom: verticalScale(10),
       },
@@ -1613,6 +1692,7 @@ const getIconBgColor = (type: 'success' | 'error' | 'warning' | 'info') => {
             style={[
               styles.providerLogoText,
               {
+                fontFamily: 'Poppins',
                 fontSize: scale(12),
               },
             ]}
@@ -1635,6 +1715,7 @@ const getIconBgColor = (type: 'success' | 'error' | 'warning' | 'info') => {
             style={[
               styles.providerDropdownName,
               {
+                fontFamily: 'Poppins',
                 fontSize: scale(13),
               },
             ]}
@@ -1650,6 +1731,7 @@ const getIconBgColor = (type: 'success' | 'error' | 'warning' | 'info') => {
             style={[
               styles.providerDropdownSubText,
               {
+                fontFamily: 'Poppins',
                 fontSize: scale(10),
               },
             ]}
@@ -1681,6 +1763,7 @@ const getIconBgColor = (type: 'success' | 'error' | 'warning' | 'info') => {
         style={[
           styles.providerDropdownPlaceholder,
           {
+            fontFamily: 'Poppins',
             fontSize: scale(13),
           },
         ]}
@@ -1745,6 +1828,7 @@ const getIconBgColor = (type: 'success' | 'error' | 'warning' | 'info') => {
                 style={[
                   styles.providerLogoText,
                   {
+                    fontFamily: 'Poppins',
                     fontSize: scale(11),
                   },
                 ]}
@@ -1757,6 +1841,7 @@ const getIconBgColor = (type: 'success' | 'error' | 'warning' | 'info') => {
               style={[
                 styles.providerDropdownItemText,
                 {
+                  fontFamily: 'Poppins',
                   fontSize: scale(12),
                   marginLeft: scale(10),
                 },
@@ -1833,13 +1918,16 @@ const getIconBgColor = (type: 'success' | 'error' | 'warning' | 'info') => {
               style={[styles.inputText, { fontSize: scale(15) }]}
             />
 
-            <TouchableOpacity style={styles.contactPickerBtn}>
-              <Ionicons
-                name="person-circle-outline"
-                size={scale(22)}
-                color="#00B856"
-              />
-            </TouchableOpacity>
+            {['airtime', 'data', 'waec'].includes(activeTab) ? (
+              <TouchableOpacity
+                style={styles.contactPickerBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Choose phone number from contacts"
+                onPress={() => void openPhoneContactPicker('phone')}
+              >
+                <Ionicons name="person-circle-outline" size={scale(22)} color="#00B856" />
+              </TouchableOpacity>
+            ) : null}
           </View>
         </View>
 
@@ -1888,6 +1976,7 @@ const getIconBgColor = (type: 'success' | 'error' | 'warning' | 'info') => {
               style={[
                 styles.sectionTitle,
                 {
+                  fontFamily: 'Poppins',
                   fontSize: scale(12),
                   marginBottom: verticalScale(8),
                 },
@@ -1970,6 +2059,7 @@ const getIconBgColor = (type: 'success' | 'error' | 'warning' | 'info') => {
       style={[
         styles.sectionTitle,
         {
+          fontFamily: 'Poppins',
           fontSize: scale(12),
           marginBottom: verticalScale(8),
         },
@@ -2001,17 +2091,21 @@ const getIconBgColor = (type: 'success' | 'error' | 'warning' | 'info') => {
         style={[
           styles.inputText,
           {
+            fontFamily: 'Poppins',
             fontSize: scale(15),
             flex: 1,
           },
         ]}
       />
 
-      <Ionicons
-        name="call-outline"
-        size={scale(20)}
-        color="#00B856"
-      />
+      <TouchableOpacity
+        style={styles.contactPickerBtn}
+        accessibilityRole="button"
+        accessibilityLabel="Choose phone number from contacts"
+        onPress={() => void openPhoneContactPicker('electricity')}
+      >
+        <Ionicons name="person-circle-outline" size={scale(22)} color="#00B856" />
+      </TouchableOpacity>
     </View>
   </View>
 )}
@@ -2028,7 +2122,14 @@ const getIconBgColor = (type: 'success' | 'error' | 'warning' | 'info') => {
                 placeholderTextColor="#9CA3AF"
                 style={[styles.inputText, { fontSize: scale(15), flex: 1 }]}
               />
-              <Ionicons name="call-outline" size={scale(20)} color="#00B856" />
+              <TouchableOpacity
+                style={styles.contactPickerBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Choose phone number from contacts"
+                onPress={() => void openPhoneContactPicker('tv')}
+              >
+                <Ionicons name="person-circle-outline" size={scale(22)} color="#00B856" />
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -2103,6 +2204,7 @@ const getIconBgColor = (type: 'success' | 'error' | 'warning' | 'info') => {
       style={[
         styles.sectionTitle,
         {
+          fontFamily: 'Poppins',
           fontSize: scale(12),
           marginBottom: verticalScale(8),
         },
@@ -2177,6 +2279,7 @@ const getIconBgColor = (type: 'success' | 'error' | 'warning' | 'info') => {
 
         <Text
           style={{
+            fontFamily: 'Poppins',
             fontSize: scale(11),
             color: '#82918B',
             marginTop: 3,
@@ -2299,19 +2402,26 @@ const getIconBgColor = (type: 'success' | 'error' | 'warning' | 'info') => {
           </Text>
         </View>
 
+        {pendingBillPaystackReference ? (
+          <View style={styles.paystackAutoCheck}>
+            <ActivityIndicator size="small" color="#047857" />
+            <Text style={styles.paystackAutoCheckText}>Paystack payment is being confirmed automatically. Don’t submit another payment.</Text>
+          </View>
+        ) : null}
+
         {/* Submit Action Button */}
         <TouchableOpacity
           style={[styles.confirmBtn, styles.confirmBtnGlow, { height: scale(48), borderRadius: scale(16) }]}
           activeOpacity={0.85}
           onPress={() => setPaymentSheetVisible(true)}
-          disabled={isSubmitting}
+          disabled={isSubmitting || Boolean(pendingBillPaystackReference)}
         >
           {isSubmitting ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
             <>
               <Text style={[styles.confirmBtnText, { fontSize: scale(15) }]}>
-                Pay {activeTab.toUpperCase()}
+                {pendingBillPaystackReference ? 'Confirming payment…' : `Pay ${activeTab.toUpperCase()}`}
               </Text>
               <Ionicons name="arrow-forward" size={scale(18)} color="#FFFFFF" style={{ marginLeft: 6 }} />
             </>
@@ -2432,6 +2542,7 @@ const styles = StyleSheet.create({
   categoryTabText: {
     color: '#82918B',
     fontWeight: '700',
+    fontFamily: 'Poppins',
     fontSize: 11,
   },
   activeCategoryTabText: {
@@ -2663,6 +2774,8 @@ meterTypeTextActive: {
     alignItems: 'center',
     justifyContent: 'center',
   },
+  paystackAutoCheck: { flexDirection: 'row', alignItems: 'center', gap: 9, padding: 12, marginBottom: 12, borderRadius: 10, backgroundColor: '#ECFDF5' },
+  paystackAutoCheckText: { color: '#047857', fontSize: 12, fontWeight: '600', flex: 1 },
   confirmBtnGlow: {
     shadowColor: '#00B856',
     shadowOffset: { width: 0, height: 4 },
@@ -2702,6 +2815,7 @@ meterTypeTextActive: {
     marginBottom: 14,
   },
   modalTitle: {
+    fontFamily: 'Poppins',
     fontSize: 18,
     fontWeight: '700',
     color: '#12201B',
@@ -2709,6 +2823,7 @@ meterTypeTextActive: {
     textAlign: 'center',
   },
   modalMessage: {
+    fontFamily: 'Poppins',
     fontSize: 14,
     color: '#52605B',
     textAlign: 'center',
@@ -2725,6 +2840,7 @@ meterTypeTextActive: {
   modalBtnText: {
     color: '#FFFFFF',
     fontWeight: '700',
+    fontFamily: 'Poppins',
     fontSize: 15,
   },
 });

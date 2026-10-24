@@ -48,7 +48,7 @@ const serviceExpenses = [
 ]
 
 export default function ExpensesPage() {
-  const periods = getPeriods()
+  const [periods] = useState(getPeriods)
   const [staff, setStaff] = useState([])
   const [expenses, setExpenses] = useState([])
   const [summary, setSummary] = useState(null)
@@ -110,7 +110,7 @@ export default function ExpensesPage() {
         if (mounted) setLoading(false)
       })
     return () => { mounted = false }
-  }, [])
+  }, [periods])
 
   const paidExpenseFor = (type, period, staffId) => expenses.find((expense) =>
     expense.expenseType === type

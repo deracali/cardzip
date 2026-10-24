@@ -15,6 +15,9 @@
 .kyc-review-details div { padding: 12px; border-radius: 10px; background: #f7f9f8; }
 .kyc-review-details dt { color: #75827c; font-size: 11px; }
 .kyc-review-details dd { margin: 5px 0 0; color: #172720; font-size: 13px; font-weight: 700; text-transform: capitalize; overflow-wrap: anywhere; }
+.kyc-review-details .kyc-document-number { align-items: flex-start; flex-direction: column; }
+.kyc-review-details .kyc-document-number-toggle { text-transform: none; }
+.kyc-review-details .kyc-document-number-error { text-transform: none; }
 .kyc-review-note { margin: 0; color: #75827c; font-size: 11px; }
 .kyc-review-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 .kyc-review-actions button, .kyc-review-pagination button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 1px solid #dfe7e3; border-radius: 9px; background: white; color: #35473f; font-size: 12px; font-weight: 700; cursor: pointer; }

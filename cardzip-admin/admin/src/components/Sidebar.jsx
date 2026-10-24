@@ -6,6 +6,10 @@ import {
   Receipt,
   MessageSquare,
   ShoppingBag,
+  Package,
+  Smartphone,
+  Store,
+  Megaphone,
   Gift,
   FileText,
   History,
@@ -14,6 +18,7 @@ import {
   Clock3,
   CircleDollarSign,
   Menu,
+  LogOut,
   X,
 } from 'lucide-react'
 
@@ -29,7 +34,12 @@ const navSections = [
       { name: 'Treasury', tab: 'Treasury', icon: Landmark },
       { name: 'Bill Payments', tab: 'Bill Payments', icon: Receipt },
       { name: 'Virtual Numbers', tab: 'Virtual Numbers', icon: MessageSquare },
-      { name: 'E-Commerce', tab: 'E-Commerce', icon: ShoppingBag },
+      { name: 'Orders', tab: 'E-Commerce', icon: ShoppingBag },
+      { name: 'Store Products', tab: 'Store Products', icon: Package },
+      { name: 'Digital Submissions', tab: 'Digital Submissions', icon: Smartphone },
+      { name: 'Shop Verification', tab: 'Shop Verification', icon: Store },
+      { name: 'Marketplace Promotions', tab: 'Marketplace Promotions', icon: Megaphone },
+      { name: 'Banner Ads', tab: 'Banner Ads', icon: Megaphone },
       { name: 'Gift Cards', tab: 'Gift Cards', icon: Gift, badge: 'X', isAltBadge: true },
      
     ],
@@ -61,7 +71,7 @@ const navSections = [
   },
 ]
 
-export default function Sidebar({ activeTab = 'Overview', setActiveTab, admin }) {
+export default function Sidebar({ activeTab = 'Overview', setActiveTab, admin, onLogout }) {
   const [isOpen, setIsOpen] = useState(false)
 
   const handleSelect = (tabName) => {
@@ -74,7 +84,7 @@ export default function Sidebar({ activeTab = 'Overview', setActiveTab, admin })
       {/* Mobile Top Header */}
       <div className="mobile-header">
         <div className="brand-mobile">
-          <div className="brand-icon">C</div>
+          <span className="brand-icon"><img src="/cardzip-logo.jpg" alt="" /></span>
           <span style={{ fontWeight: 600, fontSize: '15px' }}>Cardzip</span>
           <span className="live-badge">{admin?.role?.toUpperCase() || 'ADMIN'}</span>
         </div>
@@ -105,7 +115,7 @@ export default function Sidebar({ activeTab = 'Overview', setActiveTab, admin })
           {/* Header Brand */}
           <div className="brand-header">
             <div className="brand-left">
-              <div className="brand-icon">C</div>
+              <span className="brand-icon"><img src="/cardzip-logo.jpg" alt="" /></span>
               <div>
                 <div className="brand-title">Cardzip</div>
                 <div className="brand-subtitle">{admin?.role?.toUpperCase() || 'ADMIN'}</div>
@@ -131,7 +141,10 @@ export default function Sidebar({ activeTab = 'Overview', setActiveTab, admin })
             {[...navSections.map((section) => ({
               ...section,
               items: section.items.filter((item) =>
-                (admin?.role !== 'staff' || admin.visiblePages?.includes(item.requiredPermission || item.tab))
+                (admin?.role !== 'staff'
+                  || admin.visiblePages?.includes(item.requiredPermission || item.tab)
+                  || (['E-Commerce', 'Store Products', 'Digital Submissions', 'Shop Verification', 'Marketplace Promotions', 'Banner Ads'].includes(item.tab)
+                    && admin.visiblePages?.includes('E-Commerce')))
                 && (!item.administratorOnly || admin?.role !== 'staff')
               ),
             })), ...(admin?.role === 'staff' ? [{ group: 'My work', items: [
@@ -182,14 +195,16 @@ export default function Sidebar({ activeTab = 'Overview', setActiveTab, admin })
         </div>
 
       <div className="sidebar-bottom">
-  <div className="health-card">
-    <div className="health-card-content">
-      <div className="health-title">System float healthy</div>
-      <div className="health-desc">All rails operational • 99.98%</div>
-    </div>
-  
-  </div>
-</div>
+        <div className="health-card">
+          <div className="health-card-content">
+            <div className="health-title">System float healthy</div>
+            <div className="health-desc">All rails operational • 99.98%</div>
+          </div>
+        </div>
+        <button type="button" className="sidebar-logout-button" onClick={onLogout}>
+          <LogOut size={17} /> Log out
+        </button>
+      </div>
       </aside>
     </div>
   )

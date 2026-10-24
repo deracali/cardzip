@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { ArrowDownLeft, Download, Search } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ArrowDownLeft, Check, ChevronDown, Download, Search } from 'lucide-react'
 import { adminApi } from '../services/api'
 import { subscribeToGiftCardTradeChanges } from '../services/giftCardRealtime'
 
@@ -14,6 +14,13 @@ const formatDate = (date) => date ? new Date(date).toLocaleString() : '—'
 const getHighestRate = (rates) => rates
   .slice()
   .sort((left, right) => Number(right.type.rate) - Number(left.type.rate))[0] || null
+
+const dateRangeOptions = [
+  { value: '30', label: 'Last 30 days' },
+  { value: '90', label: 'Last 90 days' },
+  { value: 'month', label: 'This month' },
+  { value: 'all', label: 'All time' },
+]
 
 function exportTrades(trades) {
   const columns = ['Reference', 'Customer', 'Card', 'Amount', 'Payout', 'Status', 'Date']
@@ -64,6 +71,8 @@ export default function GiftCardsPage() {
   const [search, setSearch] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('')
   const [range, setRange] = useState('30')
+  const [dateFilterOpen, setDateFilterOpen] = useState(false)
+  const dateFilterRef = useRef(null)
   const [loading, setLoading] = useState(true)
   const [catalogLoading, setCatalogLoading] = useState(true)
   const [error, setError] = useState('')
@@ -126,6 +135,22 @@ export default function GiftCardsPage() {
     () => setTradeRefreshKey((current) => current + 1),
     () => setTradeRefreshKey((current) => current + 1),
   ), [])
+
+  useEffect(() => {
+    if (!dateFilterOpen) return undefined
+    const closeOnOutsideClick = (event) => {
+      if (!dateFilterRef.current?.contains(event.target)) setDateFilterOpen(false)
+    }
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') setDateFilterOpen(false)
+    }
+    document.addEventListener('pointerdown', closeOnOutsideClick)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsideClick)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [dateFilterOpen])
 
   const availableRates = useMemo(() => catalog.flatMap((card) => (
     (card.types || [])
@@ -206,12 +231,38 @@ export default function GiftCardsPage() {
                   onChange={(event) => changeFilter(setSearch, event.target.value)}
                 />
               </label>
-              <select className="type-select" aria-label="Filter trades by date" value={range} onChange={(event) => changeFilter(setRange, event.target.value)}>
-                <option value="30">Last 30 days</option>
-                <option value="90">Last 90 days</option>
-                <option value="month">This month</option>
-                <option value="all">All time</option>
-              </select>
+              <div className="giftcards-date-filter" ref={dateFilterRef}>
+                <button
+                  type="button"
+                  className="giftcards-date-filter-trigger"
+                  aria-label="Filter trades by date"
+                  aria-haspopup="listbox"
+                  aria-expanded={dateFilterOpen}
+                  aria-controls="giftcards-date-filter-options"
+                  onClick={() => setDateFilterOpen((open) => !open)}
+                >
+                  <span>{dateRangeOptions.find((option) => option.value === range)?.label || 'Select date range'}</span>
+                  <ChevronDown size={15} aria-hidden="true" />
+                </button>
+                {dateFilterOpen && <div className="giftcards-date-filter-menu" id="giftcards-date-filter-options" role="listbox" aria-label="Date range options">
+                  {dateRangeOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="option"
+                      aria-selected={range === option.value}
+                      className={`giftcards-date-filter-option ${range === option.value ? 'selected' : ''}`}
+                      onClick={() => {
+                        changeFilter(setRange, option.value)
+                        setDateFilterOpen(false)
+                      }}
+                    >
+                      <span>{option.label}</span>
+                      {range === option.value && <Check size={15} aria-hidden="true" />}
+                    </button>
+                  ))}
+                </div>}
+              </div>
             </div>
           </div>
         </div>

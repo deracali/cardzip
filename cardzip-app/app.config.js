@@ -8,6 +8,9 @@ module.exports = ({ config }) => ({
     ...staticConfig.expo.plugins.filter(
       (plugin) => !(Array.isArray(plugin) && plugin[0] === '@react-native-google-signin/google-signin'),
     ),
+    'expo-image',
+    'expo-apple-authentication',
+    'expo-web-browser',
     [
       '@react-native-google-signin/google-signin',
       {

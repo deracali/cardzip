@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { ActivityIndicator, View, Text, TouchableOpacity, TextInput, ScrollView } from 'react-native';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
-import { NumberHubOption, RentalDuration, RentalPricing } from '../../services/api/numberHubApi';
+import { NumberHubOption, RentalDuration, RentalPricing } from '../../../services/api/numberHubApi';
 
 type NumberHubCatalogProps = {
   selectedRegion: string;
@@ -16,6 +16,7 @@ type NumberHubCatalogProps = {
   walletLoading: boolean;
   walletEnabled: boolean;
   pricingLoading: boolean;
+  durationLoading: boolean;
   loading: boolean;
   purchasing: boolean;
   error: string | null;
@@ -40,6 +41,7 @@ export default function NumberHubCatalog({
   walletLoading,
   walletEnabled,
   pricingLoading,
+  durationLoading,
   loading,
   purchasing,
   error,
@@ -52,6 +54,11 @@ export default function NumberHubCatalog({
 }: NumberHubCatalogProps) {
   const [serviceSearch, setServiceSearch] = useState('');
   const selectedArea = areas.find((area) => area.value === selectedRegion) ?? areas[0];
+  const isUnitedStates = /united states|^usa$/i.test(selectedArea?.label ?? '')
+    || selectedArea?.code?.toUpperCase() === 'US';
+  const selectedAreaFlag = isUnitedStates
+    ? '🇺🇸'
+    : selectedArea?.code ?? selectedArea?.label.slice(0, 2).toUpperCase() ?? '--';
   const selectedApp = apps.find((app) => app.value === selectedService) ?? apps[0];
   const selectedDurationOption = durations.find((duration) => duration.value === selectedDuration) ?? durations[0];
   const otherAreas = areas.filter((area) => area.value !== selectedArea?.value).slice(0, 2);
@@ -69,6 +76,15 @@ export default function NumberHubCatalog({
   const walletCanCoverRental = pricing ? walletBalance >= pricing.price : null;
   const walletAmount = `${walletCurrency === 'NGN' ? '₦' : `${walletCurrency} `}${walletBalance.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+  if (loading) {
+    return (
+      <View style={[styles.sectionContainer, { alignItems: 'center', justifyContent: 'center', minHeight: 260 }]}>
+        <ActivityIndicator size="large" color={colors.accentGreen} />
+        <Text style={[styles.sectionTitle, { marginTop: 12 }]}>Loading store catalog…</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.sectionContainer}>
       <Text style={styles.sectionTitle}>Select Region / Country</Text>
@@ -79,7 +95,7 @@ export default function NumberHubCatalog({
         onPress={() => selectedArea && onSelectRegion(selectedArea.value)}
       >
         <View style={styles.flagCircle}>
-          <Text style={styles.flagText}>{selectedArea?.code ?? selectedArea?.label.slice(0, 2).toUpperCase() ?? '--'}</Text>
+          <Text style={[styles.flagText, isUnitedStates && { fontSize: 22 }]}>{selectedAreaFlag}</Text>
         </View>
 
         <View style={{ flex: 1, marginLeft: 12 }}>
@@ -145,6 +161,7 @@ export default function NumberHubCatalog({
           </View>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+            {pricingLoading && <ActivityIndicator size="small" color={colors.accentGreen} />}
             <Text style={styles.priceNaira}>{formatPrice(pricing?.price, pricingLoading)}</Text>
             {pricing?.originalPrice !== undefined && <Text style={styles.strikePrice}>{formatPrice(pricing.originalPrice)}</Text>}
             {pricing?.currency && pricing.currency !== 'NGN' && <Text style={styles.priceUsd}>{pricing.currency}</Text>}
@@ -171,7 +188,12 @@ export default function NumberHubCatalog({
       <Text style={styles.sectionTitle}>Rental Duration</Text>
 
       <View style={styles.durationRow}>
-        {durations.slice(0, 3).map((duration, index) => {
+        {durationLoading ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 12 }}>
+            <ActivityIndicator size="small" color={colors.accentGreen} />
+            <Text style={styles.availText}>Loading durations...</Text>
+          </View>
+        ) : durations.slice(0, 3).map((duration, index) => {
           const isSelected = selectedDuration === duration.value;
           return (
             <TouchableOpacity
@@ -190,7 +212,7 @@ export default function NumberHubCatalog({
             </TouchableOpacity>
           );
         })}
-        {durations.length === 0 && <Text style={styles.availText}>{loading ? 'Loading durations...' : 'No rental durations available'}</Text>}
+        {!durationLoading && durations.length === 0 && <Text style={styles.availText}>No rental durations available</Text>}
       </View>
 
       {error && <Text style={[styles.sectionTitle, { color: colors.warningRedText }]}>{error}</Text>}
@@ -202,7 +224,7 @@ export default function NumberHubCatalog({
 
       <View style={styles.walletBalanceRow}>
         <Ionicons name="wallet-outline" size={13} color={colors.textMuted} />
-        <Text style={styles.walletBalanceText}>
+        <Text style={styles.walletBalanceText} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>
           {!walletEnabled ? ' Sign in to view your wallet balance' : walletLoading ? ' Loading wallet balance' : ` Wallet ${walletAmount}`}
           {walletEnabled && !walletLoading && (pricingLoading ? ' • Checking price' : walletCanCoverRental === null ? '' : walletCanCoverRental ? ' • Sufficient balance' : ' • Insufficient balance')}
         </Text>

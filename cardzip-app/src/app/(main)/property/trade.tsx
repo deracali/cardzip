@@ -1,25 +1,26 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
+import { ActivityIndicator,
   Image,
-  PanResponder,
+Modal,
+PanResponder,
+Pressable,
   StyleSheet,
   View,
   Text,
   TextInput,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
-  StatusBar,
   useWindowDimensions,
-  Platform,
-} from 'react-native';
+  Platform, } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather, MaterialCommunityIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { useAppDispatch, useAppSelector } from '../../store';
-import { fetchGiftCards, submitGiftCardTrade } from '../../store/slices/giftCardSlice';
+import * as ImageManipulator from 'expo-image-manipulator';
+import { useAppDispatch, useAppSelector } from '../../../store';
+import { fetchGiftCards, submitGiftCardTrade } from '../../../store/slices/giftCardSlice';
+import { getGiftCardLogoUrls } from '../../../utils/giftCardLogos';
 import FeedbackModal from '../components/FeedbackModal';
 import KeyboardAwareScrollView from '../../../components/KeyboardAwareScrollView';
 
@@ -33,16 +34,20 @@ export default function TradeCardsScreen() {
   // Dynamic scaling factors relative to standard 375x812 mobile screen
   const scale = (size: number) => (width / 375) * size;
   const verticalScale = (size: number) => (height / 812) * size;
+  const cardCarouselInterval = width * 0.58 + scale(12);
 
   // Slider State
   const minVal = 10;
   const maxVal = 500;
   const [usdAmount, setUsdAmount] = useState<number>(200);
   const [activeCardIndex, setActiveCardIndex] = useState<number>(0);
+  const [cardPickerVisible, setCardPickerVisible] = useState(false);
+  const [failedCardLogos, setFailedCardLogos] = useState<Set<string>>(() => new Set());
   const [tradeSpeed, setTradeSpeed] = useState<'fast' | 'slow'>(params.tradeSpeed === 'slow' ? 'slow' : 'fast');
   const [pickedImages, setPickedImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
   const [feedback, setFeedback] = useState<{ title: string; message: string; tone?: 'success' | 'error' | 'info' } | null>(null);
   const sliderViewRef = useRef<View>(null);
+  const cardCarouselRef = useRef<ScrollView>(null);
   const selectedCard = catalog[activeCardIndex]
     ?? catalog.find((card) => card.id === params.cardId || card.name === params.cardName);
   const selectedRate = selectedCard?.types[0];
@@ -53,8 +58,16 @@ export default function TradeCardsScreen() {
 
   useEffect(() => {
     const selectedIndex = catalog.findIndex((card) => card.id === params.cardId || card.name === params.cardName);
-    if (selectedIndex >= 0) setActiveCardIndex(selectedIndex);
-  }, [catalog, params.cardId, params.cardName]);
+    if (selectedIndex >= 0) {
+      setActiveCardIndex(selectedIndex);
+      requestAnimationFrame(() => {
+        cardCarouselRef.current?.scrollTo({
+          x: selectedIndex * cardCarouselInterval,
+          animated: false,
+        });
+      });
+    }
+  }, [cardCarouselInterval, catalog, params.cardId, params.cardName]);
 
   useEffect(() => {
     if (params.tradeSpeed === 'fast' || params.tradeSpeed === 'slow') setTradeSpeed(params.tradeSpeed);
@@ -133,30 +146,71 @@ export default function TradeCardsScreen() {
         quality: 0.85,
       });
       if (!result.canceled) {
-        setPickedImages((current) => [...current, ...result.assets].slice(0, 5));
+        const normalizedImages = await Promise.all(result.assets.map(async (asset, index) => {
+          const resize = asset.width >= asset.height
+            ? { width: Math.min(asset.width, 2000) }
+            : { height: Math.min(asset.height, 2000) };
+          const normalized = await ImageManipulator.manipulateAsync(
+            asset.uri,
+            [{ resize }],
+            { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG },
+          );
+          const originalName = asset.fileName?.replace(/\.[^.]+$/, '') || `gift-card-${index + 1}`;
+          return {
+            ...asset,
+            uri: normalized.uri,
+            fileName: `${originalName}.jpg`,
+            mimeType: 'image/jpeg',
+            width: normalized.width,
+            height: normalized.height,
+          };
+        }));
+        setPickedImages((current) => [...current, ...normalizedImages].slice(0, 5));
       }
-    } catch {
-      setFeedback({ title: 'Photo library unavailable', message: 'Could not open your photo library.', tone: 'error' });
+    } catch (error) {
+      setFeedback({
+        title: 'Photo processing failed',
+        message: error instanceof Error ? error.message : 'Could not prepare the selected photos for upload.',
+        tone: 'error',
+      });
     }
   };
 
   const renderCardLogo = (card: (typeof catalog)[number]) => {
-    if (card.logo) return <Image source={{ uri: card.logo }} style={styles.tradeLogoImage} resizeMode="contain" />;
+    const logoUri = [...new Set([card.logo, ...getGiftCardLogoUrls(card.name)].filter(Boolean))]
+      .find((url) => !failedCardLogos.has(`${card.id}:${url}`));
+    if (logoUri) {
+      return (
+        <Image
+          source={{ uri: logoUri }}
+          style={styles.tradeLogoImage}
+          resizeMode="contain"
+          onError={() => {
+            setFailedCardLogos((current) => new Set(current).add(`${card.id}:${logoUri}`));
+          }}
+        />
+      );
+    }
     const brand = card.name.toLowerCase();
-    if (brand.includes('amazon')) return <FontAwesome5 name="amazon" size={scale(22)} color={card.color} />;
+    if (brand.includes('amazon')) return <FontAwesome5 name="amazon" size={scale(22)} color="#FF9900" />;
     if (brand.includes('itunes')) return <FontAwesome5 name="itunes" size={scale(22)} color="#FFFFFF" />;
     if (brand.includes('apple')) return <FontAwesome5 name="apple" size={scale(22)} color="#FFFFFF" />;
-    if (brand.includes('steam')) return <Ionicons name="logo-steam" size={scale(22)} color={card.color} />;
+    if (brand.includes('steam')) return <Ionicons name="logo-steam" size={scale(22)} color="#FFFFFF" />;
     if (brand.includes('foot locker') || brand.includes('footlocker')) return <FontAwesome5 name="shoe-prints" size={scale(20)} color="#E31837" />;
-    if (brand.includes('goldrazer')) return <FontAwesome5 name="coins" size={scale(20)} color="#D4AF37" />;
+    if (brand.includes('goldrazer') || brand.includes('goldrazor') || brand.includes('gold razor')) return <FontAwesome5 name="coins" size={scale(20)} color="#F4C542" />;
     if (brand.includes('xbox')) return <FontAwesome5 name="xbox" size={scale(22)} color="#107C10" />;
-    if (brand.includes('sephora')) return <Text style={[styles.sephoraIcon, { color: card.color }]}>S</Text>;
-    return <MaterialCommunityIcons name="gift-outline" size={scale(22)} color={card.color} />;
+    if (brand.includes('google')) return <Text style={[styles.cardFallbackLogo, styles.googleFallbackLogo]}>G</Text>;
+    if (brand.includes('roblox')) return <Text style={[styles.cardFallbackLogo, styles.robloxFallbackLogo]}>R</Text>;
+    if (brand.includes('playstation') || brand.includes('psn')) return <FontAwesome5 name="playstation" size={scale(22)} color="#FFFFFF" />;
+    if (brand.includes('spotify')) return <FontAwesome5 name="spotify" size={scale(22)} color="#1ED760" />;
+    if (brand.includes('nintendo')) return <MaterialCommunityIcons name="nintendo-switch" size={scale(24)} color="#E60012" />;
+    if (brand.includes('sephora')) return <Text style={[styles.sephoraIcon, { color: '#111827' }]}>S</Text>;
+    const initials = card.name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+    return <Text style={styles.cardFallbackLogo}>{initials || '?'}</Text>;
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F4F6F5" />
       <KeyboardAwareScrollView
         contentContainerStyle={[
           styles.container,
@@ -191,47 +245,100 @@ export default function TradeCardsScreen() {
           ))}
         </View>
 
-        <ScrollView
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onScroll={(event) => {
-            const slide = Math.round(event.nativeEvent.contentOffset.x / (width * 0.7));
-            if (slide !== activeCardIndex && slide < catalog.length) setActiveCardIndex(slide);
-          }}
-          scrollEventThrottle={16}
-          contentContainerStyle={{ gap: scale(12) }}
-        >
-          {catalog.map((card) => (
-            <LinearGradient
-              key={card.id}
-              colors={[card.color, '#1C1E21', '#121315']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={[styles.cardItem, { width: width * 0.58, height: verticalScale(105), borderRadius: scale(16), padding: scale(14) }]}
+        <View style={[styles.cardPickerSection, { marginBottom: verticalScale(16) }]}>
+          <Text style={[styles.cardPickerLabel, { fontSize: scale(14) }]}>Gift card to sell</Text>
+          {catalogLoading && catalog.length === 0 ? (
+            <ActivityIndicator color="#00B856" />
+          ) : catalog.length === 0 ? (
+            <Text style={styles.emptyText}>No gift cards are available.</Text>
+          ) : (
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={`Selected gift card: ${selectedCard?.name ?? 'None'}. Tap to choose a gift card.`}
+              activeOpacity={0.8}
+              onPress={() => setCardPickerVisible(true)}
+              style={[styles.cardPickerButton, { minHeight: scale(78), padding: scale(14), borderRadius: scale(14) }]}
             >
-              {renderCardLogo(card)}
-              <View>
-                <Text style={[styles.cardTitle, { fontSize: scale(12) }]}>
-                  {card.name} · {card.types[0] ? `1 ${card.types[0].currency} = ₦${card.types[0].rate.toLocaleString()}` : 'Rate unavailable'}
-                </Text>
-                {card.popular && (
-                  <View style={styles.hotBadge}>
-                    <Text style={[styles.hotBadgeText, { fontSize: scale(10) }]}>POPULAR</Text>
-                  </View>
-                )}
+              <View style={[styles.cardPickerLogo, { backgroundColor: selectedCard?.color ?? '#E9EFEB' }]}>
+                {selectedCard ? renderCardLogo(selectedCard) : null}
               </View>
-            </LinearGradient>
-          ))}
-          {catalogLoading && catalog.length === 0 && <ActivityIndicator color="#00B856" />}
-          {!catalogLoading && catalog.length === 0 && <Text style={styles.emptyText}>No gift cards are available.</Text>}
-        </ScrollView>
-
-        <View style={[styles.paginationRow, { marginVertical: verticalScale(12) }]}>
-          {catalog.map((card, index) => (
-            <View key={card.id} style={[styles.paginationDot, index === activeCardIndex ? styles.activeDot : styles.inactiveDot]} />
-          ))}
+              <View style={styles.cardPickerCopy}>
+                <Text style={[styles.cardPickerName, { fontSize: scale(15) }]}>
+                  {selectedCard?.name ?? 'Choose a gift card'}
+                </Text>
+                <Text style={[styles.cardPickerRate, { fontSize: scale(12) }]}>
+                  {selectedRate
+                    ? `Rate: 1 ${selectedRate.currency} = ₦${selectedRate.rate.toLocaleString()}`
+                    : 'Rate unavailable'}
+                </Text>
+              </View>
+              <Feather name="chevron-down" size={scale(20)} color="#52615A" />
+            </TouchableOpacity>
+          )}
+          <Text style={[styles.cardPickerHint, { fontSize: scale(11) }]}>Tap to choose the gift card you want to trade.</Text>
         </View>
+
+        {catalog.length > 0 && (
+          <View style={[styles.carouselSection, { marginBottom: verticalScale(12) }]}>
+            <Text style={[styles.carouselHint, { fontSize: scale(11) }]}>Or swipe through the cards and tap one to select it.</Text>
+            <ScrollView
+              ref={cardCarouselRef}
+              horizontal
+              snapToInterval={cardCarouselInterval}
+              decelerationRate="fast"
+              disableIntervalMomentum
+              showsHorizontalScrollIndicator={false}
+              onScroll={(event) => {
+                const slide = Math.round(event.nativeEvent.contentOffset.x / cardCarouselInterval);
+                if (slide !== activeCardIndex && slide >= 0 && slide < catalog.length) setActiveCardIndex(slide);
+              }}
+              scrollEventThrottle={16}
+              contentContainerStyle={{ gap: scale(12) }}
+            >
+              {catalog.map((card, index) => (
+                <TouchableOpacity
+                  key={card.id}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: index === activeCardIndex }}
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    setActiveCardIndex(index);
+                    cardCarouselRef.current?.scrollTo({
+                      x: index * cardCarouselInterval,
+                      animated: true,
+                    });
+                  }}
+                >
+                  <LinearGradient
+                    colors={[card.color, '#1C1E21', '#121315']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={[
+                      styles.cardItem,
+                      index === activeCardIndex && styles.cardItemSelected,
+                      { width: width * 0.58, height: verticalScale(105), borderRadius: scale(16), padding: scale(14) },
+                    ]}
+                  >
+                    {renderCardLogo(card)}
+                    <View>
+                      <Text style={[styles.cardTitle, { fontSize: scale(12) }]}>
+                        {card.name} · {card.types[0] ? `1 ${card.types[0].currency} = ₦${card.types[0].rate.toLocaleString()}` : 'Rate unavailable'}
+                      </Text>
+                      {card.popular && (
+                        <View style={styles.hotBadge}>
+                          <Text style={[styles.hotBadgeText, { fontSize: scale(10) }]}>POPULAR</Text>
+                        </View>
+                      )}
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <Text style={[styles.carouselPosition, { fontSize: scale(10) }]}>
+              {activeCardIndex + 1} of {catalog.length} cards
+            </Text>
+          </View>
+        )}
 
         {/* Rate Calculator Section */}
         <View style={[styles.calculatorCard, { borderRadius: scale(20), padding: scale(16) }]}>
@@ -369,6 +476,71 @@ export default function TradeCardsScreen() {
           <Ionicons name="arrow-forward" size={scale(18)} color="#FFFFFF" style={{ marginLeft: 6 }} />
         </TouchableOpacity>
       </KeyboardAwareScrollView>
+      <Modal
+        visible={cardPickerVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCardPickerVisible(false)}
+      >
+        <View style={styles.cardPickerModalRoot}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close gift card selection"
+            style={styles.cardPickerBackdrop}
+            onPress={() => setCardPickerVisible(false)}
+          />
+          <View style={[styles.cardPickerModal, { maxHeight: height * 0.78 }]}>
+            <View style={styles.cardPickerModalHeader}>
+              <View>
+                <Text style={[styles.cardPickerModalTitle, { fontSize: scale(18) }]}>Choose a gift card</Text>
+                <Text style={[styles.cardPickerHint, { fontSize: scale(12) }]}>Select the card you want to sell.</Text>
+              </View>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Close gift card selection"
+                onPress={() => setCardPickerVisible(false)}
+                style={styles.cardPickerClose}
+              >
+                <Feather name="x" size={scale(20)} color="#52615A" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {catalog.map((card, index) => {
+                const rate = card.types[0];
+                const isSelected = index === activeCardIndex;
+                return (
+                  <TouchableOpacity
+                    key={card.id}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
+                    activeOpacity={0.75}
+                    onPress={() => {
+                      setActiveCardIndex(index);
+                      setCardPickerVisible(false);
+                      cardCarouselRef.current?.scrollTo({
+                        x: index * cardCarouselInterval,
+                        animated: true,
+                      });
+                    }}
+                    style={[styles.cardPickerOption, isSelected && styles.cardPickerOptionSelected]}
+                  >
+                    <View style={[styles.cardPickerLogo, { backgroundColor: card.color }]}>
+                      {renderCardLogo(card)}
+                    </View>
+                    <View style={styles.cardPickerCopy}>
+                      <Text style={[styles.cardPickerName, { fontSize: scale(14) }]}>{card.name}</Text>
+                      <Text style={[styles.cardPickerRate, { fontSize: scale(12) }]}>
+                        {rate ? `1 ${rate.currency} = ₦${rate.rate.toLocaleString()}` : 'Rate unavailable'}
+                      </Text>
+                    </View>
+                    {isSelected && <Ionicons name="checkmark-circle" size={scale(20)} color="#00B856" />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
       <FeedbackModal
         visible={feedback !== null}
         title={feedback?.title ?? ''}
@@ -428,6 +600,7 @@ const styles = StyleSheet.create({
   },
   tradeSpeedText: {
     color: '#52615A',
+    fontFamily: 'Poppins',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -454,14 +627,141 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  /* Horizontal Card Slider */
+  cardPickerSection: {
+    gap: 8,
+  },
+  cardPickerLabel: {
+    color: '#12201B',
+    fontWeight: '800',
+  },
+  cardPickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D9E2DC',
+  },
+  cardPickerLogo: {
+    width: 46,
+    height: 46,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  cardPickerCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  cardPickerName: {
+    color: '#12201B',
+    fontWeight: '800',
+  },
+  cardPickerRate: {
+    color: '#52615A',
+    fontWeight: '600',
+  },
+  cardPickerHint: {
+    color: '#82918B',
+    fontWeight: '500',
+  },
+  cardPickerModalRoot: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  cardPickerBackdrop: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+  },
+  cardPickerModal: {
+    backgroundColor: '#F4F6F5',
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 30,
+  },
+  cardPickerModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  cardPickerModalTitle: {
+    color: '#12201B',
+    fontWeight: '900',
+    marginBottom: 4,
+  },
+  cardPickerClose: {
+    width: 38,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 19,
+    backgroundColor: '#FFFFFF',
+  },
+  cardPickerOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 10,
+  },
+  cardPickerOptionSelected: {
+    borderColor: '#00B856',
+    backgroundColor: '#F0FDF4',
+  },
+  carouselSection: {
+    gap: 8,
+  },
+  carouselHint: {
+    color: '#52615A',
+    fontWeight: '600',
+  },
+  carouselPosition: {
+    color: '#82918B',
+    textAlign: 'right',
+    fontWeight: '600',
+  },
   cardItem: {
     justifyContent: 'space-between',
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  cardItemSelected: {
+    borderColor: '#B3F05C',
   },
   cardBrandLogo: {
     fontWeight: '900',
   },
+  cardFallbackLogo: {
+    fontFamily: 'Poppins',
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  googleFallbackLogo: {
+    color: '#4285F4',
+    fontFamily: 'Poppins',
+    fontSize: 22,
+  },
+  robloxFallbackLogo: {
+    color: '#E2231A',
+    fontFamily: 'Poppins',
+    fontSize: 24,
+  },
   sephoraIcon: {
+    fontFamily: 'Poppins',
     fontSize: 24,
     fontWeight: '900',
   },
@@ -475,6 +775,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     color: '#82918B',
+    fontFamily: 'Poppins',
     fontSize: 13,
     paddingVertical: 12,
   },
@@ -489,26 +790,6 @@ const styles = StyleSheet.create({
   hotBadgeText: {
     color: '#0F261C',
     fontWeight: '800',
-  },
-
-  /* Pagination */
-  paginationRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
-  },
-  paginationDot: {
-    height: 6,
-    borderRadius: 3,
-  },
-  activeDot: {
-    width: 18,
-    backgroundColor: '#00B856',
-  },
-  inactiveDot: {
-    width: 6,
-    backgroundColor: '#D1D5DB',
   },
 
   /* Rate Calculator */

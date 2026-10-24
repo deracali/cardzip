@@ -22,7 +22,7 @@ export default function NumberHubHeader({
           <View style={styles.logoBadge}>
             <Ionicons name="call" size={16} color="#FFFFFF" />
           </View>
-          <Text style={styles.headerTitle}>Fleexa Number Hub</Text>
+          <Text style={styles.headerTitle}>CARDZIP Number Hub</Text>
         </View>
 
         <View style={styles.ratePill}>

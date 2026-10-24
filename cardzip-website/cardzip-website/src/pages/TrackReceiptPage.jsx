@@ -14,8 +14,8 @@ import {
   XCircle,
 } from 'lucide-react'
 import { userApi } from '../services/api'
+import { formatNaira } from '../utils/currency'
 
-const formatNaira = (amount) => `₦${Number(amount || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 const formatDate = (value) => value ? new Date(value).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' }) : '—'
 const statusText = (status) => ({
   processing: 'Processing',
@@ -105,9 +105,9 @@ export default function TrackReceiptPage({ orderId, onNavigate }) {
       }
 
       addRow('Payment method', order.paymentMethod === 'paystack' ? 'Paystack' : 'Cardzip wallet')
-      addRow('Subtotal', formatNaira(order.subtotal))
-      addRow('Delivery', formatNaira(order.shippingFee))
-      addRow('Total paid', formatNaira(order.total), true)
+      addRow('Subtotal', formatNaira(order.subtotal, { minimumFractionDigits: 2 }))
+      addRow('Delivery', formatNaira(order.shippingFee, { minimumFractionDigits: 2 }))
+      addRow('Total paid', formatNaira(order.total, { minimumFractionDigits: 2 }), true)
       y += 5
       pdf.setFont('helvetica', 'bold')
       pdf.setFontSize(10)
@@ -115,7 +115,7 @@ export default function TrackReceiptPage({ orderId, onNavigate }) {
       pdf.text('ITEMS', left, y)
       y += 7
       for (const item of order.items || []) {
-        addRow(`${item.name} × ${item.quantity}`, formatNaira(item.price * item.quantity))
+        addRow(`${item.name} × ${item.quantity}`, formatNaira(item.price * item.quantity, { minimumFractionDigits: 2 }))
       }
       const address = order.shippingAddress
       if (address) {
@@ -223,7 +223,7 @@ export default function TrackReceiptPage({ orderId, onNavigate }) {
                   <div className="track-order-item" key={item._id || item.product?._id || item.name}>
                     <div className="track-product-thumb">{item.image || item.product?.image ? <img src={item.image || item.product.image} alt="" /> : <Package size={20} />}</div>
                     <span className="track-product-copy"><strong>{item.name}</strong><small>Qty {item.quantity}</small></span>
-                    <strong className="track-product-price">{formatNaira(item.price * item.quantity)}</strong>
+                    <strong className="track-product-price">{formatNaira(item.price * item.quantity, { minimumFractionDigits: 2 })}</strong>
                   </div>
                 ))}
               </div>
@@ -237,9 +237,9 @@ export default function TrackReceiptPage({ orderId, onNavigate }) {
               <div className="track-receipt-heading"><ReceiptText size={18} /><div><h2>Payment receipt</h2><p>Order {order.orderNumber}</p></div></div>
               <div className={`track-receipt-status ${order.paymentStatus}`}><ShieldCheck size={15} /><span>Payment {String(order.paymentStatus || 'unknown').toLowerCase()}</span></div>
               <div className="track-receipt-lines">
-                <div><span>Subtotal</span><strong>{formatNaira(order.subtotal)}</strong></div>
-                <div><span>Delivery</span><strong>{formatNaira(order.shippingFee)}</strong></div>
-                <div className="track-receipt-total"><span>{order.paymentStatus === 'paid' ? 'Total paid' : 'Order total'}</span><strong>{formatNaira(order.total)}</strong></div>
+                <div><span>Subtotal</span><strong>{formatNaira(order.subtotal, { minimumFractionDigits: 2 })}</strong></div>
+                <div><span>Delivery</span><strong>{formatNaira(order.shippingFee, { minimumFractionDigits: 2 })}</strong></div>
+                <div className="track-receipt-total"><span>{order.paymentStatus === 'paid' ? 'Total paid' : 'Order total'}</span><strong>{formatNaira(order.total, { minimumFractionDigits: 2 })}</strong></div>
               </div>
               <div className="track-payment-method"><span>Paid with</span><strong>{order.paymentMethod === 'paystack' ? 'Paystack' : 'Cardzip wallet'}</strong></div>
               {downloadError && <p className="wallet-notice error" role="alert">{downloadError}</p>}

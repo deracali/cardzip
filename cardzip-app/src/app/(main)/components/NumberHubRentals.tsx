@@ -1,7 +1,7 @@
 import React from 'react';
-import { Alert, View, Text, TouchableOpacity, Switch } from 'react-native';
+import { View, Text, TouchableOpacity, Switch } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5, Feather } from '@expo/vector-icons';
-import { RentalProfile, SmsMessage } from '../../services/api/numberHubApi';
+import { RentalProfile, SmsMessage } from '../../../services/api/numberHubApi';
 
 type NumberHubRentalsProps = {
   activeTab: 'rentals' | 'inbox';
@@ -16,6 +16,7 @@ type NumberHubRentalsProps = {
   onOpenInbox: (rentalId?: string) => void;
   onRenew: (rentalId: string) => void;
   onCancel: (rentalId: string) => void;
+  onManageRental?: (rental: RentalProfile) => void;
   styles: any;
   colors: any;
 };
@@ -33,14 +34,17 @@ export default function NumberHubRentals({
   onOpenInbox,
   onRenew,
   onCancel,
+  onManageRental,
   styles,
   colors,
 }: NumberHubRentalsProps) {
-  const openManageMenu = (rental: RentalProfile) => Alert.alert('Manage rental', rental.phoneNumber, [
-    { text: 'Renew', onPress: () => onRenew(rental.id) },
-    { text: 'Cancel rental', style: 'destructive', onPress: () => onCancel(rental.id) },
-    { text: 'Close', style: 'cancel' },
-  ]);
+  const openManageMenu = (rental: RentalProfile) => {
+    if (onManageRental) {
+      onManageRental(rental);
+      return;
+    }
+    onRenew(rental.id);
+  };
 
   return (
     <View style={styles.sectionContainer}>

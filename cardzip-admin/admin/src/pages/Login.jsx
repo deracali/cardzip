@@ -49,7 +49,7 @@ export default function Login({ onLogin, onForgotPassword }) {
       {/* Top Header Navigation */}
       <header className="login-nav">
         <div className="nav-brand">
-          <div className="brand-logo">c</div>
+          <span className="brand-logo"><img src="/cardzip-logo.jpg" alt="" /></span>
           <span className="brand-name">Cardzip</span>
           <span className="brand-badge">Super Admin Platform</span>
         </div>
@@ -140,7 +140,7 @@ export default function Login({ onLogin, onForgotPassword }) {
           <div className="auth-card">
             {/* Card Header */}
             <div className="card-top font-sans">
-              <div className="brand-logo-small">c</div>
+              <span className="brand-logo-small"><img src="/cardzip-logo.jpg" alt="" /></span>
               <div>
                 <h2 className="card-brand-title">Cardzip</h2>
                 <p className="card-brand-sub">SUPER-ADMIN CONSOLE</p>

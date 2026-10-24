@@ -19,7 +19,8 @@ import {
 import { userApi } from '../services/api'
 
 const formatNaira = (value) => `₦${Number(value || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-const walletFundingVat = (value) => Math.round(Number(value || 0) * 0.015) + 200
+const walletFundingVatRate = 0.075
+const walletFundingVat = 100
 const dateLabel = (value) => new Date(value).toLocaleString()
 
 function WalletLayout({ children }) {
@@ -231,7 +232,9 @@ export function AddMoneyPage({ onNavigate }) {
   const [submitting, setSubmitting] = useState(false)
   const presets = ['5000', '10000', '20000', '50000']
   const numericAmount = Number(amount.replace(/[₦,\s]/g, ''))
-  const fundingVat = Number.isSafeInteger(numericAmount) && numericAmount >= 100 ? walletFundingVat(numericAmount) : 0
+  const validAmount = Number.isSafeInteger(numericAmount) && numericAmount >= 100
+  const fundingVat = validAmount ? Math.round(numericAmount * walletFundingVatRate) + walletFundingVat : 0
+  const totalFundingCost = numericAmount + fundingVat
 
   useEffect(() => { userApi.wallet().then((result) => setBalance(result.data)).catch((error) => setNotice(error.message)) }, [])
 
@@ -265,10 +268,10 @@ export function AddMoneyPage({ onNavigate }) {
         {fundingVat > 0 && <div className="wallet-funding-costs" aria-live="polite">
           <div><span>Wallet credit</span><strong>{formatNaira(numericAmount)}</strong></div>
           <div><span>VAT</span><strong>{formatNaira(fundingVat)}</strong></div>
-          <div className="wallet-funding-total"><span>Total to pay</span><strong>{formatNaira(numericAmount + fundingVat)}</strong></div>
+          <div className="wallet-funding-total"><span>Total to pay</span><strong>{formatNaira(totalFundingCost)}</strong></div>
         </div>}
         {notice && <div className="wallet-notice error" role="alert">{notice}</div>}
-        <button type="submit" disabled={submitting} className="btn-emerald-submit wallet-submit"><span>{submitting ? 'Connecting to Paystack…' : `Pay ${formatNaira(numericAmount + fundingVat)}`}</span><ArrowUpRight size={16} /></button>
+        <button type="submit" disabled={submitting} className="btn-emerald-submit wallet-submit"><span>{submitting ? 'Connecting to Paystack…' : `Pay ${formatNaira(totalFundingCost)}`}</span><ArrowUpRight size={16} /></button>
         <span className="wallet-form-footnote"><ShieldCheck size={14} /> Your wallet is not credited until Paystack confirms your payment.</span>
       </form><aside className="wallet-side-column">
         <div className="wallet-summary-card reveal"><span className="wallet-summary-icon"><Wallet size={19} /></span><span className="wallet-summary-label">Current balance</span><strong>{balance !== null ? formatNaira(balance.balance) : 'Loading…'}</strong><span className="wallet-summary-caption">Your verified balance after payment is confirmed.</span></div>

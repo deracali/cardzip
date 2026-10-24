@@ -1,19 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import {
-  StyleSheet,
+import { StyleSheet,
   Text,
   View,
   ScrollView,
   TouchableOpacity,
   Dimensions,
-  SafeAreaView,
-  StatusBar,
-  Image,
-} from 'react-native';
+  Image, } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useAppDispatch, useAppSelector } from '../../store';
-import { fetchStoreOrders } from '../../store/slices/storeSlice';
+import { useAppDispatch, useAppSelector } from '../../../store';
+import { fetchStoreOrders } from '../../../store/slices/storeSlice';
+import { formatNaira } from '../../../utils/currency';
+import MarketBottomTab from './bottomtab/bottomtab';
 
 const { width, height } = Dimensions.get('window');
 
@@ -44,7 +43,6 @@ export default function YourOrdersScreen() {
   const { token } = useAppSelector((state) => state.auth);
   const { orders, ordersPagination, ordersLoading } = useAppSelector((state) => state.store);
   const [activeFilter, setActiveFilter] = useState<'All' | 'Processing' | 'Delivered'>('All');
-  const [activeTab, setActiveTab] = useState('Orders');
 
   const processingCount = orders.filter((order) => order.status !== 'delivered').length;
   const deliveredCount = orders.filter((order) => order.status === 'delivered').length;
@@ -68,7 +66,7 @@ export default function YourOrdersScreen() {
     status: order.status === 'delivered' ? 'DELIVERED' : 'PROCESSING',
     itemsCount: order.items.reduce((sum, item) => sum + item.quantity, 0),
     itemList: order.items.map((item) => `${item.name} × ${item.quantity}`),
-    totalPaid: `₦${order.total.toLocaleString('en-US')}.00`,
+    totalPaid: formatNaira(order.total, { minimumFractionDigits: 2 }),
     paymentMethod: `Via ${order.paymentMethod === 'wallet' ? 'Fleexa wallet' : 'card payment'}`,
     statusDetail: order.status === 'delivered' ? 'Delivered successfully' : 'Preparing for dispatch',
     images: order.items.map((item) => item.image || '').filter(Boolean),
@@ -82,7 +80,6 @@ export default function YourOrdersScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0B1220" />
 
       {/* Header Section */}
       <View style={styles.headerContainer}>
@@ -92,7 +89,7 @@ export default function YourOrdersScreen() {
           </View>
 
           <View style={styles.headerTextContainer}>
-            <Text style={styles.headerCategory}>FLEEXA MARKET</Text>
+            <Text style={styles.headerCategory}>CARDZIP MARKET</Text>
             <Text style={styles.headerTitle}>Your Orders</Text>
           </View>
         </View>
@@ -314,6 +311,7 @@ export default function YourOrdersScreen() {
                   isProcessing ? styles.actionButtonDark : styles.actionButtonLight,
                 ]}
                 activeOpacity={0.8}
+                onPress={() => router.push({ pathname: '/(main)/market/receipt', params: { orderNumber: order.orderNumber.replace(/^#/, '') } })}
               >
                 <Feather
                   name="arrow-up-right"
@@ -337,7 +335,13 @@ export default function YourOrdersScreen() {
         ) : null}
 
         {/* Need Help Footer Box */}
-        <TouchableOpacity style={styles.helpBox} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={styles.helpBox}
+          activeOpacity={0.85}
+          onPress={() => router.push('/(main)/property/support')}
+          accessibilityRole="button"
+          accessibilityLabel="Contact Cardzip support"
+        >
           <View style={styles.helpLeft}>
             <View style={styles.helpIconBox}>
               <MaterialCommunityIcons
@@ -355,57 +359,7 @@ export default function YourOrdersScreen() {
         </TouchableOpacity>
       </ScrollView>
 
-      {/* Bottom Navigation */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity
-          style={[styles.navItem, activeTab === 'Home' && styles.activeNavItem]}
-          onPress={() => router.push('/(main)/(tabs)/store')}
-        >
-          <Feather
-            name="home"
-            size={scale(18)}
-            color={activeTab === 'Home' ? '#10B981' : '#64748B'}
-          />
-          <Text style={[styles.navText, activeTab === 'Home' && styles.activeNavText]}>Home</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.navItem, activeTab === 'Cart' && styles.activeNavItem]}
-          onPress={() => router.push('/(main)/market/cart')}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Feather
-              name="shopping-bag"
-              size={scale(18)}
-              color={activeTab === 'Cart' ? '#10B981' : '#64748B'}
-            />
-            <Text
-              style={[
-                styles.navText,
-                { marginLeft: scale(6) },
-                activeTab === 'Cart' && styles.activeNavText,
-              ]}
-            >
-              Cart
-            </Text>
-            <View style={styles.cartBadge}>
-              <Text style={styles.cartBadgeText}>{orders.length}</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.navItem, activeTab === 'Orders' && styles.activeNavItem]}
-          onPress={() => router.push('/(main)/market/orders')}
-        >
-          <Feather
-            name="file-text"
-            size={scale(18)}
-            color={activeTab === 'Orders' ? '#10B981' : '#64748B'}
-          />
-          <Text style={[styles.navText, activeTab === 'Orders' && styles.activeNavText]}>Orders</Text>
-        </TouchableOpacity>
-      </View>
+      <MarketBottomTab activeTab="Orders" />
     </SafeAreaView>
   );
 }
@@ -441,6 +395,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerCategory: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(10),
     fontWeight: '700',
     color: '#64748B',
@@ -448,11 +403,13 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(2),
   },
   headerTitle: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(20),
     fontWeight: '700',
     color: '#FFFFFF',
   },
   headerSubtitle: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(12),
     color: '#94A3B8',
     marginLeft: scale(2),
@@ -481,6 +438,7 @@ const styles = StyleSheet.create({
     borderColor: '#0F172A',
   },
   filterChipText: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(11),
     fontWeight: '500',
     color: '#64748B',
@@ -509,6 +467,7 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(2),
   },
   orderNumber: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(16),
     fontWeight: '700',
   },
@@ -525,6 +484,7 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
   },
   orderDate: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(11),
     marginBottom: verticalScale(14),
   },
@@ -540,6 +500,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ECFDF5',
   },
   badgeText: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(9),
     fontWeight: '700',
     letterSpacing: 0.5,
@@ -570,12 +531,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   itemsCountText: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(10),
     fontWeight: '700',
     letterSpacing: 0.5,
     marginBottom: verticalScale(2),
   },
   itemNameText: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(11),
     fontWeight: '500',
     lineHeight: moderateScale(16),
@@ -595,13 +558,16 @@ const styles = StyleSheet.create({
     borderTopColor: '#F1F5F9',
   },
   totalLabel: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(11),
   },
   paymentMethod: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(10),
     marginTop: verticalScale(1),
   },
   totalPrice: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(18),
     fontWeight: '700',
     color: '#10B981',
@@ -612,6 +578,7 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(14),
   },
   statusNoteText: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(11),
   },
   actionButton: {
@@ -630,6 +597,7 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   actionButtonText: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(12),
     fontWeight: '700',
     color: '#0F172A',
@@ -661,17 +629,20 @@ const styles = StyleSheet.create({
     marginRight: scale(10),
   },
   helpTitle: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(12),
     fontWeight: '700',
     color: '#0F172A',
   },
   helpSubtitle: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(11),
     color: '#64748B',
     marginTop: verticalScale(1),
   },
   emptyText: {
     color: '#64748B',
+    fontFamily: 'Poppins',
     fontSize: moderateScale(12),
     textAlign: 'center',
     marginTop: verticalScale(20),
@@ -706,6 +677,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0B1220',
   },
   navText: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(12),
     fontWeight: '500',
     color: '#64748B',
@@ -725,6 +697,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cartBadgeText: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(9),
     fontWeight: '700',
     color: '#0F172A',

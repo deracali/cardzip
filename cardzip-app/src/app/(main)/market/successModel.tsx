@@ -8,6 +8,8 @@ import {
   Modal,
 } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
+import { StoreOrder } from '../../../types/store';
+import { formatNaira } from '../../../utils/currency';
 
 const { width, height } = Dimensions.get('window');
 
@@ -20,16 +22,20 @@ const verticalScale = (size: number) => (height / guidelineBaseHeight) * size;
 const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
 
 interface OrderSuccessModalProps {
-  visible?: boolean;
-  onClose?: () => void;
-  onViewOrders?: () => void;
+  visible: boolean;
+  order: StoreOrder | null;
+  onClose: () => void;
+  onViewReceipt: () => void;
 }
 
 export default function OrderSuccessModal({
-  visible = true,
+  visible,
+  order,
   onClose,
-  onViewOrders,
+  onViewReceipt,
 }: OrderSuccessModalProps) {
+  if (!order) return null;
+
   return (
     <Modal
       visible={visible}
@@ -57,58 +63,53 @@ export default function OrderSuccessModal({
           <Text style={styles.title}>Order Placed{"\n"}Successfully!</Text>
 
           <View style={styles.orderIdRow}>
-            <Text style={styles.orderIdText}>#ORD-58241</Text>
+            <Text style={styles.orderIdText}>#{order.orderNumber}</Text>
             <Text style={styles.bulletDot}> • </Text>
-            <Text style={styles.statusText}>PROCESSING</Text>
+            <Text style={styles.statusText}>{order.status.toUpperCase()}</Text>
           </View>
 
           <Text style={styles.subtitle}>
-            Your everyday upgrade is on its way. We'll notify you as soon as it ships.
+            Your order is confirmed. Track its progress and download your receipt anytime.
           </Text>
 
           {/* Order Summary Box */}
           <View style={styles.summaryBox}>
             <Text style={styles.summaryHeader}>ORDER SUMMARY</Text>
 
-            <Text style={styles.itemText}>Wireless Developer Headset × 1</Text>
-            <Text style={styles.itemText}>Aluminium Laptop Stand × 1</Text>
+            {order.items.slice(0, 2).map((item) => (
+              <Text key={item.id || item.product || item.name} style={styles.itemText} numberOfLines={1}>
+                {item.name} × {item.quantity}
+              </Text>
+            ))}
+            {order.items.length > 2 ? <Text style={styles.itemText}>and {order.items.length - 2} more item(s)</Text> : null}
 
             <View style={styles.priceRow}>
               <Text style={styles.label}>Subtotal</Text>
-              <Text style={styles.value}>₦33,000.00</Text>
+              <Text style={styles.value}>{formatNaira(order.subtotal, { minimumFractionDigits: 2 })}</Text>
             </View>
 
             <View style={styles.priceRow}>
               <Text style={styles.label}>Shipping</Text>
-              <Text style={styles.value}>₦1,500.00</Text>
+              <Text style={styles.value}>{formatNaira(order.shippingFee, { minimumFractionDigits: 2 })}</Text>
             </View>
 
             <View style={styles.divider} />
 
             <View style={styles.priceRow}>
-              <Text style={styles.label}>Wallet deduction</Text>
-              <Text style={styles.deductionValue}>-₦34,500.00</Text>
+              <Text style={styles.label}>Total paid</Text>
+              <Text style={styles.remainingBalanceValue}>{formatNaira(order.total, { minimumFractionDigits: 2 })}</Text>
             </View>
-
-            <View style={styles.priceRow}>
-              <Text style={styles.label}>Previous balance</Text>
-              <Text style={styles.value}>₦45,200.00</Text>
-            </View>
-
-            <View style={[styles.priceRow, { marginTop: verticalScale(4) }]}>
-              <Text style={styles.label}>Remaining balance</Text>
-              <Text style={styles.remainingBalanceValue}>₦10,700.00</Text>
-            </View>
+            <Text style={styles.label}>Paid with {order.paymentMethod === 'paystack' ? 'Paystack' : 'Cardzip wallet'}</Text>
           </View>
 
           {/* Action Button */}
-          <TouchableOpacity style={styles.actionButton} onPress={onViewOrders} activeOpacity={0.85}>
-            <Feather name="arrow-right" size={scale(18)} color="#0F172A" style={{ marginRight: scale(6) }} />
-            <Text style={styles.actionButtonText}>View Active Orders</Text>
+          <TouchableOpacity style={styles.actionButton} onPress={onViewReceipt} activeOpacity={0.85}>
+            <Feather name="file-text" size={scale(18)} color="#0F172A" style={{ marginRight: scale(6) }} />
+            <Text style={styles.actionButtonText}>View receipt & track</Text>
           </TouchableOpacity>
 
           {/* Footer Note */}
-          <Text style={styles.footerNote}>Your receipt is saved in Order History.</Text>
+          <Text style={styles.footerNote}>Order details are available in Order History.</Text>
         </View>
       </View>
     </Modal>
@@ -170,6 +171,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(22),
     fontWeight: '800',
     color: '#FFFFFF',
@@ -182,22 +184,26 @@ const styles = StyleSheet.create({
     marginTop: verticalScale(8),
   },
   orderIdText: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(11),
     fontWeight: '700',
     color: '#10B981',
     letterSpacing: 0.5,
   },
   bulletDot: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(11),
     color: '#64748B',
   },
   statusText: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(10),
     fontWeight: '600',
     color: '#94A3B8',
     letterSpacing: 0.8,
   },
   subtitle: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(12),
     color: '#94A3B8',
     textAlign: 'center',
@@ -216,6 +222,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   summaryHeader: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(10),
     fontWeight: '700',
     color: '#64748B',
@@ -223,6 +230,7 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(10),
   },
   itemText: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(12),
     fontWeight: '600',
     color: '#E2E8F0',
@@ -235,10 +243,12 @@ const styles = StyleSheet.create({
     marginTop: verticalScale(8),
   },
   label: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(12),
     color: '#94A3B8',
   },
   value: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(12),
     fontWeight: '600',
     color: '#FFFFFF',
@@ -249,11 +259,13 @@ const styles = StyleSheet.create({
     marginVertical: verticalScale(10),
   },
   deductionValue: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(12),
     fontWeight: '600',
     color: '#CBD5E1',
   },
   remainingBalanceValue: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(16),
     fontWeight: '800',
     color: '#10B981',
@@ -269,11 +281,13 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(10),
   },
   actionButtonText: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(14),
     fontWeight: '700',
     color: '#0F172A',
   },
   footerNote: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(11),
     color: '#64748B',
     textAlign: 'center',

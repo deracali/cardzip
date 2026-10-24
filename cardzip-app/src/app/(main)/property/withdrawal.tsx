@@ -1,20 +1,17 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
+import { ActivityIndicator,
   Modal,
   ScrollView,
-  SafeAreaView,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
-} from 'react-native';
+  View, } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useAppSelector } from '../../store';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useAppSelector } from '../../../store';
+import FeedbackModal from '../components/FeedbackModal';
 import KeyboardAwareScrollView from '../../../components/KeyboardAwareScrollView';
 import {
   fetchWalletAccountApi,
@@ -24,13 +21,13 @@ import {
   SavedBankAccount,
   WithdrawalRequest,
   withdrawWalletApi,
-} from '../../services/api/walletApi';
+} from '../../../services/api/walletApi';
 import {
   fetchNotificationsApi,
   markAllNotificationsReadApi,
   markNotificationReadApi,
   UserNotification,
-} from '../../services/api/notificationApi';
+} from '../../../services/api/notificationApi';
 
 const naira = (amount: number) => `₦${amount.toLocaleString('en-NG')}`;
 
@@ -55,6 +52,7 @@ export default function WithdrawScreen() {
   const [notificationsError, setNotificationsError] = useState('');
   const [updatingNotificationId, setUpdatingNotificationId] = useState('');
   const [error, setError] = useState('');
+  const [feedback, setFeedback] = useState<{ title: string; message: string; tone?: 'success' | 'error' | 'info' } | null>(null);
 
   const loadData = useCallback(async () => {
     if (!token) {
@@ -85,7 +83,9 @@ export default function WithdrawScreen() {
     }
   }, [token]);
 
-  useEffect(() => { void loadData(); }, [loadData]);
+  useFocusEffect(useCallback(() => {
+    void loadData();
+  }, [loadData]));
 
   const loadNotifications = useCallback(async () => {
     if (!token) return;
@@ -155,7 +155,11 @@ export default function WithdrawScreen() {
     setError('');
     try {
       await saveBankAccountApi(token, details);
-      Alert.alert('Bank account saved', 'Your payout account has been saved securely.');
+      setFeedback({
+        title: 'Bank account saved',
+        message: 'Your payout account has been saved securely.',
+        tone: 'success',
+      });
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Could not save the bank account.');
     } finally {
@@ -193,10 +197,11 @@ export default function WithdrawScreen() {
       setBalance(result.balance);
       setHistory((current) => [result.request, ...current].slice(0, 10));
       setAmount('');
-      Alert.alert(
-        result.request.riskStatus === 'clear' ? 'Request submitted — clear to withdraw' : 'Withdrawal review',
-        `Reference: ${result.request.reference}\nStatus: ${result.request.status}\nPayouts are processed manually by Cardzip. Your wallet balance has been reserved.`,
-      );
+      setFeedback({
+        title: result.request.riskStatus === 'clear' ? 'Request submitted — clear to withdraw' : 'Withdrawal review',
+        message: `Reference: ${result.request.reference}\nStatus: ${result.request.status}\nPayouts are processed manually by Cardzip. Your wallet balance has been reserved.`,
+        tone: 'success',
+      });
     } catch (submitError) {
       setConfirmModalVisible(false);
       await loadData();
@@ -208,7 +213,6 @@ export default function WithdrawScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F4F6F5" />
       <KeyboardAwareScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.iconButton} onPress={() => router.back()} accessibilityLabel="Go back">
@@ -401,6 +405,13 @@ export default function WithdrawScreen() {
           </View>
         </View>
       </Modal>
+      <FeedbackModal
+        visible={feedback !== null}
+        title={feedback?.title ?? ''}
+        message={feedback?.message ?? ''}
+        tone={feedback?.tone}
+        onClose={() => setFeedback(null)}
+      />
     </SafeAreaView>
   );
 }

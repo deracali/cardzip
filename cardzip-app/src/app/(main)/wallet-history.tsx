@@ -1,18 +1,15 @@
 import React, { useEffect } from 'react';
-import {
-  ActivityIndicator,
-  SafeAreaView,
+import { ActivityIndicator,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
-} from 'react-native';
+  View, } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useAppDispatch, useAppSelector } from '../store';
-import { fetchWalletHistory } from '../store/slices/walletSlice';
+import { useAppDispatch, useAppSelector } from '../../store';
+import { fetchWalletHistory } from '../../store/slices/walletSlice';
 
 const formatCurrency = (value: number) => `₦${value.toLocaleString('en-US')}.00`;
 
@@ -35,7 +32,6 @@ export default function WalletHistoryScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0B1220" />
 
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -113,6 +109,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   title: {
+    fontFamily: 'Poppins',
     fontSize: 18,
     fontWeight: '700',
     color: '#FFFFFF',
@@ -126,11 +123,13 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     color: '#94A3B8',
+    fontFamily: 'Poppins',
     fontSize: 12,
     marginBottom: 4,
   },
   summaryValue: {
     color: '#FFFFFF',
+    fontFamily: 'Poppins',
     fontSize: 28,
     fontWeight: '800',
   },
@@ -159,16 +158,19 @@ const styles = StyleSheet.create({
   transactionInfo: { flex: 1 },
   transactionTitle: {
     color: '#0F172A',
+    fontFamily: 'Poppins',
     fontSize: 14,
     fontWeight: '700',
     marginBottom: 3,
   },
   transactionMeta: {
     color: '#64748B',
+    fontFamily: 'Poppins',
     fontSize: 11,
     marginTop: 2,
   },
   amount: {
+    fontFamily: 'Poppins',
     fontSize: 14,
     fontWeight: '800',
   },
@@ -176,6 +178,7 @@ const styles = StyleSheet.create({
   debit: { color: '#7C3AED' },
   emptyText: {
     color: '#64748B',
+    fontFamily: 'Poppins',
     fontSize: 14,
     textAlign: 'center',
     marginTop: 18,

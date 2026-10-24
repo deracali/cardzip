@@ -1,23 +1,23 @@
 import React, { useState } from 'react';
-import {
-  StyleSheet,
+import { StyleSheet,
   Text,
   View,
+  Image,
   TextInput,
   TouchableOpacity,
   Dimensions,
-  SafeAreaView,
-  StatusBar,
   ActivityIndicator,
-  Alert,
-  Platform,
-} from 'react-native';
+  Platform, } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { GoogleSignin, isSuccessResponse } from '@react-native-google-signin/google-signin';
-import { useAppDispatch, useAppSelector } from '../store';
-import { signupUser, googleSignInUser, clearError } from '../store/slices/authSlice';
+import Constants from 'expo-constants';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import { useAppDispatch, useAppSelector } from '../../store';
+import { signupUser, googleSignInUser, appleSignInUser, clearError } from '../../store/slices/authSlice';
+import FeedbackModal from '../(main)/components/FeedbackModal';
 import KeyboardAwareScrollView from '../../components/KeyboardAwareScrollView';
+import GoogleLogo from '../../components/GoogleLogo';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -26,14 +26,14 @@ const hp = (percentage: number): number => Math.round((percentage * SCREEN_HEIGH
 const scale = (size: number): number => wp((size / SCREEN_WIDTH) * 100);
 
 const COLORS = {
-  bgDark: '#0A111F',
-  inputBg: '#1C2637',
-  primaryGreen: '#1DB954',
-  accentYellow: '#FFD166',
-  textMain: '#FFFFFF',
-  textMuted: '#A1ACB9',
-  border: '#2A3C55',
-  errorRed: '#FF4D4D',
+  bgDark: '#FFFFFF',
+  inputBg: '#F7F8FA',
+  primaryGreen: '#10B981',
+  accentYellow: '#059669',
+  textMain: '#111827',
+  textMuted: '#64748B',
+  border: '#E5E7EB',
+  errorRed: '#DC2626',
 };
 
 export default function SignUpScreen() {
@@ -47,6 +47,8 @@ export default function SignUpScreen() {
   const [referrerCode, setReferrerCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
+  const [feedback, setFeedback] = useState<{ title: string; message: string; tone?: 'error' | 'info' } | null>(null);
 
   const handleSignUp = () => {
     if (!fullName || !email || !password) return;
@@ -66,13 +68,34 @@ export default function SignUpScreen() {
   };
 
   const handleGoogleSignIn = async () => {
+    if (Constants.executionEnvironment === 'storeClient') {
+      setFeedback({
+        title: 'Google sign-in unavailable in Expo Go',
+        message: 'Use a Cardzip development build to sign in with Google. Email and password sign-in are still available here.',
+        tone: 'info',
+      });
+      return;
+    }
+    if (Platform.OS !== 'android' && Platform.OS !== 'ios') {
+      setFeedback({
+        title: 'Google sign-in unavailable',
+        message: 'Google sign-in is only available in the Cardzip Android and iOS apps.',
+        tone: 'error',
+      });
+      return;
+    }
     const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim();
     if (!webClientId) {
-      Alert.alert('Google sign-in unavailable', 'Google sign-in is not configured for this app build.');
+      setFeedback({
+        title: 'Google sign-in unavailable',
+        message: 'Google sign-in is not configured for this app build.',
+        tone: 'error',
+      });
       return;
     }
     setGoogleLoading(true);
     try {
+      const { GoogleSignin, isSuccessResponse } = await import('@react-native-google-signin/google-signin');
       GoogleSignin.configure({
         webClientId,
         ...(process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID
@@ -88,25 +111,76 @@ export default function SignUpScreen() {
       await dispatch(googleSignInUser(response.data.idToken)).unwrap();
       router.replace('/(main)/(tabs)/home' as any);
     } catch (error) {
-      Alert.alert('Google sign-in failed', error instanceof Error ? error.message : 'Could not sign in with Google.');
+      setFeedback({
+        title: 'Google sign-in failed',
+        message: error instanceof Error ? error.message : 'Could not sign in with Google.',
+        tone: 'error',
+      });
     } finally {
       setGoogleLoading(false);
     }
   };
 
+  const handleAppleSignIn = async () => {
+    setAppleLoading(true);
+    try {
+      if (!(await AppleAuthentication.isAvailableAsync())) {
+        setFeedback({
+          title: 'Apple sign-in unavailable',
+          message: 'Expo Go supports Apple sign-in on iOS. This runtime did not load the native Apple module. Open the app in Expo Go on an iPhone or iPad, update Expo Go, and make sure an Apple ID is set up on the device. A rebuild is only needed for a custom development or standalone app after native configuration changes. Google and email sign-in are still available.',
+          tone: 'info',
+        });
+        return;
+      }
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+      if (!credential.identityToken) throw new Error('Apple did not return an identity token. Please try again.');
+      const name = [credential.fullName?.givenName, credential.fullName?.middleName, credential.fullName?.familyName]
+        .filter(Boolean)
+        .join(' ');
+      await dispatch(appleSignInUser({ idToken: credential.identityToken, ...(name ? { name } : {}) })).unwrap();
+      router.replace('/(main)/(tabs)/home' as any);
+    } catch (error) {
+      if ((error as { code?: string }).code === 'ERR_REQUEST_CANCELED') return;
+      setFeedback({
+        title: 'Apple sign-in failed',
+        message: error instanceof Error ? error.message : 'Could not sign in with Apple.',
+        tone: 'error',
+      });
+    } finally {
+      setAppleLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.bgDark} />
 
       <KeyboardAwareScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <View style={styles.logoContainer}>
-            <View style={styles.logoCircle}>
-              <Text style={styles.logoText}>G</Text>
-            </View>
+        <View style={styles.brandBar}>
+          <View style={styles.brandRow}>
+            <Image source={require('../../../assets/images/logo.jpg')} style={styles.brandMark} />
+            <Text style={styles.brandName}>Cardzip</Text>
           </View>
-          <Text style={styles.welcomeText}>Create Account</Text>
-          <Text style={styles.subtitleText}>Start trading gift cards instantly</Text>
+          <View style={styles.secureLabel}>
+            <Ionicons name="shield-checkmark-outline" size={scale(13)} color={COLORS.primaryGreen} />
+            <Text style={styles.secureLabelText}>SECURE SIGN UP</Text>
+          </View>
+        </View>
+        <View style={styles.authTabs}>
+          <TouchableOpacity style={styles.authTab} onPress={() => router.replace('/(auth)/login' as any)}>
+            <Text style={styles.authTabText}>Sign In</Text>
+          </TouchableOpacity>
+          <View style={[styles.authTab, styles.authTabActive]}>
+            <Text style={[styles.authTabText, styles.authTabTextActive]}>Sign Up</Text>
+          </View>
+        </View>
+        <View style={styles.header}>
+          <Text style={styles.welcomeText}>Create your account</Text>
+          <Text style={styles.subtitleText}>Join Cardzip and get started in minutes.</Text>
         </View>
 
         {error && (
@@ -116,6 +190,7 @@ export default function SignUpScreen() {
         )}
 
         <View style={styles.formContainer}>
+          <Text style={styles.fieldLabel}>Full name</Text>
           <View style={styles.inputContainer}>
             <Feather name="user" size={scale(18)} color={COLORS.textMuted} style={styles.inputIcon} />
             <TextInput
@@ -130,6 +205,7 @@ export default function SignUpScreen() {
             />
           </View>
 
+          <Text style={styles.fieldLabel}>Email address</Text>
           <View style={styles.inputContainer}>
             <MaterialCommunityIcons name="email-outline" size={scale(20)} color={COLORS.textMuted} style={styles.inputIcon} />
             <TextInput
@@ -146,6 +222,7 @@ export default function SignUpScreen() {
             />
           </View>
 
+          <Text style={styles.fieldLabel}>Password</Text>
           <View style={styles.inputContainer}>
             <Ionicons name="lock-closed-outline" size={scale(20)} color={COLORS.textMuted} style={styles.inputIcon} />
             <TextInput
@@ -164,6 +241,7 @@ export default function SignUpScreen() {
             </TouchableOpacity>
           </View>
 
+          <Text style={styles.fieldLabel}>Referral code (optional)</Text>
           <View style={styles.inputContainer}>
             <Ionicons name="gift-outline" size={scale(18)} color={COLORS.textMuted} style={styles.inputIcon} />
             <TextInput
@@ -207,10 +285,27 @@ export default function SignUpScreen() {
           <View style={styles.googleButtonContent}>
             {googleLoading
               ? <ActivityIndicator color={COLORS.primaryGreen} />
-              : <MaterialCommunityIcons name="google" size={scale(20)} color="#4285F4" style={styles.googleIcon} />}
+              : <GoogleLogo size={scale(20)} />}
             <Text style={styles.googleButtonText}>{googleLoading ? 'Signing in…' : 'Continue with Google'}</Text>
           </View>
         </TouchableOpacity>
+        {Platform.OS === 'ios' && (
+          <View style={styles.appleButtonContainer}>
+            <TouchableOpacity
+              style={styles.appleButton}
+              onPress={() => { void handleAppleSignIn(); }}
+              disabled={appleLoading}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Sign up with Apple"
+            >
+              {appleLoading ? <ActivityIndicator color="#FFFFFF" /> : <>
+                <Ionicons name="logo-apple" size={scale(19)} color="#FFFFFF" />
+                <Text style={styles.appleButtonText}>Sign up with Apple</Text>
+              </>}
+            </TouchableOpacity>
+          </View>
+        )}
 
         <View style={styles.loginLinkContainer}>
           <Text style={styles.alreadyHaveText}>Already have an account? </Text>
@@ -218,7 +313,18 @@ export default function SignUpScreen() {
             <Text style={styles.loginText}>Log In</Text>
           </TouchableOpacity>
         </View>
+        <View style={styles.securityFooter}>
+          <Ionicons name="shield-checkmark-outline" size={scale(14)} color={COLORS.primaryGreen} />
+          <Text style={styles.securityText}>Your information is encrypted and secure</Text>
+        </View>
       </KeyboardAwareScrollView>
+      <FeedbackModal
+        visible={feedback !== null}
+        title={feedback?.title ?? ''}
+        message={feedback?.message ?? ''}
+        tone={feedback?.tone}
+        onClose={() => setFeedback(null)}
+      />
     </SafeAreaView>
   );
 }
@@ -230,27 +336,42 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bgDark,
   },
   scrollContent: {
-    paddingBottom: hp(5),
+    flexGrow: 1,
+    paddingHorizontal: wp(5),
+    paddingBottom: hp(4),
   },
+  brandBar: { minHeight: hp(7), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  brandMark: { width: 25, height: 25, borderRadius: 7 },
+  brandName: { color: COLORS.textMain, fontSize: 17, fontWeight: '800' },
+  secureLabel: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  secureLabelText: { color: COLORS.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 0.4 },
+  authTabs: { flexDirection: 'row', alignItems: 'center', padding: 3, minHeight: 44, borderRadius: 24, backgroundColor: '#F7F8FA', borderWidth: 1, borderColor: '#EEF0F3', marginTop: 8, marginBottom: 25 },
+  authTab: { flex: 1, minHeight: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 20 },
+  authTabActive: { backgroundColor: '#111827' },
+  authTabText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '600' },
+  authTabTextActive: { color: '#FFFFFF' },
   errorBanner: {
-    marginHorizontal: wp(6),
+    marginHorizontal: 0,
     marginBottom: hp(2),
     padding: wp(3),
     borderRadius: wp(2),
-    backgroundColor: '#3A1D24',
+    backgroundColor: '#FEF2F2',
     borderWidth: 1,
     borderColor: COLORS.errorRed,
   },
   errorText: {
     color: COLORS.errorRed,
+    fontFamily: 'Poppins',
     fontSize: scale(14),
   },
+  fieldLabel: { color: COLORS.textMain, fontSize: scale(12), fontWeight: '600', marginBottom: 7 },
 
   /* Header Section */
   header: {
-    paddingHorizontal: wp(6),
-    alignItems: 'center',
-    marginBottom: hp(5),
+    paddingHorizontal: 0,
+    alignItems: 'flex-start',
+    marginBottom: hp(3),
   },
   statusBarMock: {
     flexDirection: 'row',
@@ -262,6 +383,7 @@ const styles = StyleSheet.create({
   },
   statusTime: {
     color: COLORS.textMain,
+    fontFamily: 'Poppins',
     fontSize: scale(15),
     fontWeight: '700',
   },
@@ -287,36 +409,40 @@ const styles = StyleSheet.create({
   },
   logoText: {
     color: COLORS.textMain,
+    fontFamily: 'Poppins',
     fontSize: scale(28),
     fontWeight: '900',
   },
   welcomeText: {
     color: COLORS.textMain,
-    fontSize: scale(28),
+    fontFamily: 'Poppins',
+    fontSize: scale(25),
     fontWeight: '800',
     marginBottom: 4,
   },
   subtitleText: {
     color: COLORS.textMuted,
-    fontSize: scale(16),
+    fontFamily: 'Poppins',
+    fontSize: scale(13),
     fontWeight: '400',
+    lineHeight: scale(19),
   },
 
   /* Inputs Container */
   formContainer: {
-    paddingHorizontal: wp(6),
-    marginBottom: hp(3),
+    paddingHorizontal: 0,
+    marginBottom: hp(2),
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.inputBg,
-    borderRadius: wp(3),
-    height: hp(7),
-    paddingHorizontal: wp(4),
-    marginBottom: hp(2.5),
+    borderRadius: 11,
+    height: hp(6.2),
+    paddingHorizontal: wp(3.5),
+    marginBottom: hp(1.5),
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: COLORS.border,
   },
   phoneInputRow: {
     flexDirection: 'row',
@@ -337,6 +463,7 @@ const styles = StyleSheet.create({
   },
   countryCodeText: {
     color: COLORS.textMain,
+    fontFamily: 'Poppins',
     fontSize: scale(13),
     fontWeight: '700',
     marginRight: 4,
@@ -351,6 +478,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     color: COLORS.textMain,
+    fontFamily: 'Poppins',
     fontSize: scale(15),
     height: '100%',
   },
@@ -359,7 +487,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   showPasswordText: {
-    color: COLORS.accentYellow,
+    color: COLORS.primaryGreen,
+    fontFamily: 'Poppins',
     fontSize: scale(13),
     fontWeight: '700',
   },
@@ -367,16 +496,16 @@ const styles = StyleSheet.create({
   /* Primary Button */
   createAccountButton: {
     width: '100%',
-    height: hp(7),
+    height: hp(6.5),
     backgroundColor: COLORS.primaryGreen,
-    borderRadius: wp(3),
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: COLORS.primaryGreen,
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 8,
+    shadowOpacity: 0.12,
+    shadowRadius: 5,
+    elevation: 3,
   },
   buttonContent: {
     flexDirection: 'row',
@@ -384,6 +513,7 @@ const styles = StyleSheet.create({
   },
   createAccountButtonText: {
     color: 'white',
+    fontFamily: 'Poppins',
     fontSize: scale(16),
     fontWeight: '700',
   },
@@ -396,8 +526,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: wp(6),
-    marginBottom: hp(3),
+    paddingHorizontal: 0,
+    marginBottom: hp(2),
   },
   dividerLine: {
     flex: 1,
@@ -406,6 +536,7 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     color: COLORS.textMuted,
+    fontFamily: 'Poppins',
     fontSize: scale(12),
     fontWeight: '600',
     marginHorizontal: wp(4),
@@ -413,15 +544,15 @@ const styles = StyleSheet.create({
 
   /* Google Button */
   googleButton: {
-    marginHorizontal: wp(6),
-    height: hp(7),
-    backgroundColor: COLORS.inputBg,
-    borderRadius: wp(3),
+    marginHorizontal: 0,
+    height: hp(6),
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: COLORS.border,
-    marginBottom: hp(6),
+    marginBottom: hp(2),
   },
   googleButtonContent: {
     flexDirection: 'row',
@@ -442,11 +573,33 @@ const styles = StyleSheet.create({
   },
   googleBadgeText: {
     color: '#4285F4',
+    fontFamily: 'Poppins',
     fontSize: scale(11),
     fontWeight: '800',
   },
   googleButtonText: {
     color: COLORS.textMain,
+    fontFamily: 'Poppins',
+    fontSize: scale(15),
+    fontWeight: '700',
+  },
+  appleButtonContainer: {
+    position: 'relative',
+    marginBottom: hp(2),
+  },
+  appleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    width: '100%',
+    height: hp(6),
+    borderRadius: 10,
+    backgroundColor: '#000000',
+  },
+  appleButtonText: {
+    color: '#FFFFFF',
+    fontFamily: 'Poppins',
     fontSize: scale(15),
     fontWeight: '700',
   },
@@ -460,18 +613,23 @@ const styles = StyleSheet.create({
   },
   alreadyHaveText: {
     color: COLORS.textMuted,
+    fontFamily: 'Poppins',
     fontSize: scale(14),
     marginRight: 6,
   },
   loginText: {
     color: COLORS.accentYellow,
+    fontFamily: 'Poppins',
     fontSize: scale(14),
     fontWeight: '700',
   },
+  securityFooter: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginBottom: hp(1.5) },
+  securityText: { color: COLORS.textMuted, fontSize: scale(11) },
 
   /* Terms Footer */
   termsText: {
     color: COLORS.textMuted,
+    fontFamily: 'Poppins',
     fontSize: scale(12),
     textAlign: 'center',
     paddingHorizontal: wp(8),

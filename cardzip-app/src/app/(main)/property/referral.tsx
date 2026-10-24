@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
-import { useAppDispatch, useAppSelector } from '../../store';
-import { fetchMyAccount } from '../../store/slices/accountSlice';
+import { useAppDispatch, useAppSelector } from '../../../store';
+import { fetchMyAccount } from '../../../store/slices/accountSlice';
 import FeedbackModal from '../components/FeedbackModal';
 
 export default function ReferralScreen() {
@@ -25,7 +26,6 @@ export default function ReferralScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F4F6F5" />
       <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.iconButton}><Ionicons name="chevron-back" size={21} color="#12201B" /></TouchableOpacity>
@@ -44,12 +44,13 @@ export default function ReferralScreen() {
             <Text style={styles.copyText}>Copy</Text>
           </TouchableOpacity>
         </View>
-        <Text style={styles.rewardText}>Earn ₦2,500 for each successful referral.</Text>
+        <Text style={styles.rewardText}>Earn 2% of each referred customer’s confirmed naira gift-card payout when their trade succeeds.</Text>
       </View>
 
       <View style={styles.statsRow}>
         <View style={styles.statCard}><Text style={styles.statValue}>{summary?.referralCount ?? 0}</Text><Text style={styles.statLabel}>Friends joined</Text></View>
-        <View style={styles.statCard}><Text style={styles.statValue}>₦{(summary?.referralRewardNgn ?? 0).toLocaleString()}</Text><Text style={styles.statLabel}>Referral rewards</Text></View>
+        <View style={styles.statCard}><Text style={styles.statValue}>{summary?.referralSuccessfulTrades ?? 0}</Text><Text style={styles.statLabel}>Successful referred trades</Text></View>
+        <View style={styles.statCard}><Text style={styles.statValue}>₦{(summary?.referralRewardNgn ?? 0).toLocaleString()}</Text><Text style={styles.statLabel}>Total referral earnings</Text></View>
       </View>
 
       <Text style={styles.sectionTitle}>Your referrals</Text>
@@ -85,8 +86,8 @@ const styles = StyleSheet.create({
   copyButton: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#059669', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 9 },
   copyText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
   rewardText: { color: '#D1D5DB', fontSize: 12, marginTop: 12 },
-  statsRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginBottom: 24 },
-  statCard: { flex: 1, backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', borderWidth: 1, borderRadius: 12, padding: 14 },
+  statsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
+  statCard: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#FFFFFF', borderColor: '#E5E7EB', borderWidth: 1, borderRadius: 12, padding: 14 },
   statValue: { color: '#12201B', fontSize: 20, fontWeight: '900' },
   statLabel: { color: '#82918B', fontSize: 11, marginTop: 4 },
   sectionTitle: { color: '#12201B', fontSize: 15, fontWeight: '800', marginBottom: 10 },

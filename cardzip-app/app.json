@@ -1,15 +1,16 @@
 {
   "expo": {
-    "name": "realty-ai-studio",
-    "slug": "realty-ai-studio",
+    "name": "cardzip",
+    "slug": "cardzip",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/cardzip-app-icon.png",
     "scheme": "realtyaistudio",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.ios.cardzip"
+      "icon": "./assets/images/cardzip-app-icon.png",
+      "bundleIdentifier": "com.ios.cardzip",
+      "usesAppleSignIn": true
     },
     "android": {
       "package": "com.andriod.cardzip",
@@ -21,10 +22,8 @@
         "android.permission.READ_MEDIA_VIDEO"
       ],
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#078D45",
+        "foregroundImage": "./assets/images/cardzip-app-icon.png"
       },
       "predictiveBackGestureEnabled": false
     },
@@ -35,7 +34,7 @@
     "plugins": [
       "expo-router",
       [
-        "@react-native-google-signin/google-signin",
+        "@react-native-google-signin/google-signin/app.plugin.js",
         {
           "iosUrlScheme": "com.googleusercontent.apps.REPLACE_WITH_REVERSED_IOS_CLIENT_ID"
         }
@@ -43,9 +42,10 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "backgroundColor": "#FFFFFF",
+          "image": "./assets/images/cardzip-app-icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain"
         }
       ],
       [
@@ -55,8 +55,20 @@
           "cameraPermission": false,
           "microphonePermission": false
         }
-      ]
+      ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Allow Cardzip to select a phone number from your contacts."
+        }
+      ],
+      "expo-notifications"
     ],
+    "extra": {
+      "eas": {
+        "projectId": "b50d025b-7da3-4340-b39d-83db7eddd8e3"
+      }
+    },
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true

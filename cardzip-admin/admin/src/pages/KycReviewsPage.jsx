@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { CheckCircle2, ChevronLeft, ChevronRight, Clock3, ExternalLink, XCircle } from 'lucide-react'
 import { adminApi } from '../services/api'
 import CardzipLoader from '../components/CardzipLoader'
+import KycDocumentNumber from '../components/KycDocumentNumber'
 import './KycReviewsPage.css'
 
 export default function KycReviewsPage({ onViewUser }) {
@@ -82,10 +83,10 @@ export default function KycReviewsPage({ onViewUser }) {
                 <dl className="kyc-review-details">
                   <div><dt>Legal name</dt><dd>{kyc.legalName || 'Not provided'}</dd></div>
                   <div><dt>Document</dt><dd>{kyc.documentType?.replaceAll('_', ' ') || 'Not provided'}</dd></div>
-                  <div><dt>Document ending</dt><dd>{kyc.documentLastFour ? `•••• ${kyc.documentLastFour}` : 'Not available'}</dd></div>
+                  <div><dt>Document number</dt><dd><KycDocumentNumber userId={user._id} documentLastFour={kyc.documentLastFour} /></dd></div>
                   <div><dt>Submitted</dt><dd>{kyc.submittedAt ? new Date(kyc.submittedAt).toLocaleString() : 'Date unavailable'}</dd></div>
                 </dl>
-                <p className="kyc-review-note">Document images are not stored for this KYC submission; only the details above are available for review.</p>
+                <p className="kyc-review-note">Document images are not stored. Full ID numbers are encrypted and revealed only when requested by an authorized admin. Older submissions may only have the last four digits.</p>
                 <div className="kyc-review-actions">
                   <button type="button" className="kyc-review-open" onClick={() => onViewUser?.(user._id)}><ExternalLink size={15} /> User details</button>
                   <button type="button" className="kyc-review-reject" disabled={savingUserId === user._id} onClick={() => void review(user._id, 'rejected')}><XCircle size={15} /> Reject</button>

@@ -1,14 +1,10 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import {
-  ArrowUpRight,
-  Search,
   CheckCircle2,
   XCircle,
   Clock,
-  Building,
   Eye,
-  X,
-  AlertCircle
+  X
 } from 'lucide-react'
 
 

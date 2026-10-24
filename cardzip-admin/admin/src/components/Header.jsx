@@ -1,5 +1,4 @@
-import React from 'react'
-import { Search, Plus, Download, LogOut } from 'lucide-react'
+import { Search, Plus } from 'lucide-react'
 
 
 export default function Header({
@@ -7,8 +6,6 @@ export default function Header({
   dateText = "Tuesday, 06 Oct",
   statusText = "All systems live",
   lastSync = "12s ago",
-  admin,
-  onLogout,
   onSearchChange,
   onExport,
   onQuickAction
@@ -52,14 +49,6 @@ export default function Header({
           <span>Quick action</span>
         </button>
 
-        {/* User Avatar with Green Online Status Indicator */}
-        <button type="button" className="avatar-wrapper" onClick={onLogout} title={`Sign out ${admin?.name || 'admin'}`}>
-          <div className="avatar-circle">{admin?.name?.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase() || 'AD'}</div>
-          <span className="status-indicator"></span>
-        </button>
-        <button type="button" className="btn-export" onClick={onLogout} aria-label="Log out">
-          <LogOut size={14} /> Log out
-        </button>
       </div>
     </header>
   )

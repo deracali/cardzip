@@ -66,7 +66,7 @@ export default function ReferralPage({ onNavigate }) {
           <div className="referral-stats-grid">
             <article className="referral-stat-card"><Users size={20} /><span>People invited</span><strong>{referral.referralCount || 0}</strong></article>
             <article className="referral-stat-card"><Gift size={20} /><span>Successful referred trades</span><strong>{referral.referralSuccessfulTrades || 0}</strong></article>
-            <article className="referral-stat-card"><Wallet size={20} /><span>Rewards credited</span><strong>{formatNaira(referral.referralRewardNgn)}</strong></article>
+            <article className="referral-stat-card"><Wallet size={20} /><span>Total referral earnings</span><strong>{formatNaira(referral.referralRewardNgn)}</strong></article>
           </div>
 
           <section className="referral-list-card">

@@ -16,11 +16,15 @@ const saveCart = (items) => {
   return items
 }
 
-export const addToCart = (product, quantity = 1) => {
+const isSameCartItem = (item, productId, selectedColor = '') => (
+  item.productId === productId && (item.selectedColor || '') === selectedColor
+)
+
+export const addToCart = (product, quantity = 1, selectedColor = '') => {
   const cart = getCart()
-  const existing = cart.find((item) => item.productId === product._id)
+  const existing = cart.find((item) => isSameCartItem(item, product._id, selectedColor))
   if (existing) {
-    return saveCart(cart.map((item) => item.productId === product._id
+    return saveCart(cart.map((item) => isSameCartItem(item, product._id, selectedColor)
       ? { ...item, quantity: Math.min(100, item.quantity + quantity) }
       : item))
   }
@@ -29,17 +33,18 @@ export const addToCart = (product, quantity = 1) => {
     slug: product.slug,
     name: product.name,
     category: product.category,
+    selectedColor,
     price: Number(product.price),
     image: product.image || '',
     quantity,
   }])
 }
 
-export const updateCartQuantity = (productId, quantity) => {
+export const updateCartQuantity = (productId, quantity, selectedColor = '') => {
   const cart = getCart()
-  if (quantity < 1) return saveCart(cart.filter((item) => item.productId !== productId))
-  return saveCart(cart.map((item) => item.productId === productId ? { ...item, quantity: Math.min(100, quantity) } : item))
+  if (quantity < 1) return saveCart(cart.filter((item) => !isSameCartItem(item, productId, selectedColor)))
+  return saveCart(cart.map((item) => isSameCartItem(item, productId, selectedColor) ? { ...item, quantity: Math.min(100, quantity) } : item))
 }
 
-export const removeFromCart = (productId) => saveCart(getCart().filter((item) => item.productId !== productId))
+export const removeFromCart = (productId, selectedColor = '') => saveCart(getCart().filter((item) => !isSameCartItem(item, productId, selectedColor)))
 export const clearCart = () => saveCart([])

@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import {
-  Alert,
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -9,17 +8,22 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Dimensions,
-  SafeAreaView,
-  StatusBar,
-} from 'react-native';
+  Dimensions, } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useAppDispatch, useAppSelector } from '../../store';
-import { createStoreOrder } from '../../store/slices/storeSlice';
-import { clearCart } from '../../store/slices/cartSlice';
-import PaymentOptionsSheet from '../../../components/PaymentOptionsSheet';
+import * as Linking from 'expo-linking';
+import { useAppDispatch, useAppSelector } from '../../../store';
+import { createStoreOrder } from '../../../store/slices/storeSlice';
+import FeedbackModal from '../components/FeedbackModal';
+import { clearCart } from '../../../store/slices/cartSlice';
+import { StoreOrder } from '../../../types/store';
+import { formatNaira } from '../../../utils/currency';
+import { initializeStorePaymentApi, verifyStorePaymentApi } from '../../../services/api/paymentApi';
+import { isDefinitivePaystackFailure, openPaystackCheckout, verifyPaystackUntilSettled } from '../../../services/api/paystackFlow';
+import OrderSuccessModal from './successModel';
+import MarketBottomTab from './bottomtab/bottomtab';
 
 const { width, height } = Dimensions.get('window');
 
@@ -30,6 +34,7 @@ const guidelineBaseHeight = 812;
 const scale = (size: number) => (width / guidelineBaseWidth) * size;
 const verticalScale = (size: number) => (height / guidelineBaseHeight) * size;
 const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+const configuredPaymentCallbackUrl = process.env.EXPO_PUBLIC_PAYSTACK_CALLBACK_URL?.trim();
 
 export default function SecureCheckoutScreen() {
   const router = useRouter();
@@ -44,8 +49,12 @@ export default function SecureCheckoutScreen() {
   const [state, setState] = useState('');
   const [deliveryDetailsLoaded, setDeliveryDetailsLoaded] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'card'>('wallet');
-  const [activeTab, setActiveTab] = useState('Cart');
-  const [paymentSheetVisible, setPaymentSheetVisible] = useState(false);
+  const [successOrder, setSuccessOrder] = useState<StoreOrder | null>(null);
+  const [pendingPaymentReference, setPendingPaymentReference] = useState<string | null>(null);
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
+  const [paymentError, setPaymentError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState<{ title: string; message: string; tone?: 'success' | 'error' | 'info' } | null>(null);
 
   const subtotal = cartItems.reduce((sum, item) => sum + Number(item.price ?? 0) * Number(item.quantity ?? 0), 0);
   const shippingFee = cartItems.length > 0 ? 1500 : 0;
@@ -91,66 +100,124 @@ export default function SecureCheckoutScreen() {
     return () => clearTimeout(timeoutId);
   }, [address, deliveryDetailsLoaded, deliveryStorageKey, name, phone, state]);
 
-  const handlePlaceOrder = () => setPaymentSheetVisible(true);
+  const handlePlaceOrder = () => { void submitOrder(paymentMethod); };
+
+  const verifyPaystackOrder = async (reference: string) => {
+    if (!token) throw new Error('Sign in before verifying this payment.');
+    const verification = await verifyPaystackUntilSettled({
+      verify: () => verifyStorePaymentApi(token, reference),
+      getStatus: (result) => result.status === 'completed' && result.order ? 'completed' : 'pending',
+      attempts: 12,
+      intervalMs: 2000,
+      failureMessage: 'Paystack did not complete this order.',
+      pendingMessage: 'Order payment is still being confirmed. Do not start another payment.',
+    });
+    dispatch(clearCart());
+    setPendingPaymentReference(null);
+    setPaymentError('');
+    setSuccessOrder(verification.order);
+  };
+
+  const checkPendingPayment = useCallback(async () => {
+    if (!pendingPaymentReference || !token) return;
+    setVerifyingPayment(true);
+    setPaymentError('');
+    try {
+      await verifyPaystackOrder(pendingPaymentReference);
+    } catch (verificationError) {
+      const message = verificationError instanceof Error ? verificationError.message : 'Could not verify this payment.';
+      setPaymentError(message);
+      if (isDefinitivePaystackFailure(verificationError)) {
+        setPendingPaymentReference(null);
+      }
+    } finally {
+      setVerifyingPayment(false);
+    }
+  }, [pendingPaymentReference, token]);
+
+  useEffect(() => {
+    if (!pendingPaymentReference || !token || isSubmitting || verifyingPayment) return undefined;
+    const retryTimer = setTimeout(() => { void checkPendingPayment(); }, 3000);
+    return () => clearTimeout(retryTimer);
+  }, [checkPendingPayment, isSubmitting, pendingPaymentReference, token, verifyingPayment]);
 
   const submitOrder = async (selectedPaymentMethod: 'wallet' | 'card') => {
-    setPaymentSheetVisible(false);
     if (!deliveryDetailsLoaded) {
-      Alert.alert('Loading delivery details', 'Wait for your saved delivery information to load.');
+      setFeedback({ title: 'Loading delivery details', message: 'Wait for your saved delivery information to load.', tone: 'info' });
       return;
     }
 
     if (!name.trim() || !phone.trim() || !address.trim() || !state.trim()) {
-      Alert.alert('Delivery details required', 'Enter your name, phone number, address, and state before placing the order.');
+      setFeedback({ title: 'Delivery details required', message: 'Enter your name, phone number, address, and state before placing the order.', tone: 'info' });
       return;
     }
 
     if (cartItems.length === 0) {
-      Alert.alert('Your cart is empty', 'Add an item before checking out.');
+      setFeedback({ title: 'Your cart is empty', message: 'Add an item before checking out.', tone: 'info' });
       return;
     }
 
     if (!token) {
-      Alert.alert('Authentication required', 'Please sign in to place this order.');
+      setFeedback({ title: 'Authentication required', message: 'Please sign in to place this order.', tone: 'info' });
       return;
     }
 
     if (selectedPaymentMethod === 'wallet' && walletBalance < total) {
-      Alert.alert('Insufficient wallet balance', 'Top up your wallet or switch to card payment.');
+      setFeedback({ title: 'Insufficient wallet balance', message: 'Top up your wallet or switch to card payment.', tone: 'error' });
+      return;
+    }
+    if (selectedPaymentMethod === 'card' && pendingPaymentReference) {
+      setPaymentError('Your existing Paystack checkout is still being confirmed. Its status will update automatically.');
       return;
     }
 
+    let paymentReference = '';
+    setIsSubmitting(true);
     try {
-      const resultAction = await dispatch(createStoreOrder({
-        token,
-        payload: {
-          items: cartItems.map((item) => ({
-            id: item.id,
-            name: item.name ?? item.title ?? 'Product',
-            price: item.price,
-            quantity: item.quantity,
-            image: item.image ?? '',
-          })),
-          shippingAddress: { name, phone, address, state },
-          paymentMethod: selectedPaymentMethod,
-        },
-      }));
+      const payload = {
+        items: cartItems.map((item) => ({
+          productId: item.productId ?? item.id,
+          name: item.name ?? item.title ?? 'Product',
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image ?? '',
+          selectedColor: item.selectedColor,
+        })),
+        shippingAddress: { name, phone, address, state },
+        paymentMethod: selectedPaymentMethod,
+      };
 
-      if (createStoreOrder.fulfilled.match(resultAction)) {
+      if (selectedPaymentMethod === 'wallet') {
+        const resultAction = await dispatch(createStoreOrder({ token, payload }));
+        if (!createStoreOrder.fulfilled.match(resultAction)) {
+          throw new Error(typeof resultAction.payload === 'string' ? resultAction.payload : 'Unable to place order.');
+        }
         dispatch(clearCart());
-        Alert.alert('Order placed', 'Your order was submitted successfully.');
-        router.push('/market/orders');
+        setSuccessOrder(resultAction.payload);
       } else {
-        Alert.alert('Order failed', typeof resultAction.payload === 'string' ? resultAction.payload : 'Unable to place your order.');
+        setPaymentError('');
+        const callbackUrl = configuredPaymentCallbackUrl || Linking.createURL('payment/callback', { scheme: 'cardzip' });
+        const payment = await initializeStorePaymentApi(token, payload, callbackUrl);
+        paymentReference = payment.reference;
+        setPendingPaymentReference(payment.reference);
+        await openPaystackCheckout(payment.authorizationUrl, callbackUrl);
+        await verifyPaystackOrder(payment.reference);
       }
     } catch (error) {
-      Alert.alert('Order failed', error instanceof Error ? error.message : 'Unable to place your order.');
+      const message = error instanceof Error ? error.message : 'Unable to place your order.';
+      if (paymentReference) {
+        setPaymentError(message);
+        if (isDefinitivePaystackFailure(error)) setPendingPaymentReference(null);
+      } else {
+        setFeedback({ title: 'Order failed', message, tone: 'error' });
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0B1220" />
 
       {/* Header Bar */}
       <View style={styles.headerContainer}>
@@ -275,8 +342,8 @@ export default function SecureCheckoutScreen() {
               <Ionicons name="wallet-outline" size={scale(20)} color="#10B981" />
             </View>
             <View>
-              <Text style={styles.paymentTitle}>
-                Wallet Balance <Text style={styles.walletAmount}>({`₦${walletBalance.toLocaleString('en-US')}.00`})</Text>
+              <Text style={styles.paymentTitle} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>
+                Wallet Balance <Text style={styles.walletAmount}>({formatNaira(walletBalance, { minimumFractionDigits: 2 })})</Text>
               </Text>
               <Text style={styles.paymentSubtitle}>Pay instantly, no extra fees.</Text>
             </View>
@@ -314,26 +381,44 @@ export default function SecureCheckoutScreen() {
         {/* Order Summary Box */}
         <View style={styles.summaryCard}>
           <View style={styles.summaryTopRow}>
-            <Text style={styles.summaryItemsText}>{cartItems.map((item) => item.name ?? item.title ?? 'Item').join(', ') || 'No items selected'}</Text>
-              <Text style={styles.summaryCountBadge}>{cartItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0)} item{cartItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0) === 1 ? '' : 's'}</Text>
+            <Text style={styles.summaryItemsText} numberOfLines={2} ellipsizeMode="tail">{cartItems.map((item) => item.name ?? item.title ?? 'Item').join(', ') || 'No items selected'}</Text>
+            <Text style={styles.summaryCountBadge}>{cartItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0)} item{cartItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0) === 1 ? '' : 's'}</Text>
           </View>
 
           <Text style={styles.summarySubtext}>
-            {`₦${subtotal.toLocaleString('en-US')}.00 subtotal + ₦${shippingFee.toLocaleString('en-US')}.00 shipping`}
+            {`${formatNaira(subtotal, { minimumFractionDigits: 2 })} subtotal + ${formatNaira(shippingFee, { minimumFractionDigits: 2 })} shipping`}
           </Text>
 
           <View style={styles.summaryDivider} />
 
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Total to pay</Text>
-            <Text style={styles.totalAmount}>{`₦${total.toLocaleString('en-US')}.00`}</Text>
+            <Text style={styles.totalAmount}>{formatNaira(total, { minimumFractionDigits: 2 })}</Text>
           </View>
         </View>
 
+        {pendingPaymentReference ? (
+          <View style={styles.pendingPaymentCard}>
+            <Text style={styles.pendingPaymentTitle}>Paystack checkout pending</Text>
+            <Text style={styles.pendingPaymentMessage}>{paymentError || 'We are confirming your payment automatically. Do not start another checkout.'}</Text>
+            <Text style={styles.pendingPaymentReference}>Reference: {pendingPaymentReference}</Text>
+            <View style={styles.pendingPaymentProgress}>
+              <ActivityIndicator color="#047857" />
+              <Text style={styles.pendingPaymentProgressText}>{verifyingPayment ? 'Checking Paystack…' : 'Next automatic check shortly'}</Text>
+            </View>
+          </View>
+        ) : null}
+        {!pendingPaymentReference && paymentError ? (
+          <View style={styles.paymentFailureCard} accessibilityRole="alert">
+            <Text style={styles.paymentFailureTitle}>Payment not completed</Text>
+            <Text style={styles.paymentFailureMessage}>{paymentError}</Text>
+          </View>
+        ) : null}
+
         {/* Action Button */}
-        <TouchableOpacity style={styles.authorizeButton} activeOpacity={0.85} onPress={handlePlaceOrder}>
-          <Feather name="lock" size={scale(16)} color="#0F172A" style={{ marginRight: scale(8) }} />
-          <Text style={styles.authorizeButtonText}>Authorize & Place Order</Text>
+        <TouchableOpacity style={styles.authorizeButton} activeOpacity={0.85} onPress={handlePlaceOrder} disabled={isSubmitting}>
+          {isSubmitting ? <ActivityIndicator color="#0F172A" /> : <Feather name="lock" size={scale(16)} color="#0F172A" style={{ marginRight: scale(8) }} />}
+          <Text style={styles.authorizeButtonText}>{isSubmitting ? 'Opening secure checkout…' : paymentMethod === 'card' ? 'Continue to Paystack' : 'Authorize & Place Order'}</Text>
         </TouchableOpacity>
 
         {/* Security Note */}
@@ -346,66 +431,27 @@ export default function SecureCheckoutScreen() {
       </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Bottom Navigation */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity
-          style={[styles.navItem, activeTab === 'Home' && styles.activeNavItem]}
-          onPress={() => router.push('/(main)/(tabs)/store')}
-        >
-          <Feather
-            name="home"
-            size={scale(18)}
-            color={activeTab === 'Home' ? '#10B981' : '#64748B'}
-          />
-          <Text style={[styles.navText, activeTab === 'Home' && styles.activeNavText]}>Home</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.navItem, activeTab === 'Cart' && styles.activeNavItem]}
-          onPress={() => router.push('/(main)/market/cart')}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Feather
-              name="shopping-bag"
-              size={scale(18)}
-              color={activeTab === 'Cart' ? '#10B981' : '#64748B'}
-            />
-            <Text
-              style={[
-                styles.navText,
-                { marginLeft: scale(6) },
-                activeTab === 'Cart' && styles.activeNavText,
-              ]}
-            >
-              Cart
-            </Text>
-            <View style={styles.cartBadge}>
-              <Text style={styles.cartBadgeText}>{cartItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0)}</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.navItem, activeTab === 'Orders' && styles.activeNavItem]}
-          onPress={() => router.push('/(main)/market/orders')}
-        >
-          <Feather
-            name="file-text"
-            size={scale(18)}
-            color={activeTab === 'Orders' ? '#10B981' : '#64748B'}
-          />
-          <Text style={[styles.navText, activeTab === 'Orders' && styles.activeNavText]}>Orders</Text>
-        </TouchableOpacity>
-      </View>
-      <PaymentOptionsSheet
-        visible={paymentSheetVisible}
-        amount={total}
-        walletBalance={walletBalance}
-        walletEnabled
-        onClose={() => setPaymentSheetVisible(false)}
-        onPayFromWallet={() => { void submitOrder('wallet'); }}
-        onContinueWithProvider={paymentMethod === 'card' ? () => { void submitOrder('card'); } : undefined}
-        providerLabel="Continue with card"
+      <MarketBottomTab activeTab="Cart" />
+      <FeedbackModal
+        visible={feedback !== null}
+        title={feedback?.title ?? ''}
+        message={feedback?.message ?? ''}
+        tone={feedback?.tone}
+        onClose={() => setFeedback(null)}
+      />
+      <OrderSuccessModal
+        visible={Boolean(successOrder)}
+        order={successOrder}
+        onClose={() => {
+          setSuccessOrder(null);
+          router.replace('/(main)/market/orders');
+        }}
+        onViewReceipt={() => {
+          if (!successOrder) return;
+          const orderNumber = successOrder.orderNumber;
+          setSuccessOrder(null);
+          router.push({ pathname: '/(main)/market/receipt', params: { orderNumber } });
+        }}
       />
     </SafeAreaView>
   );
@@ -443,6 +489,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerCategory: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(10),
     fontWeight: '700',
     color: '#64748B',
@@ -450,11 +497,13 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(2),
   },
   headerTitle: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(20),
     fontWeight: '700',
     color: '#FFFFFF',
   },
   headerSubtitle: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(12),
     color: '#94A3B8',
   },
@@ -474,6 +523,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   progressTextActive: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(12),
     fontWeight: '600',
     color: '#10B981',
@@ -499,15 +549,18 @@ const styles = StyleSheet.create({
     marginRight: scale(6),
   },
   progressTextCurrent: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(12),
     fontWeight: '700',
     color: '#0F172A',
   },
   progressTextInactive: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(12),
     color: '#94A3B8',
   },
   sectionTitle: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(16),
     fontWeight: '700',
     color: '#0F172A',
@@ -520,6 +573,7 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(14),
   },
   inputLabel: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(11),
     fontWeight: '600',
     color: '#334155',
@@ -532,6 +586,7 @@ const styles = StyleSheet.create({
     borderRadius: scale(12),
     paddingHorizontal: scale(14),
     height: verticalScale(44),
+    fontFamily: 'Poppins',
     fontSize: moderateScale(13),
     color: '#0F172A',
   },
@@ -547,6 +602,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   dropdownText: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(13),
     color: '#0F172A',
   },
@@ -558,6 +614,7 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(4),
   },
   secureEncryptedText: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(11),
     color: '#64748B',
   },
@@ -603,6 +660,7 @@ const styles = StyleSheet.create({
     marginRight: scale(12),
   },
   paymentTitle: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(13),
     fontWeight: '700',
     color: '#0F172A',
@@ -612,6 +670,7 @@ const styles = StyleSheet.create({
     color: '#0F172A',
   },
   paymentSubtitle: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(11),
     color: '#64748B',
     marginTop: verticalScale(2),
@@ -645,19 +704,27 @@ const styles = StyleSheet.create({
   summaryTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    gap: scale(8),
     marginBottom: verticalScale(4),
   },
   summaryItemsText: {
+    flex: 1,
+    minWidth: 0,
+    flexShrink: 1,
+    fontFamily: 'Poppins',
     fontSize: moderateScale(13),
     fontWeight: '600',
     color: '#FFFFFF',
   },
   summaryCountBadge: {
+    flexShrink: 0,
+    fontFamily: 'Poppins',
     fontSize: moderateScale(11),
     color: '#64748B',
   },
   summarySubtext: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(11),
     color: '#64748B',
     marginBottom: verticalScale(14),
@@ -673,10 +740,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   totalLabel: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(12),
     color: '#94A3B8',
   },
   totalAmount: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(20),
     fontWeight: '700',
     color: '#10B981',
@@ -691,9 +760,66 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(12),
   },
   authorizeButtonText: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(14),
     fontWeight: '700',
     color: '#0F172A',
+  },
+  pendingPaymentCard: {
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: scale(12),
+    padding: scale(14),
+    marginBottom: verticalScale(14),
+  },
+  pendingPaymentTitle: {
+    color: '#92400E',
+    fontFamily: 'Poppins',
+    fontSize: moderateScale(13),
+    fontWeight: '800',
+  },
+  pendingPaymentMessage: {
+    color: '#78350F',
+    fontFamily: 'Poppins',
+    fontSize: moderateScale(11),
+    lineHeight: moderateScale(16),
+    marginTop: verticalScale(5),
+  },
+  pendingPaymentReference: {
+    color: '#78350F',
+    fontFamily: 'Poppins',
+    fontSize: moderateScale(10),
+    marginTop: verticalScale(7),
+  },
+  pendingPaymentProgress: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(8),
+    marginTop: verticalScale(10),
+  },
+  pendingPaymentProgressText: {
+    color: '#047857',
+    fontFamily: 'Poppins',
+    fontSize: moderateScale(11),
+    fontWeight: '700',
+  },
+  paymentFailureCard: { padding: scale(14), marginBottom: verticalScale(14), borderRadius: scale(12), borderWidth: 1, borderColor: '#FECACA', backgroundColor: '#FEF2F2' },
+  paymentFailureTitle: { color: '#991B1B', fontSize: moderateScale(13), fontWeight: '800' },
+  paymentFailureMessage: { color: '#7F1D1D', fontSize: moderateScale(11), lineHeight: moderateScale(16), marginTop: verticalScale(5) },
+  verifyPaymentButton: {
+    minHeight: verticalScale(40),
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: scale(9),
+    backgroundColor: '#047857',
+    marginTop: verticalScale(10),
+  },
+  verifyPaymentText: {
+    color: '#FFFFFF',
+    fontFamily: 'Poppins',
+    fontSize: moderateScale(11),
+    fontWeight: '800',
   },
   securityNoteRow: {
     flexDirection: 'row',
@@ -702,6 +828,7 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(10),
   },
   securityNoteText: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(11),
     color: '#94A3B8',
     marginLeft: scale(6),
@@ -727,6 +854,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0B1220',
   },
   navText: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(12),
     fontWeight: '500',
     color: '#64748B',
@@ -746,6 +874,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cartBadgeText: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(9),
     fontWeight: '700',
     color: '#0F172A',

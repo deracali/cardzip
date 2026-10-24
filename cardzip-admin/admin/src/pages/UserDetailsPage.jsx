@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ArrowLeft, CheckCircle2, Mail, ShieldCheck, XCircle } from 'lucide-react'
 import { adminApi } from '../services/api'
 import CardzipLoader from '../components/CardzipLoader'
+import KycDocumentNumber from '../components/KycDocumentNumber'
 
 const kycLabels = {
   not_submitted: 'Not submitted',
@@ -79,7 +80,7 @@ export default function UserDetailsPage({ userId, onBack }) {
 
       <div className="user-stats-grid">
         <div className="stat-card"><span className="stat-label">Wallet Balance</span><span className="stat-value">₦{Number(user.walletBalance || 0).toLocaleString('en-NG')}</span><span className="stat-sub">{user.walletCurrency || 'NGN'}</span></div>
-        <div className="stat-card"><span className="stat-label">KYC Document</span><span className="stat-value">{user.kyc?.documentType || 'Not submitted'}</span><span className="stat-sub">{user.kyc?.documentLastFour ? `Ending ${user.kyc.documentLastFour}` : 'No document details available'}</span></div>
+        <div className="stat-card"><span className="stat-label">KYC Document</span><span className="stat-value">{user.kyc?.documentType || 'Not submitted'}</span><KycDocumentNumber userId={user._id} documentLastFour={user.kyc?.documentLastFour} /></div>
         <div className="stat-card"><span className="stat-label">KYC Submitted</span><span className="stat-value">{user.kyc?.submittedAt ? new Date(user.kyc.submittedAt).toLocaleDateString() : '—'}</span><span className="stat-sub">{user.kyc?.legalName || 'No legal name submitted'}</span></div>
       </div>
     </div>

@@ -5,7 +5,8 @@ import { adminApi } from '../services/api'
 
 const assignablePages = [
   'Overview', 'Users', 'Treasury', 'Admin Wallet', 'Add Money', 'Withdrawals',
-  'Trade History', 'Bill Payments', 'Virtual Numbers', 'E-Commerce', 'Gift Cards',
+  'Trade History', 'Bill Payments', 'Virtual Numbers', 'E-Commerce', 'Store Products',
+  'Digital Submissions', 'Shop Verification', 'Marketplace Promotions', 'Banner Ads', 'Gift Cards',
   'Pending Gift Card Reviews', 'My Attendance',
 ]
 

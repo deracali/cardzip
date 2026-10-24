@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { ArrowUpRight, CheckCircle2, Package, Truck } from 'lucide-react'
 import { userApi } from '../services/api'
+import { formatNaira } from '../utils/currency'
 
-const formatNaira = (amount) => `₦${Number(amount || 0).toLocaleString('en-NG')}`
 const formatDate = (value) => value ? new Date(value).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' }) : '—'
 const statusLabel = (status) => ({
   processing: 'Processing',

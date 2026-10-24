@@ -1,17 +1,14 @@
 import React, { useState } from 'react';
-import {
-  StyleSheet,
+import { ActivityIndicator, StyleSheet,
   View,
   Text,
   Image,
   ScrollView,
   TouchableOpacity,
   Switch,
-  SafeAreaView,
-  StatusBar,
   useWindowDimensions,
-  Platform,
-} from 'react-native';
+  Platform, } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Ionicons,
   Octicons,
@@ -19,12 +16,15 @@ import {
   FontAwesome5,
 } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useAppDispatch, useAppSelector } from '../../store';
-import { logoutUser } from '../../store/slices/authSlice';
-import { fetchMyAccount } from '../../store/slices/accountSlice';
-import { setNotificationsEnabled } from '../../store/slices/preferencesSlice';
+import { useAppDispatch, useAppSelector } from '../../../store';
+import { logoutUser, setUserProfileImage } from '../../../store/slices/authSlice';
+import { setNotificationsEnabled } from '../../../store/slices/preferencesSlice';
 import FeedbackModal from '../components/FeedbackModal';
 import CardzipLoader from '../../../components/CardzipLoader';
+import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { uploadProfileImageApi } from '../../../services/api/accountApi';
+import { setAccountProfileImage } from '../../../store/slices/accountSlice';
 
 
 
@@ -32,20 +32,73 @@ export default function ProfileScreen() {
   const { width } = useWindowDimensions();
   const dispatch = useAppDispatch();
   const { user, token } = useAppSelector((state) => state.auth);
-  const { summary } = useAppSelector((state) => state.account);
+  const { summary, loading } = useAppSelector((state) => state.account);
   const { notificationsEnabled } = useAppSelector((state) => state.preferences);
   const [feedback, setFeedback] = useState<{ title: string; message: string } | null>(null);
+  const [profileImageLoading, setProfileImageLoading] = useState(false);
+  const [profileImageError, setProfileImageError] = useState('');
+  const [pendingProfileImage, setPendingProfileImage] = useState<string | null>(null);
 
   // Responsive scaling dynamic helper based on 375px reference width
   const scale = (size: number) => (width / 375) * size;
+  const profileImage = pendingProfileImage || user?.profileImage || summary?.user.profileImage;
 
-  React.useEffect(() => {
-    if (token) dispatch(fetchMyAccount(token));
-  }, [dispatch, token]);
+  const chooseProfileImage = async () => {
+    if (!token || profileImageLoading) return;
+    setProfileImageError('');
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setProfileImageError('Allow photo-library access to choose your profile image.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.85,
+    });
+    if (result.canceled) return;
+    const asset = result.assets[0];
+    const previousImage = profileImage;
+    setPendingProfileImage(asset.uri);
+    setProfileImageLoading(true);
+    try {
+      const imageUrl = await uploadProfileImageApi(token, {
+        uri: asset.uri,
+        name: asset.fileName || `profile.${asset.mimeType?.split('/')[1] || 'jpg'}`,
+        type: asset.mimeType || 'image/jpeg',
+      });
+      dispatch(setUserProfileImage(imageUrl));
+      dispatch(setAccountProfileImage(imageUrl));
+      const stored = await AsyncStorage.getItem('cardzip.auth.session');
+      if (stored) {
+        const session = JSON.parse(stored) as { user: typeof user; token: string };
+        if (session.user) {
+          await AsyncStorage.setItem('cardzip.auth.session', JSON.stringify({
+            ...session,
+            user: { ...session.user, profileImage: imageUrl },
+          }));
+        }
+      }
+      setPendingProfileImage(null);
+    } catch (requestError) {
+      setPendingProfileImage(previousImage || null);
+      setProfileImageError(requestError instanceof Error ? requestError.message : 'Could not update your profile image.');
+    } finally {
+      setProfileImageLoading(false);
+    }
+  };
+
+  if (!summary && loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <CardzipLoader label="Preparing your profile…" fullScreen />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F4F6F5" />
       <ScrollView
         contentContainerStyle={[styles.container, { paddingHorizontal: scale(16) }]}
         showsVerticalScrollIndicator={false}
@@ -53,9 +106,6 @@ export default function ProfileScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Profile</Text>
-          <TouchableOpacity style={styles.settingsButton} activeOpacity={0.7}>
-            <Ionicons name="options-outline" size={scale(20)} color="#12201B" />
-          </TouchableOpacity>
         </View>
 
         {/* User Banner Card */}
@@ -65,20 +115,21 @@ export default function ProfileScreen() {
 
           {/* Avatar Container */}
           <View style={styles.avatarWrapper}>
-            <Image
-              source={{
-                uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=300&auto=format&fit=crop',
-              }}
-              style={styles.avatarImage}
-            />
-            {/* Verified Badge */}
-            <View style={styles.verifiedBadge}>
-              <Ionicons name="checkmark" size={scale(12)} color="#FFFFFF" />
-            </View>
+            <TouchableOpacity onPress={() => void chooseProfileImage()} accessibilityRole="button" accessibilityLabel="Change profile image" disabled={profileImageLoading}>
+              {profileImage
+                ? <Image source={{ uri: profileImage }} style={styles.avatarImage} />
+                : <View style={[styles.avatarImage, styles.avatarPlaceholder]}><Ionicons name="person" size={scale(34)} color="#FFFFFF" /></View>}
+              <View style={styles.avatarEditBadge}>
+                {profileImageLoading
+                  ? <ActivityIndicator size="small" color="#FFFFFF" />
+                  : <Feather name="plus" size={scale(15)} color="#FFFFFF" />}
+              </View>
+            </TouchableOpacity>
+            {profileImageError ? <Text style={styles.profileImageError} accessibilityRole="alert">{profileImageError}</Text> : null}
           </View>
 
           {/* Name */}
-          <Text style={styles.userName}>{user?.name ?? 'Your account'}</Text>
+          <Text style={styles.userName} numberOfLines={1} ellipsizeMode="tail" adjustsFontSizeToFit minimumFontScale={0.75}>{user?.name ?? 'Your account'}</Text>
 
           {/* Level Pill & Points */}
           <View style={styles.levelRow}>
@@ -87,7 +138,7 @@ export default function ProfileScreen() {
             </View>
               {summary
                 ? <Text style={styles.levelPointsText}>{summary.nextLevel ? `${summary.pointsToNextLevel} pts to ${summary.nextLevel}` : `${summary.points} pts · max level`}</Text>
-                : <CardzipLoader label="Loading level…" compact />}
+                : <Text style={styles.levelPointsText}>Points unavailable</Text>}
           </View>
 
           {/* Progress Bar */}
@@ -95,6 +146,17 @@ export default function ProfileScreen() {
             <View style={[styles.progressBarFill, { width: `${summary?.progressPercent ?? 0}%` }]} />
           </View>
         </View>
+
+        <TouchableOpacity style={styles.rewardsCard} activeOpacity={0.8} onPress={() => router.push('/(main)/property/rewards')}>
+          <View style={[styles.iconContainer, { backgroundColor: '#0F261C' }]}>
+            <FontAwesome5 name="award" size={scale(16)} color="#B3F05C" />
+          </View>
+          <View style={styles.menuTextContainer}>
+            <Text style={styles.menuTitle}>Rewards & activity</Text>
+            <Text style={styles.menuSubTitle}>{`${summary?.points ?? 0} pts · ${summary?.successfulTrades ?? 0} trades · ${summary?.referralCount ?? 0} referrals`}</Text>
+          </View>
+          <Feather name="chevron-right" size={scale(20)} color="#12201B" />
+        </TouchableOpacity>
 
         {/* Menu Items Group */}
         <View style={styles.menuGroup}>
@@ -111,13 +173,17 @@ export default function ProfileScreen() {
           </TouchableOpacity>
 
           {/* 2. Bank Details */}
-          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={() => router.push('/(main)/property/bank-details')}>
             <View style={[styles.iconContainer, { backgroundColor: '#1C2723' }]}>
               <Ionicons name="business" size={scale(18)} color="#FFFFFF" />
             </View>
             <View style={styles.menuTextContainer}>
               <Text style={styles.menuTitle}>Bank Details</Text>
-              <Text style={styles.menuSubTitle}>GTBank • ****4521</Text>
+              <Text style={styles.menuSubTitle}>
+                {summary?.user.bankAccount
+                  ? `${summary.user.bankAccount.bankName} • ****${summary.user.bankAccount.accountNumber.slice(-4)}`
+                  : 'Add a payout account'}
+              </Text>
             </View>
             <Feather name="chevron-right" size={scale(20)} color="#12201B" />
           </TouchableOpacity>
@@ -146,11 +212,11 @@ export default function ProfileScreen() {
             </View>
             <View style={styles.menuTextContainer}>
               <Text style={[styles.menuTitle, { color: '#12201B', fontWeight: '700' }]}>
-                Refer & Earn ₦2,500
+                Earn 2% from referrals
               </Text>
               {summary
                 ? <Text style={[styles.menuSubTitle, { color: '#374151' }]}>{`${summary.referralCount} friends • ₦${summary.referralRewardNgn.toLocaleString()} earned`}</Text>
-                : <CardzipLoader label="Loading referral activity…" compact />}
+                : <Text style={[styles.menuSubTitle, { color: '#374151' }]}>Referral activity unavailable</Text>}
             </View>
             <View style={styles.inviteButton}>
               <Text style={styles.inviteButtonText}>Invite</Text>
@@ -213,6 +279,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   headerTitle: {
+    fontFamily: 'Poppins',
     fontSize: 22,
     fontWeight: '800',
     color: '#12201B',
@@ -264,24 +331,16 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#FFFFFF',
   },
-  verifiedBadge: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#10B981',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#0F261C',
-  },
+  avatarPlaceholder: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#537260' },
+  avatarEditBadge: { position: 'absolute', right: 0, bottom: 8, width: 25, height: 25, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#0F261C', borderRadius: 13, backgroundColor: '#087A4C' },
+  profileImageError: { marginBottom: 8, color: '#FECACA', fontSize: 10, textAlign: 'center' },
   userName: {
+    fontFamily: 'Poppins',
     fontSize: 20,
     fontWeight: '800',
     color: '#FFFFFF',
     marginBottom: 10,
+    maxWidth: '100%',
   },
   levelRow: {
     flexDirection: 'row',
@@ -296,11 +355,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   levelPillText: {
+    fontFamily: 'Poppins',
     fontSize: 10,
     fontWeight: '800',
     color: '#12201B',
   },
   levelPointsText: {
+    fontFamily: 'Poppins',
     fontSize: 11,
     color: '#A2B3AC',
     fontWeight: '500',
@@ -342,12 +403,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   menuTitle: {
+    fontFamily: 'Poppins',
     fontSize: 14,
     fontWeight: '700',
     color: '#12201B',
     marginBottom: 2,
   },
   menuSubTitle: {
+    fontFamily: 'Poppins',
     fontSize: 12,
     color: '#82918B',
   },
@@ -358,12 +421,24 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   verifiedTagText: {
+    fontFamily: 'Poppins',
     fontSize: 11,
     fontWeight: '700',
     color: '#10B981',
   },
 
   /* Refer & Earn Special Card */
+  rewardsCard: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#DDE5DF',
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
   referralCard: {
     backgroundColor: '#B3F05C', // Distinct bright lime background
     borderRadius: 16,
@@ -380,6 +455,7 @@ const styles = StyleSheet.create({
   },
   inviteButtonText: {
     color: '#FFFFFF',
+    fontFamily: 'Poppins',
     fontSize: 12,
     fontWeight: '800',
   },
@@ -393,6 +469,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   logoutText: {
+    fontFamily: 'Poppins',
     fontSize: 14,
     fontWeight: '700',
     color: '#FF4D4D',

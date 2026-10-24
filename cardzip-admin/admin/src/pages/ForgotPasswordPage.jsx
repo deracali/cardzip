@@ -14,7 +14,7 @@ export default function ForgotPasswordPage({ onBack }) {
     <div className="login-wrapper">
       <header className="login-nav">
         <div className="nav-brand">
-          <div className="brand-logo">c</div>
+          <span className="brand-logo"><img src="/cardzip-logo.jpg" alt="" /></span>
           <span className="brand-name">Cardzip</span>
           <span className="brand-badge">Super Admin Platform</span>
         </div>

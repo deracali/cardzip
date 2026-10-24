@@ -3,6 +3,7 @@ import EcosystemServices from '../components/EcosystemServices'
 import GlobalConnectivity from '../components/GlobalConnectivity'
 import TrustAndFaq from '../components/TrustAndFaq'
 import AppDownloadFooter from '../components/AppDownloadFooter'
+import HomeProductsSection from '../components/HomeProductsSection'
 
 
 export default function Overview({ onNavigate }) {
@@ -15,9 +16,11 @@ export default function Overview({ onNavigate }) {
         <HeroSection
           onStartTrading={() => onNavigate?.('/gift-cards')}
           onExploreUtilities={() => onNavigate?.('/bills')}
+          onNavigate={onNavigate}
         />
+        <HomeProductsSection onNavigate={onNavigate} />
         <EcosystemServices onNavigate={onNavigate} />
-        <GlobalConnectivity />
+        <GlobalConnectivity onExploreClick={() => onNavigate?.('/virtual-numbers')} />
         <TrustAndFaq onNavigate={onNavigate} />
       </main>
 

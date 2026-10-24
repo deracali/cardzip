@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 
@@ -12,7 +12,6 @@ import AddMoneyPage from './pages/AddMoneyPage'
 import WithdrawalsPage from './pages/WithdrawalsApiPage'
 import BillPaymentsPage from './pages/BillPaymentsPage'
 import EsimPage from './pages/EsimPage'
-import EcommercePage from './pages/EcommercePage'
 import EcommerceOrderDetailsPage from './pages/EcommerceOrderDetailsPage'
 import GiftCardsPage from './pages/GiftCardsPage'
 import PendingGiftCardsPage from './pages/PendingGiftCardsPage'
@@ -32,6 +31,8 @@ import { adminApi, getAdminToken, setAdminToken } from './services/api'
 
 import './App.css'
 import './responsive.css'
+
+const EcommercePage = lazy(() => import('./pages/EcommercePage'))
 
 function App() {
   const [admin, setAdmin] = useState(null)
@@ -101,7 +102,29 @@ function App() {
       case 'Virtual Numbers':
         return <EsimPage />
       case 'E-Commerce':
-        return <EcommercePage onViewOrder={(order) => { setSelectedStoreOrder(order); setActiveTab('Order Details') }} />
+        return <Suspense fallback={<CardzipLoader label="Loading orders…" />}>
+          <EcommercePage key="orders" section="orders" onViewOrder={(order) => { setSelectedStoreOrder(order); setActiveTab('Order Details') }} />
+        </Suspense>
+      case 'Store Products':
+        return <Suspense fallback={<CardzipLoader label="Loading store products…" />}>
+          <EcommercePage key="products" section="products" />
+        </Suspense>
+      case 'Digital Submissions':
+        return <Suspense fallback={<CardzipLoader label="Loading digital submissions…" />}>
+          <EcommercePage key="digital-assets" section="digital-assets" />
+        </Suspense>
+      case 'Shop Verification':
+        return <Suspense fallback={<CardzipLoader label="Loading shop applications…" />}>
+          <EcommercePage key="shops" section="shops" />
+        </Suspense>
+      case 'Marketplace Promotions':
+        return <Suspense fallback={<CardzipLoader label="Loading marketplace promotions…" />}>
+          <EcommercePage key="promotions" section="promotions" />
+        </Suspense>
+      case 'Banner Ads':
+        return <Suspense fallback={<CardzipLoader label="Loading E-Commerce…" />}>
+          <EcommercePage key="ads" section="ads" />
+        </Suspense>
       case 'Order Details':
         return <EcommerceOrderDetailsPage order={selectedStoreOrder} onBack={() => setActiveTab(admin.role === 'staff' ? 'My Tasks' : 'E-Commerce')} />
       case 'Gift Cards':
@@ -150,11 +173,10 @@ function App() {
         }
         setActiveTab={setActiveTab}
         admin={admin}
+        onLogout={handleLogout}
       />
       <div className="main-wrapper">
         <Header
-          admin={admin}
-          onLogout={handleLogout}
           onExport={() => window.print()}
           onQuickAction={() => setActiveTab(admin.role === 'staff' ? 'My Tasks' : 'Withdrawals')}
         />

@@ -4,6 +4,7 @@ import CustomSelect from '../components/CustomSelect'
 
 const STORAGE_KEY = 'cardzip-company-letterhead'
 const LETTER_FONTS = {
+  Poppins: '"Poppins", Arial, sans-serif',
   Inter: '"Inter", Arial, sans-serif',
   Lato: '"Lato", Arial, sans-serif',
   Merriweather: '"Merriweather", Georgia, serif',
@@ -31,7 +32,7 @@ const DEFAULT_DOCUMENT = {
   signature: '',
   signatureTitle: '',
   body: '',
-  bodyFont: 'Merriweather',
+  bodyFont: 'Poppins',
   bodyFontSize: 12,
   bodyAlignment: 'left',
   lineSpacing: 1.7,
@@ -127,11 +128,9 @@ const makeLetterHtml = (document) => {
 <html>
 <head>
   <meta charset="utf-8">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lato:wght@400;700&family=Merriweather:wght@400;700&family=Playfair+Display:wght@400;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
   <title>${name} letter</title>
   <style>
+    @font-face { font-family: "Poppins"; src: url("/fonts/Poppins-Regular.ttf") format("truetype"); font-weight: 400; }
     @page { size: A4; margin: 22mm 20mm 24mm; }
     * { box-sizing: border-box; }
     body { margin: 0; color: #1f2937; font: 11pt/1.65 Arial, sans-serif; }
@@ -146,6 +145,7 @@ const makeLetterHtml = (document) => {
     .body p { margin: 0 0 ${paragraphSpacing}pt; }
     .stamp { float: right; margin: 18px 0 12px 16px; width: 34mm; height: 20mm; border: 1.5px solid ${stampColor}; border-radius: 50%; color: ${stampColor}; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 9pt; font-weight: 700; transform: rotate(-10deg); }
     .signature-block { clear: both; margin-top: ${sectionGap}pt; }
+    .signature-image { display: block; width: 38mm; height: 16mm; object-fit: contain; object-position: left center; }
     .signature { color: #0f172a; font: italic 20pt/1.2 Georgia, serif; min-height: 9mm; }
     .signature-title { color: #64748b; font-size: 9pt; }
     footer { position: fixed; bottom: -15mm; left: 0; right: 0; padding-top: 8px; border-top: 1px solid #dbe4ee; text-align: center; color: #64748b; font-size: 8pt; }
@@ -162,7 +162,7 @@ const makeLetterHtml = (document) => {
   </header>
   <div class="letter-date">${getToday()}</div>
   <div class="body">${paragraphs}</div>
-  ${signature || signatureTitle ? `<div class="signature-block"><div class="signature">${signature}</div>${signatureTitle ? `<div class="signature-title">${signatureTitle}</div>` : ''}</div>` : ''}
+  <div class="signature-block"><img class="signature-image" src="/cardzip-signature.jpg" alt="Authorized signature">${signature ? `<div class="signature">${signature}</div>` : ''}${signatureTitle ? `<div class="signature-title">${signatureTitle}</div>` : ''}</div>
   ${stamp ? `<div class="stamp">${stamp}</div>` : ''}
   ${footer ? `<footer>${footer}</footer>` : ''}
 </body>
@@ -310,7 +310,7 @@ const downloadPdf = (document) => {
 }
 
 const downloadDocx = async (document) => {
-  const { AlignmentType, BorderStyle, Document, Footer, Header, Packer, Paragraph, TextRun } = await import('docx')
+  const { AlignmentType, BorderStyle, Document, Footer, Header, ImageRun, Packer, Paragraph, TextRun } = await import('docx')
   const headerColor = safeColor(document.headerColor).slice(1)
   const stampColor = safeColor(document.stampColor).slice(1)
   const bodyFont = safeFont(document.bodyFont)
@@ -325,6 +325,9 @@ const downloadDocx = async (document) => {
   const lineSpacing = safeNumber(document.lineSpacing, 1.3, 2.2, DEFAULT_DOCUMENT.lineSpacing)
   const paragraphSpacing = safeNumber(document.paragraphSpacing, 0, 32, DEFAULT_DOCUMENT.paragraphSpacing)
   const sectionGap = safeNumber(document.sectionGap, 0, 48, DEFAULT_DOCUMENT.sectionGap)
+  const signatureResponse = await fetch('/cardzip-signature.jpg')
+  if (!signatureResponse.ok) throw new Error('Could not load the Cardzip signature image.')
+  const signatureImage = new Uint8Array(await signatureResponse.arrayBuffer())
   const header = new Header({
     children: [
       new Paragraph({
@@ -356,10 +359,12 @@ const downloadDocx = async (document) => {
     }),
     new Paragraph({ alignment: AlignmentType.RIGHT, spacing: { after: 400 }, children: [new TextRun({ text: getToday(), color: '64748B', size: 18 })] }),
     ...letterBodyParagraphs,
-    ...(document.signature || document.signatureTitle ? [
-      new Paragraph({ spacing: { before: Math.round(sectionGap * 15) }, children: [new TextRun({ text: document.signature || '', italics: true, font: 'Segoe Script', size: 30 })] }),
-      ...(document.signatureTitle ? [new Paragraph({ children: [new TextRun({ text: document.signatureTitle, color: '64748B', size: 18 })] })] : []),
-    ] : []),
+    new Paragraph({
+      spacing: { before: Math.round(sectionGap * 15) },
+      children: [new ImageRun({ data: signatureImage, transformation: { width: 144, height: 58 } })],
+    }),
+    ...(document.signature ? [new Paragraph({ children: [new TextRun({ text: document.signature, italics: true, font: 'Segoe Script', size: 30 })] })] : []),
+    ...(document.signatureTitle ? [new Paragraph({ children: [new TextRun({ text: document.signatureTitle, color: '64748B', size: 18 })] })] : []),
     ...(document.stampText ? [new Paragraph({
       alignment: AlignmentType.RIGHT,
       spacing: { before: 300 },
@@ -419,12 +424,11 @@ function LetterPaper({ document, contactLine, preview = false }) {
           ? bodyParagraphs(document.body).map((paragraph, index) => <p key={`${index}-${paragraph.slice(0, 16)}`} style={{ marginBottom: `${paragraphSpacing}px` }}>{paragraph}</p>)
           : <span className="letterhead-paper-placeholder">Your letter body will appear here.</span>}
       </div>
-      {(document.signature || document.signatureTitle) && (
-        <div className="letterhead-paper-signature" style={{ marginTop: `${sectionGap}px` }}>
-          {document.signature && <strong>{document.signature}</strong>}
-          {document.signatureTitle && <span>{document.signatureTitle}</span>}
-        </div>
-      )}
+      <div className="letterhead-paper-signature" style={{ marginTop: `${sectionGap}px` }}>
+        <img src="/cardzip-signature.jpg" alt="Authorized signature" />
+        {document.signature && <strong>{document.signature}</strong>}
+        {document.signatureTitle && <span>{document.signatureTitle}</span>}
+      </div>
       {document.stampText && <div className="letterhead-paper-stamp" style={{ color: safeColor(document.stampColor), borderColor: safeColor(document.stampColor) }}>{document.stampText}</div>}
       {document.footerText && <div className="letterhead-paper-footer">{document.footerText}</div>}
     </article>

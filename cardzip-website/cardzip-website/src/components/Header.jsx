@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowLeft, Bell, CheckCheck, LifeBuoy, LogOut, Menu, Wallet, X, Zap } from 'lucide-react'
+import { ArrowLeft, Bell, CheckCheck, Menu, Wallet, X } from 'lucide-react'
 import { getUserToken, userApi } from '../services/api'
 
 
-export default function Header({ currentTab = 'home', onSelectTab, onOpenDashboard, onOpenWallet, onLogout }) {
+export default function Header({ currentTab = 'home', onSelectTab, onOpenDashboard, onOpenWallet }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [walletBalance, setWalletBalance] = useState(null)
   const [walletError, setWalletError] = useState('')
@@ -119,6 +119,7 @@ export default function Header({ currentTab = 'home', onSelectTab, onOpenDashboa
 
   const navItems = [
     { id: 'home', label: 'Home' },
+    { id: 'about', label: 'About' },
     { id: 'gift-cards', label: 'Gift Cards' },
     { id: 'esim', label: 'Virtual Numbers' },
     { id: 'shop', label: 'Shop' },
@@ -143,10 +144,10 @@ export default function Header({ currentTab = 'home', onSelectTab, onOpenDashboa
           if (event.key === 'Enter' || event.key === ' ') selectTab('home')
         }}
       >
-        <div className="brand-icon-box">
-          <Zap size={18} className="brand-icon" />
-        </div>
-        <span className="brand-title">cardzip</span>
+        <span className="brand-icon-box">
+          <img src="/cardzip-logo.jpg" alt="" />
+        </span>
+        <span className="brand-title">Cardzip</span>
       </div>
 
       {/* Center: Navigation Links */}
@@ -165,10 +166,6 @@ export default function Header({ currentTab = 'home', onSelectTab, onOpenDashboa
 
       {/* Right: Exchange Rate, Wallet & Dashboard CTA */}
       <div className="header-actions">
-        <button type="button" className="header-support-btn" onClick={() => selectTab('/support')}>
-          <LifeBuoy size={15} />
-          <span>Help &amp; support</span>
-        </button>
         <button
           type="button"
           className="mobile-nav-toggle"
@@ -209,7 +206,6 @@ export default function Header({ currentTab = 'home', onSelectTab, onOpenDashboa
         >
           Dashboard
         </button>}
-        {getUserToken() && <button type="button" className="dashboard-btn header-logout-btn" onClick={onLogout} aria-label="Log out" title="Log out"><LogOut size={15} /><span>Log out</span></button>}
       </div>
       {notificationsOpen && createPortal(<div className="site-notification-backdrop" onMouseDown={(event) => {
         if (event.target === event.currentTarget) {

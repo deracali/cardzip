@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { 
   User,
   Mail,
@@ -10,14 +10,26 @@ import {
   Smartphone,
   History,
   Users,
+  Award,
+  LogOut,
 } from 'lucide-react'
+import { userApi } from '../services/api'
 
 
-export default function ProfilePage({ onNavigate, user }) {
+export default function ProfilePage({ onNavigate, onLogout, user }) {
   const [copied, setCopied] = useState(false)
   const [activeTab, setActiveTab] = useState('profile')
+  const [account, setAccount] = useState(null)
   const nameParts = (user?.name || '').trim().split(/\s+/).filter(Boolean)
   const referralCode = user?.referralCode || ''
+
+  useEffect(() => {
+    let active = true
+    userApi.account()
+      .then((result) => { if (active) setAccount(result.data) })
+      .catch(() => {})
+    return () => { active = false }
+  }, [])
 
   const handleCopyReferralCode = () => {
     if (!referralCode) return
@@ -102,13 +114,37 @@ export default function ProfilePage({ onNavigate, user }) {
               </button>
               <button className="nav-item" type="button" onClick={() => onNavigate?.('/referrals')}>
                 <Users size={16} />
-                <span>Referrals & rewards</span>
+                <span>Refer & earn</span>
+              </button>
+              <button className="nav-item" type="button" onClick={() => onNavigate?.('/rewards')}>
+                <Award size={16} />
+                <span>Rewards & activity</span>
+              </button>
+              <button className="dashboard-logout-button" type="button" onClick={onLogout}>
+                <LogOut size={16} />
+                <span>Log out</span>
               </button>
             </nav>
           </aside>
 
           {/* Right Main Content Panel */}
           <main className="profile-content-col">
+
+            <section className="profile-rewards-card">
+              <div className="profile-rewards-heading">
+                <div className="profile-rewards-icon"><Award size={18} /></div>
+                <div>
+                  <span className="profile-rewards-eyebrow">MEMBERSHIP REWARDS</span>
+                  <h3>{account?.memberLevel || 'Bronze'} member</h3>
+                  <p>{account?.points ?? 0} points · {account?.successfulTrades ?? 0} successful trades · {account?.referralCount ?? 0} referrals</p>
+                </div>
+                <button type="button" onClick={() => onNavigate?.('/rewards')}>View rewards</button>
+              </div>
+              <div className="profile-rewards-progress" role="progressbar" aria-label="Membership tier progress" aria-valuenow={account?.progressPercent ?? 0} aria-valuemin="0" aria-valuemax="100">
+                <span style={{ width: `${account?.progressPercent ?? 0}%` }} />
+              </div>
+              <small>{account?.nextLevel ? `${account.pointsToNextLevel} points to ${account.nextLevel}` : 'Top tier reached'}</small>
+            </section>
             
             {/* Personal Information Form Card */}
             <div className="content-card">

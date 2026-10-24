@@ -1,16 +1,13 @@
 import React, { useState } from 'react';
-import {
-  StyleSheet,
+import { StyleSheet,
   Text,
   View,
-  SafeAreaView,
   TouchableOpacity,
   ScrollView,
   Dimensions,
   Switch,
-  Platform,
-  StatusBar,
-} from 'react-native';
+  Platform, } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path, Rect } from 'react-native-svg';
 import { Ionicons, Feather, MaterialIcons, Octicons } from '@expo/vector-icons';
@@ -60,7 +57,6 @@ export default function CardDetailsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#061A14" />
       
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
@@ -291,6 +287,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
+    fontFamily: 'Poppins',
     fontSize: scale(17),
     fontWeight: '700',
     color: '#FFFFFF',
@@ -340,6 +337,7 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   cardTitle: {
+    fontFamily: 'Poppins',
     fontSize: scale(13),
     fontWeight: '600',
     color: '#FFFFFF',
@@ -357,6 +355,7 @@ const styles = StyleSheet.create({
     marginRight: scale(5),
   },
   statusText: {
+    fontFamily: 'Poppins',
     fontSize: scale(11),
     color: '#FFFFFF',
     fontWeight: '600',
@@ -367,6 +366,7 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   cardNumber: {
+    fontFamily: 'Poppins',
     fontSize: scale(18),
     fontWeight: '700',
     color: '#FFFFFF',
@@ -379,10 +379,12 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   cardLabel: {
+    fontFamily: 'Poppins',
     fontSize: scale(9),
     color: '#94A3B8',
   },
   cardValue: {
+    fontFamily: 'Poppins',
     fontSize: scale(15),
     fontWeight: '700',
     color: '#FFFFFF',
@@ -401,6 +403,7 @@ const styles = StyleSheet.create({
   },
   flipButtonText: {
     color: '#FFFFFF',
+    fontFamily: 'Poppins',
     fontSize: scale(12),
     fontWeight: '600',
     marginLeft: scale(6),
@@ -418,6 +421,7 @@ const styles = StyleSheet.create({
     borderColor: '#F1F5F9',
   },
   infoLabel: {
+    fontFamily: 'Poppins',
     fontSize: scale(11),
     color: '#94A3B8',
     fontWeight: '500',
@@ -435,11 +439,13 @@ const styles = StyleSheet.create({
     marginTop: verticalScale(2),
   },
   infoValue: {
+    fontFamily: 'Poppins',
     fontSize: scale(14),
     fontWeight: '700',
     color: '#0F172A',
   },
   addressValue: {
+    fontFamily: 'Poppins',
     fontSize: scale(13),
     fontWeight: '700',
     color: '#0F172A',
@@ -454,6 +460,7 @@ const styles = StyleSheet.create({
     borderRadius: scale(8),
   },
   badgeText: {
+    fontFamily: 'Poppins',
     fontSize: scale(11),
     fontWeight: '700',
     color: '#10B981',
@@ -483,12 +490,14 @@ const styles = StyleSheet.create({
     borderRadius: scale(6),
   },
   badgeTextSmall: {
+    fontFamily: 'Poppins',
     fontSize: scale(10),
     fontWeight: '700',
     color: '#10B981',
     marginLeft: scale(3),
   },
   sectionHeaderTitle: {
+    fontFamily: 'Poppins',
     fontSize: scale(11),
     fontWeight: '700',
     color: '#94A3B8',
@@ -513,11 +522,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   controlTitle: {
+    fontFamily: 'Poppins',
     fontSize: scale(13),
     fontWeight: '700',
     color: '#0F172A',
   },
   controlSubtitle: {
+    fontFamily: 'Poppins',
     fontSize: scale(10),
     color: '#94A3B8',
     marginTop: verticalScale(1),
@@ -539,6 +550,7 @@ const styles = StyleSheet.create({
     marginTop: verticalScale(4),
   },
   deleteButtonText: {
+    fontFamily: 'Poppins',
     fontSize: scale(13),
     fontWeight: '700',
     color: '#EF4444',

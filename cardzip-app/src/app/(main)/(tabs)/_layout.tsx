@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, useWindowDimensions, Platform } from 'react-native';
-import { Tabs } from 'expo-router';
+import { Tabs, usePathname } from 'expo-router';
 import { Octicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 
 type CustomTabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>>[0];
@@ -18,6 +18,9 @@ const Colors = {
  */
 function CustomTabBar({ state, descriptors, navigation }: CustomTabBarProps) {
   const { width } = useWindowDimensions();
+  const pathname = usePathname();
+
+  if (pathname.endsWith('/store') || pathname.includes('/market/')) return null;
 
   // Dynamic sizing based on screen width
   const scale = (size: number) => (width / 375) * size;
@@ -181,6 +184,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.activeGreen,
   },
   label: {
+    fontFamily: 'Poppins',
     fontSize: 11,
     fontWeight: '500',
   },

@@ -1,43 +1,64 @@
-import { useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { LifeBuoy } from 'lucide-react'
 import Header from './components/Header'
-import Overview from './pages/Overview'
-import Login from './pages/Login'
-import ForgotPasswordPage from './pages/forgotpassword'
-import ProfilePage from './pages/profile'
-import ReferralPage from './pages/ReferralPage'
-import GiftCardTradePage from './pages/GiftCardTradePage'
-import TradeHistoryPage from './pages/TradeHistoryPage'
-import VirtualNumbersPage from './pages/VirtualNumbersPage'
-import ShopPage from './pages/ShopPage'
-import ShopPageWithCart from './pages/ShopPageWithCart'
-import ProductDetailsPage from './pages/ProductDetailsPage'
-import BillsPaymentPage from './pages/BillsPaymentPage'
-import CheckoutPage from './pages/CheckoutPage'
-import OrderHistoryPage from './pages/OrderHistoryPage'
-import TrackReceiptPage from './pages/TrackReceiptPage'
-import BillHistoryPage from './pages/BillHistoryPage'
-import StorePaymentHistoryPage from './pages/StorePaymentHistoryPage'
-import SupportRequestsPage from './pages/SupportRequestsPage'
-import PaymentCallbackPage from './pages/PaymentCallbackPage'
-import WalletPage, {
-  AddMoneyPage,
-  AddMoneyHistoryPage,
-  WithdrawalPage,
-  WithdrawalHistoryPage,
-  BalanceHistoryPage,
-  BankAccountsPage,
-} from './pages/WalletPages'
+const Overview = lazy(() => import('./pages/Overview'))
+const AboutPage = lazy(() => import('./pages/AboutPage'))
+const Login = lazy(() => import('./pages/Login'))
+const ForgotPasswordPage = lazy(() => import('./pages/forgotpassword'))
+const ProfilePage = lazy(() => import('./pages/profile'))
+const ReferralPage = lazy(() => import('./pages/ReferralPage'))
+const RewardsPage = lazy(() => import('./pages/RewardsPage'))
+const GiftCardTradePage = lazy(() => import('./pages/GiftCardTradePage'))
+const TradeHistoryPage = lazy(() => import('./pages/TradeHistoryPage'))
+const VirtualNumbersPage = lazy(() => import('./pages/VirtualNumbersPage'))
+const ShopPage = lazy(() => import('./pages/ShopPage'))
+const DigitalAssetsPage = lazy(() => import('./pages/DigitalAssetsPage'))
+const DigitalAssetDetailsPage = lazy(() => import('./pages/DigitalAssetDetailsPage'))
+const SubmitDigitalAssetPage = lazy(() => import('./pages/SubmitDigitalAssetPage'))
+const ShopDirectoryPage = lazy(() => import('./pages/ShopDirectoryPage'))
+const CreateShopPage = lazy(() => import('./pages/CreateShopPage'))
+const MyShopPage = lazy(() => import('./pages/MyShopPage'))
+const ShopProfilePage = lazy(() => import('./pages/ShopProfilePage'))
+const CommunityMarketPage = lazy(() => import('./pages/CommunityMarketPage'))
+const CommunityListingDetailsPage = lazy(() => import('./pages/CommunityListingDetailsPage'))
+const ShopPageWithCart = lazy(() => import('./pages/ShopPageWithCart'))
+const ProductDetailsPage = lazy(() => import('./pages/ProductDetailsPage'))
+const BillsPaymentPage = lazy(() => import('./pages/BillsPaymentPage'))
+const CheckoutPage = lazy(() => import('./pages/CheckoutPage'))
+const OrderHistoryPage = lazy(() => import('./pages/OrderHistoryPage'))
+const TrackReceiptPage = lazy(() => import('./pages/TrackReceiptPage'))
+const BillHistoryPage = lazy(() => import('./pages/BillHistoryPage'))
+const StorePaymentHistoryPage = lazy(() => import('./pages/StorePaymentHistoryPage'))
+const SupportRequestsPage = lazy(() => import('./pages/SupportRequestsPage'))
+const PaymentCallbackPage = lazy(() => import('./pages/PaymentCallbackPage'))
+const AdvertisePage = lazy(() => import('./pages/AdvertisePage'))
+const MyAdvertsPage = lazy(() => import('./pages/AdvertisePage').then((module) => ({ default: module.MyAdvertsPage })))
+const WalletPage = lazy(() => import('./pages/WalletPages'))
+const AddMoneyPage = lazy(() => import('./pages/WalletPages').then((module) => ({ default: module.AddMoneyPage })))
+const AddMoneyHistoryPage = lazy(() => import('./pages/WalletPages').then((module) => ({ default: module.AddMoneyHistoryPage })))
+const WithdrawalPage = lazy(() => import('./pages/WalletPages').then((module) => ({ default: module.WithdrawalPage })))
+const WithdrawalHistoryPage = lazy(() => import('./pages/WalletPages').then((module) => ({ default: module.WithdrawalHistoryPage })))
+const BalanceHistoryPage = lazy(() => import('./pages/WalletPages').then((module) => ({ default: module.BalanceHistoryPage })))
+const BankAccountsPage = lazy(() => import('./pages/WalletPages').then((module) => ({ default: module.BankAccountsPage })))
 import { getUserToken, setUserToken, userApi } from './services/api'
 import './App.css'
 
 const pages = {
   '/': { tab: 'home', component: Overview },
+  '/about': { tab: 'about', component: AboutPage },
   '/esim': { tab: 'esim', component: VirtualNumbersPage },
   '/gift-cards': { tab: 'gift-cards', component: GiftCardTradePage },
   '/trade-history': { tab: 'gift-cards', component: TradeHistoryPage },
   '/virtual-numbers': { tab: 'esim', component: VirtualNumbersPage },
   '/shop': { tab: 'shop', component: ShopPage },
+  '/digital-assets': { tab: 'shop', component: DigitalAssetsPage },
+  '/digital-assets/sell': { tab: 'shop', component: SubmitDigitalAssetPage },
+  '/shops': { tab: 'shop', component: ShopDirectoryPage },
+  '/shops/create': { tab: 'shop', component: CreateShopPage },
+  '/my-shop': { tab: 'shop', component: MyShopPage },
+  '/advertise': { tab: 'shop', component: AdvertisePage },
+  '/my-adverts': { tab: 'shop', component: MyAdvertsPage },
+  '/community-market': { tab: 'shop', component: CommunityMarketPage },
   '/cart': { tab: 'shop', component: ShopPageWithCart },
   '/bills': { tab: 'bills', component: BillsPaymentPage },
   '/checkout': { tab: 'shop', component: CheckoutPage },
@@ -54,6 +75,7 @@ const pages = {
   '/bank-accounts': { tab: 'wallet', component: BankAccountsPage },
   '/profile': { tab: 'profile', component: ProfilePage },
   '/referrals': { tab: 'profile', component: ReferralPage },
+  '/rewards': { tab: 'profile', component: RewardsPage },
   '/support': { tab: 'profile', component: SupportRequestsPage },
 }
 
@@ -101,7 +123,8 @@ function App() {
     path === '/orders' || path.startsWith('/orders/') || path === '/trade-history' ||
     path === '/profile' || path === '/bill-history' ||
     path === '/store-payment-history' || path === '/referrals' || path === '/support'
-    || path === '/payment/callback'
+    || path === '/rewards' || path === '/payment/callback' || path === '/advertise' || path === '/my-adverts'
+    || path === '/digital-assets/sell'
 
   useEffect(() => {
     if (requiresAuthentication && authChecked && !user) {
@@ -111,7 +134,7 @@ function App() {
 
   if (path === '/login' || path === '/signup') {
     return (
-      <Login
+      <Suspense fallback={<main className="session-loading" role="status">Loading…</main>}><Login
         initialMode={path === '/signup' ? 'signup' : 'login'}
         onForgotPassword={() => navigate('/forgot-password')}
         onAuthenticated={(session) => {
@@ -120,15 +143,20 @@ function App() {
           const requestedPath = new URLSearchParams(window.location.search).get('redirect')
           navigate(requestedPath?.startsWith('/') && requestedPath !== '/login' ? requestedPath : '/', true)
         }}
-      />
+      /></Suspense>
     )
   }
 
   if (path === '/forgot-password') {
-    return <ForgotPasswordPage onBackToLogin={() => navigate('/login')} />
+    return <Suspense fallback={<main className="session-loading" role="status">Loading…</main>}><ForgotPasswordPage onBackToLogin={() => navigate('/login')} /></Suspense>
   }
 
   const productSlug = path.startsWith('/product/') ? path.slice('/product/'.length) : null
+  const digitalAssetSlug = path.startsWith('/digital-assets/') && path !== '/digital-assets/sell' ? path.slice('/digital-assets/'.length) : null
+  const communityListingId = path.startsWith('/community-market/') ? path.slice('/community-market/'.length) : null
+  const shopSlug = path.startsWith('/shops/') && path !== '/shops/create'
+    ? path.slice('/shops/'.length)
+    : null
   const orderId = path.startsWith('/orders/') ? path.slice('/orders/'.length) : null
   const page = pages[path]
   if (requiresAuthentication && !user) {
@@ -147,6 +175,7 @@ function App() {
     }
     const pathsByTab = {
       home: '/',
+      about: '/about',
       'gift-cards': '/gift-cards',
       esim: '/virtual-numbers',
       shop: '/shop',
@@ -155,10 +184,10 @@ function App() {
     }
     navigate(pathsByTab[tab] || '/')
   }
-  if (!page && !productSlug && !orderId) {
+  if (!page && !productSlug && !digitalAssetSlug && !communityListingId && !orderId && !shopSlug) {
     return (
       <div className="app-container">
-        <Header currentTab="home" onSelectTab={(tab) => selectTab(tab)} onOpenDashboard={() => navigate('/profile')} onOpenWallet={() => navigate('/wallet')} onLogout={logout} />
+        <Header currentTab="home" onSelectTab={(tab) => selectTab(tab)} onOpenDashboard={() => navigate('/profile')} onOpenWallet={() => navigate('/wallet')} />
         <main className="app-main-content">
           <section className="page-container" role="status">
             <h1>Page not found</h1>
@@ -170,19 +199,30 @@ function App() {
       </div>
     )
   }
-  const Page = productSlug ? ProductDetailsPage : orderId ? TrackReceiptPage : page.component
+  const Page = communityListingId
+    ? CommunityListingDetailsPage
+    : shopSlug
+    ? ShopProfilePage
+    : digitalAssetSlug
+      ? DigitalAssetDetailsPage
+    : productSlug
+      ? ProductDetailsPage
+      : orderId
+        ? TrackReceiptPage
+        : page.component
 
   return (
     <div className="app-container">
       <Header
-        currentTab={page?.tab || (productSlug ? 'shop' : 'home')}
+        currentTab={page?.tab || (productSlug || digitalAssetSlug || communityListingId || shopSlug ? 'shop' : 'home')}
         onSelectTab={selectTab}
         onOpenDashboard={() => navigate('/profile')}
         onOpenWallet={() => navigate('/wallet')}
-        onLogout={logout}
       />
       <main className="app-main-content">
-        <Page key={productSlug || orderId || path} onNavigate={navigate} productSlug={productSlug} orderId={orderId} user={user} />
+        <Suspense fallback={<main className="session-loading" role="status"><span className="session-brand">C</span><span className="session-spinner" />LOADING CARDZIP</main>}>
+          <Page key={productSlug || digitalAssetSlug || communityListingId || shopSlug || orderId || path} onNavigate={navigate} onLogout={logout} productSlug={productSlug} digitalAssetSlug={digitalAssetSlug} listingId={communityListingId} shopSlug={shopSlug} orderId={orderId} user={user} />
+        </Suspense>
       </main>
       {path !== '/support' && <FloatingSupportButton onClick={() => navigate('/support')} />}
     </div>

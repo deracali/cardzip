@@ -1,28 +1,26 @@
-import React, { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator,
   Modal,
   Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  SafeAreaView,
-  StatusBar,
-  Dimensions,
-} from 'react-native';
+  Dimensions, } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 
 import NumberHubHeader from '../components/NumberHubHeader';
 import NumberHubCatalog from '../components/NumberHubCatalog';
 import NumberHubRentals from '../components/NumberHubRentals';
 import NumberHubConfirmModal from '../components/NumberHubConfirmModal';
+import FeedbackModal from '../components/FeedbackModal';
 import PaymentOptionsSheet from '../../../components/PaymentOptionsSheet';
 import KeyboardAwareScrollView from '../../../components/KeyboardAwareScrollView';
-import * as WebBrowser from 'expo-web-browser';
 import * as ExpoLinking from 'expo-linking';
-import { useAppDispatch, useAppSelector } from '../../store';
-import { fetchWalletBalance } from '../../store/slices/walletSlice';
+import { isDefinitivePaystackFailure, openPaystackCheckout, verifyPaystackUntilSettled } from '../../../services/api/paystackFlow';
+import { useAppDispatch, useAppSelector } from '../../../store';
+import { fetchWalletBalance } from '../../../store/slices/walletSlice';
 import {
   cancelRental,
   fetchActiveRentals,
@@ -41,7 +39,7 @@ import {
   SmsMessage,
   updateRentalAutoRenew,
   verifyVirtualNumberPayment,
-} from '../../services/api/numberHubApi';
+} from '../../../services/api/numberHubApi';
 
 // --------------------------------------------------
 // Responsive Dimensions & Scaling Helpers
@@ -86,12 +84,13 @@ const isFailedPaymentError = (error: unknown): error is NumberHubApiError =>
   error.data.status === 'failed';
 
 export default function NumberHubScreen() {
+  const { tab } = useLocalSearchParams<{ tab?: string }>();
   const dispatch = useAppDispatch();
   const token = useAppSelector((state) => state.auth.token);
   const walletBalance = useAppSelector((state) => state.wallet.balance);
   const walletCurrency = useAppSelector((state) => state.wallet.currency);
   const walletLoading = useAppSelector((state) => state.wallet.loading);
-  const [activeTab, setActiveTab] = useState<'catalog' | 'rentals' | 'inbox'>('rentals');
+  const [activeTab, setActiveTab] = useState<'catalog' | 'rentals' | 'inbox'>(tab === 'catalog' ? 'catalog' : 'rentals');
   const [selectedRegion, setSelectedRegion] = useState('');
   const [selectedService, setSelectedService] = useState('');
   const [selectedDuration, setSelectedDuration] = useState('');
@@ -103,6 +102,7 @@ export default function NumberHubScreen() {
   const [durations, setDurations] = useState<RentalDuration[]>([]);
   const [pricing, setPricing] = useState<RentalPricing | null>(null);
   const [pricingLoading, setPricingLoading] = useState(false);
+  const [durationLoading, setDurationLoading] = useState(false);
   const [rentals, setRentals] = useState<RentalProfile[]>([]);
   const [messages, setMessages] = useState<SmsMessage[]>([]);
   const [selectedRentalId, setSelectedRentalId] = useState<string | null>(null);
@@ -114,10 +114,18 @@ export default function NumberHubScreen() {
   const [purchaseResult, setPurchaseResult] = useState<PurchaseResult | null>(null);
   const [pendingPaymentReference, setPendingPaymentReference] = useState('');
   const [apiError, setApiError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{ title: string; message: string; tone?: 'success' | 'error' | 'info' } | null>(null);
+  const [manageRental, setManageRental] = useState<RentalProfile | null>(null);
 
   const selectedArea = areas.find((area) => area.value === selectedRegion) ?? areas[0];
   const selectedApp = apps.find((app) => app.value === selectedService) ?? apps[0];
   const selectedDurationOption = durations.find((duration) => duration.value === selectedDuration) ?? durations[0];
+
+  useFocusEffect(useCallback(() => {
+    if (tab !== 'catalog') return undefined;
+    const frame = requestAnimationFrame(() => setActiveTab('catalog'));
+    return () => cancelAnimationFrame(frame);
+  }, [tab]));
 
   useEffect(() => {
     if (token) void dispatch(fetchWalletBalance(token));
@@ -134,7 +142,11 @@ export default function NumberHubScreen() {
         : nextRentals[0]?.id ?? null);
       return nextRentals;
     } catch (error) {
-      Alert.alert('Rentals unavailable', error instanceof Error ? error.message : 'Could not load active rentals.');
+      setFeedback({
+        title: 'Rentals unavailable',
+        message: error instanceof Error ? error.message : 'Could not load active rentals.',
+        tone: 'error',
+      });
       return [];
     } finally {
       setRentalLoading(false);
@@ -155,7 +167,11 @@ export default function NumberHubScreen() {
       setSelectedRentalId(targetId);
       setMessages(await fetchRentalMessages(targetId, token));
     } catch (error) {
-      Alert.alert('Inbox unavailable', error instanceof Error ? error.message : 'Could not load SMS messages.');
+      setFeedback({
+        title: 'Inbox unavailable',
+        message: error instanceof Error ? error.message : 'Could not load SMS messages.',
+        tone: 'error',
+      });
     } finally {
       setInboxLoading(false);
     }
@@ -200,17 +216,27 @@ export default function NumberHubScreen() {
         }
       })
       .catch((error: unknown) => {
-        if (mounted) Alert.alert('Rentals unavailable', error instanceof Error ? error.message : 'Could not load active rentals.');
+        if (mounted) {
+          setFeedback({
+            title: 'Rentals unavailable',
+            message: error instanceof Error ? error.message : 'Could not load active rentals.',
+            tone: 'error',
+          });
+        }
       })
       .finally(() => { if (mounted) setRentalLoading(false); });
     return () => { mounted = false; };
   }, [token]);
 
   useEffect(() => {
-    if (!selectedApp) return;
+    if (!selectedApp) {
+      setDurationLoading(false);
+      return;
+    }
     let mounted = true;
     setDurations([]);
     setSelectedDuration('');
+    setDurationLoading(true);
     fetchRentalDurations(selectedApp.value)
       .then((availableDurations) => {
         if (!mounted) return;
@@ -221,7 +247,8 @@ export default function NumberHubScreen() {
       })
       .catch((error: unknown) => {
         if (mounted) setApiError(error instanceof Error ? error.message : 'Could not load rental durations.');
-      });
+      })
+      .finally(() => { if (mounted) setDurationLoading(false); });
     return () => { mounted = false; };
   }, [selectedApp?.value]);
 
@@ -255,7 +282,11 @@ export default function NumberHubScreen() {
 
   const handlePurchase = async () => {
     if (!selectedApp || !selectedDurationOption) {
-      Alert.alert('Choose a rental option', 'Select an available service and duration first.');
+      setFeedback({
+        title: 'Choose a rental option',
+        message: 'Select an available service and duration first.',
+        tone: 'info',
+      });
       return;
     }
     if (!token) {
@@ -282,22 +313,15 @@ export default function NumberHubScreen() {
         if (!authorizationUrl || !reference) throw new Error('Paystack checkout could not be started.');
         paystackReference = reference;
         setPendingPaymentReference(reference);
-        const browser = await WebBrowser.openAuthSessionAsync(authorizationUrl, callbackUrl);
-        if (browser.type !== 'success') {
-          setPurchaseResult({
-            status: 'pending',
-            message: 'Checkout was closed. If you completed payment, verify it below to confirm your rental.',
-          });
-          return;
-        }
-        const verification = await verifyVirtualNumberPayment(reference, token);
-        if (verification.data.status !== 'completed') {
-          setPurchaseResult({
-            status: 'pending',
-            message: 'Payment was received and is being processed. Verify again shortly to check your number.',
-          });
-          return;
-        }
+        await openPaystackCheckout(authorizationUrl, callbackUrl);
+        const verification = await verifyPaystackUntilSettled({
+          verify: () => verifyVirtualNumberPayment(reference, token),
+          getStatus: (result) => result.data.status === 'completed' ? 'completed' : result.data.status === 'failed' ? 'failed' : 'pending',
+          attempts: 12,
+          intervalMs: 2000,
+          failureMessage: 'Paystack did not complete this rental.',
+          pendingMessage: 'Your payment is still being confirmed. Do not start another rental.',
+        });
         setPurchaseResult({
           status: 'success',
           message: 'Paystack confirmed your payment and your virtual number is ready.',
@@ -325,7 +349,7 @@ export default function NumberHubScreen() {
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not purchase this rental.';
-      if (paymentMethod === 'paystack' && paystackReference && !isFailedPaymentError(error)) {
+      if (paymentMethod === 'paystack' && paystackReference && !isFailedPaymentError(error) && !isDefinitivePaystackFailure(error)) {
         setPurchaseResult({ status: 'pending', message: `${message} Verify the payment again shortly.` });
       } else {
         if (isFailedPaymentError(error)) setPendingPaymentReference('');
@@ -336,18 +360,18 @@ export default function NumberHubScreen() {
     }
   };
 
-  const verifyPendingPurchase = async () => {
+  const verifyPendingPurchase = useCallback(async () => {
     if (!pendingPaymentReference || !token) return;
     setPurchasing(true);
     try {
-      const verification = await verifyVirtualNumberPayment(pendingPaymentReference, token);
-      if (verification.data.status !== 'completed') {
-        setPurchaseResult({
-          status: 'pending',
-          message: 'Your payment or rental is still processing. Please try verification again shortly.',
-        });
-        return;
-      }
+      const verification = await verifyPaystackUntilSettled({
+        verify: () => verifyVirtualNumberPayment(pendingPaymentReference, token),
+        getStatus: (result) => result.data.status === 'completed' ? 'completed' : result.data.status === 'failed' ? 'failed' : 'pending',
+        attempts: 10,
+        intervalMs: 2000,
+        failureMessage: 'Paystack did not complete this rental.',
+        pendingMessage: 'Your payment is still being confirmed. Do not start another rental.',
+      });
       setPendingPaymentReference('');
       setPurchaseResult({
         status: 'success',
@@ -359,7 +383,7 @@ export default function NumberHubScreen() {
       await dispatch(fetchWalletBalance(token)).unwrap();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not verify this payment.';
-      if (isFailedPaymentError(error)) {
+      if (isFailedPaymentError(error) || isDefinitivePaystackFailure(error)) {
         setPendingPaymentReference('');
         setPurchaseResult({ status: 'failed', message });
       } else {
@@ -371,7 +395,13 @@ export default function NumberHubScreen() {
     } finally {
       setPurchasing(false);
     }
-  };
+  }, [dispatch, pendingPaymentReference, token]);
+
+  useEffect(() => {
+    if (!pendingPaymentReference || !token || purchasing) return undefined;
+    const retryTimer = setTimeout(() => { void verifyPendingPurchase(); }, 3000);
+    return () => clearTimeout(retryTimer);
+  }, [pendingPaymentReference, purchasing, token, verifyPendingPurchase]);
 
   const handleAutoRenew = async (rentalId: string, value: boolean) => {
     const previousRentals = rentals;
@@ -381,7 +411,11 @@ export default function NumberHubScreen() {
       await updateRentalAutoRenew(rentalId, value, token);
     } catch (error) {
       setRentals(previousRentals);
-      Alert.alert('Auto-renew update failed', error instanceof Error ? error.message : 'Could not update auto-renew.');
+      setFeedback({
+        title: 'Auto-renew update failed',
+        message: error instanceof Error ? error.message : 'Could not update auto-renew.',
+        tone: 'error',
+      });
     }
   };
 
@@ -389,10 +423,18 @@ export default function NumberHubScreen() {
     try {
       if (!token) throw new Error('Sign in to renew this rental.');
       await renewRental(rentalId, token, selectedDurationOption?.time ?? 1, selectedDurationOption?.duration);
-      Alert.alert('Rental renewed', 'The provider accepted the renewal request.');
+      setFeedback({
+        title: 'Rental renewed',
+        message: 'The provider accepted the renewal request.',
+        tone: 'success',
+      });
       await loadRentals();
     } catch (error) {
-      Alert.alert('Renewal failed', error instanceof Error ? error.message : 'Could not renew this rental.');
+      setFeedback({
+        title: 'Renewal failed',
+        message: error instanceof Error ? error.message : 'Could not renew this rental.',
+        tone: 'error',
+      });
     }
   };
 
@@ -402,14 +444,16 @@ export default function NumberHubScreen() {
       await cancelRental(rentalId, token);
       await loadRentals();
     } catch (error) {
-      Alert.alert('Cancellation unavailable', error instanceof Error ? error.message : 'The provider does not allow this rental to be cancelled.');
+      setFeedback({
+        title: 'Cancellation unavailable',
+        message: error instanceof Error ? error.message : 'The provider does not allow this rental to be cancelled.',
+        tone: 'error',
+      });
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.headerDark} />
-
       <NumberHubHeader
         activeTab={activeTab}
         onTabChange={handleTabChange}
@@ -432,6 +476,7 @@ export default function NumberHubScreen() {
             walletLoading={walletLoading}
             walletEnabled={Boolean(token)}
             pricingLoading={pricingLoading}
+            durationLoading={durationLoading}
             loading={catalogLoading}
             purchasing={purchasing}
             error={apiError}
@@ -440,7 +485,11 @@ export default function NumberHubScreen() {
             onSelectDuration={setSelectedDuration}
             onRent={() => {
               if (!pricing) {
-                Alert.alert('Pricing unavailable', 'Wait for the provider price before continuing.');
+                setFeedback({
+                  title: 'Pricing unavailable',
+                  message: 'Wait for the provider price before continuing.',
+                  tone: 'info',
+                });
                 return;
               }
               setPaymentSheetVisible(true);
@@ -462,11 +511,49 @@ export default function NumberHubScreen() {
             onOpenInbox={(rentalId) => { setActiveTab('inbox'); void loadInbox(rentalId); }}
             onRenew={(rentalId) => { void handleRenew(rentalId); }}
             onCancel={(rentalId) => { void handleCancel(rentalId); }}
+            onManageRental={(rental) => setManageRental(rental)}
             styles={styles}
             colors={COLORS}
           />
         )}
       </KeyboardAwareScrollView>
+
+      <Modal
+        transparent
+        visible={Boolean(manageRental)}
+        animationType="fade"
+        onRequestClose={() => setManageRental(null)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.manageModalCard}>
+            <Text style={styles.manageModalTitle}>Manage rental</Text>
+            <Text style={styles.manageModalMessage}>{manageRental?.phoneNumber ?? 'Select an action for this rental.'}</Text>
+            <TouchableOpacity
+              style={[styles.manageModalButton, styles.managePrimaryButton]}
+              onPress={() => {
+                const rental = manageRental;
+                setManageRental(null);
+                if (rental) void handleRenew(rental.id);
+              }}
+            >
+              <Text style={styles.manageModalButtonText}>Renew</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.manageModalButton, styles.manageDangerButton]}
+              onPress={() => {
+                const rental = manageRental;
+                setManageRental(null);
+                if (rental) void handleCancel(rental.id);
+              }}
+            >
+              <Text style={styles.manageModalButtonText}>Cancel rental</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.manageModalSecondary} onPress={() => setManageRental(null)}>
+              <Text style={styles.manageModalSecondaryText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <NumberHubConfirmModal
         visible={confirmModalVisible}
@@ -502,6 +589,13 @@ export default function NumberHubScreen() {
           setConfirmModalVisible(true);
         }}
       />
+      <FeedbackModal
+        visible={feedback !== null}
+        title={feedback?.title ?? ''}
+        message={feedback?.message ?? ''}
+        tone={feedback?.tone}
+        onClose={() => setFeedback(null)}
+      />
       <Modal
         transparent
         visible={Boolean(purchaseResult)}
@@ -533,14 +627,9 @@ export default function NumberHubScreen() {
               </View>
             ) : null}
             {purchaseResult?.status === 'pending' && pendingPaymentReference ? (
-              <TouchableOpacity
-                accessibilityRole="button"
-                style={[styles.purchaseResultButton, purchasing && styles.purchaseResultButtonDisabled]}
-                disabled={purchasing}
-                onPress={verifyPendingPurchase}
-              >
-                {purchasing ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.purchaseResultButtonText}>Verify payment</Text>}
-              </TouchableOpacity>
+              <View style={styles.purchaseResultButton}>
+                {purchasing ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.purchaseResultButtonText}>Checking payment automatically…</Text>}
+              </View>
             ) : null}
             <TouchableOpacity
               accessibilityRole="button"
@@ -595,6 +684,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: COLORS.textLight,
+    fontFamily: 'Poppins',
     fontSize: scale(15),
     fontWeight: '800',
   },
@@ -617,6 +707,7 @@ const styles = StyleSheet.create({
   },
   rateText: {
     color: COLORS.accentGreen,
+    fontFamily: 'Poppins',
     fontSize: scale(10),
     fontWeight: '700',
   },
@@ -637,6 +728,7 @@ const styles = StyleSheet.create({
   },
   tabText: {
     color: COLORS.textMutedLight,
+    fontFamily: 'Poppins',
     fontSize: scale(10.5),
     fontWeight: '600',
   },
@@ -652,6 +744,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sectionTitle: {
+    fontFamily: 'Poppins',
     fontSize: scale(13.5),
     fontWeight: '800',
     color: COLORS.textDark,
@@ -685,10 +778,12 @@ const styles = StyleSheet.create({
   },
   flagText: {
     fontWeight: '800',
+    fontFamily: 'Poppins',
     fontSize: scale(13),
     color: COLORS.textDark,
   },
   countryName: {
+    fontFamily: 'Poppins',
     fontSize: scale(13),
     fontWeight: '800',
     color: COLORS.textDark,
@@ -701,6 +796,7 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   codeBadgeText: {
+    fontFamily: 'Poppins',
     fontSize: scale(9.5),
     fontWeight: '700',
     color: COLORS.textMuted,
@@ -713,6 +809,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   availText: {
+    fontFamily: 'Poppins',
     fontSize: scale(10.5),
     color: COLORS.textMuted,
   },
@@ -734,19 +831,23 @@ const styles = StyleSheet.create({
   },
   flagTextSmall: {
     fontWeight: '800',
+    fontFamily: 'Poppins',
     fontSize: scale(10),
     color: COLORS.textDark,
   },
   countrySmallName: {
+    fontFamily: 'Poppins',
     fontSize: scale(10.5),
     fontWeight: '700',
     color: COLORS.textDark,
   },
   smallAvail: {
+    fontFamily: 'Poppins',
     fontSize: scale(9),
     color: COLORS.textMuted,
   },
   moreCountryText: {
+    fontFamily: 'Poppins',
     fontSize: scale(10.5),
     fontWeight: '700',
     color: COLORS.textMuted,
@@ -774,6 +875,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   serviceNameDark: {
+    fontFamily: 'Poppins',
     fontSize: scale(13.5),
     fontWeight: '800',
     color: COLORS.textLight,
@@ -786,23 +888,27 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   discountText: {
+    fontFamily: 'Poppins',
     fontSize: scale(8.5),
     fontWeight: '800',
     color: COLORS.accentGreen,
   },
   priceNaira: {
     color: COLORS.accentGreen,
+    fontFamily: 'Poppins',
     fontSize: scale(13.5),
     fontWeight: '800',
   },
   strikePrice: {
     color: COLORS.textMutedLight,
+    fontFamily: 'Poppins',
     fontSize: scale(9.5),
     textDecorationLine: 'line-through',
     marginLeft: 6,
   },
   priceUsd: {
     color: COLORS.textMutedLight,
+    fontFamily: 'Poppins',
     fontSize: scale(9.5),
     marginLeft: 6,
   },
@@ -821,6 +927,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginBottom: hp(1.2),
     color: COLORS.textDark,
+    fontFamily: 'Poppins',
     fontSize: scale(11),
   },
   servicePill: {
@@ -835,6 +942,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   servicePillText: {
+    fontFamily: 'Poppins',
     fontSize: scale(10.5),
     fontWeight: '700',
     color: COLORS.textDark,
@@ -862,20 +970,24 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   durationTitle: {
+    fontFamily: 'Poppins',
     fontSize: scale(10.5),
     fontWeight: '700',
   },
   durationTitleDark: {
+    fontFamily: 'Poppins',
     fontSize: scale(10.5),
     fontWeight: '700',
     color: COLORS.textDark,
   },
   durationPrice: {
+    fontFamily: 'Poppins',
     fontSize: scale(12.5),
     fontWeight: '800',
     marginVertical: 2,
   },
   durationPriceDark: {
+    fontFamily: 'Poppins',
     fontSize: scale(12.5),
     fontWeight: '800',
     color: COLORS.accentGreen,
@@ -894,11 +1006,13 @@ const styles = StyleSheet.create({
   },
   selectedText: {
     color: COLORS.accentGreen,
+    fontFamily: 'Poppins',
     fontSize: scale(8.5),
     fontWeight: '700',
   },
   saveText: {
     color: COLORS.textMuted,
+    fontFamily: 'Poppins',
     fontSize: scale(8.5),
   },
   bestBadge: {
@@ -910,6 +1024,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   bestBadgeText: {
+    fontFamily: 'Poppins',
     fontSize: scale(7.5),
     fontWeight: '900',
     color: '#FFFFFF',
@@ -924,6 +1039,7 @@ const styles = StyleSheet.create({
   },
   rentButtonText: {
     color: COLORS.textLight,
+    fontFamily: 'Poppins',
     fontSize: scale(13.5),
     fontWeight: '800',
   },
@@ -935,10 +1051,12 @@ const styles = StyleSheet.create({
   },
   walletBalanceText: {
     color: COLORS.textMuted,
+    fontFamily: 'Poppins',
     fontSize: scale(10.5),
   },
   manageAllText: {
     color: COLORS.accentGreen,
+    fontFamily: 'Poppins',
     fontSize: scale(10.5),
     fontWeight: '700',
   },
@@ -955,6 +1073,7 @@ const styles = StyleSheet.create({
   },
   rentalIdText: {
     color: COLORS.textMutedLight,
+    fontFamily: 'Poppins',
     fontSize: scale(10.5),
     fontWeight: '800',
   },
@@ -975,11 +1094,13 @@ const styles = StyleSheet.create({
   },
   activeStatusText: {
     color: COLORS.accentGreen,
+    fontFamily: 'Poppins',
     fontSize: scale(9.5),
     fontWeight: '800',
   },
   phoneNumberText: {
     color: COLORS.textLight,
+    fontFamily: 'Poppins',
     fontSize: scale(20),
     fontWeight: '900',
     marginVertical: hp(1.2),
@@ -997,10 +1118,12 @@ const styles = StyleSheet.create({
   },
   metaLabel: {
     color: COLORS.textMutedLight,
+    fontFamily: 'Poppins',
     fontSize: scale(9.5),
   },
   metaValue: {
     color: COLORS.textLight,
+    fontFamily: 'Poppins',
     fontSize: scale(10.5),
     fontWeight: '700',
   },
@@ -1014,6 +1137,7 @@ const styles = StyleSheet.create({
   },
   warningText: {
     color: COLORS.warningRedText,
+    fontFamily: 'Poppins',
     fontSize: scale(9.5),
     fontWeight: '600',
     marginLeft: 6,
@@ -1027,6 +1151,7 @@ const styles = StyleSheet.create({
   },
   autoRenewText: {
     color: COLORS.textLight,
+    fontFamily: 'Poppins',
     fontSize: scale(11),
     fontWeight: '700',
   },
@@ -1041,6 +1166,7 @@ const styles = StyleSheet.create({
   viewInboxText: {
     color: '#000000',
     fontWeight: '800',
+    fontFamily: 'Poppins',
     fontSize: scale(11.5),
   },
   smsCard: {
@@ -1065,11 +1191,13 @@ const styles = StyleSheet.create({
   },
   smsAppTitle: {
     color: COLORS.textDark,
+    fontFamily: 'Poppins',
     fontSize: scale(11.5),
     fontWeight: '800',
   },
   smsTime: {
     color: COLORS.textMuted,
+    fontFamily: 'Poppins',
     fontSize: scale(9.5),
   },
   newBadge: {
@@ -1082,6 +1210,7 @@ const styles = StyleSheet.create({
   },
   newBadgeText: {
     color: COLORS.accentGreenDark,
+    fontFamily: 'Poppins',
     fontSize: scale(8.5),
     fontWeight: '800',
   },
@@ -1093,6 +1222,7 @@ const styles = StyleSheet.create({
   },
   smsBodyText: {
     color: COLORS.textDark,
+    fontFamily: 'Poppins',
     fontSize: scale(10.5),
   },
   copyButton: {
@@ -1106,6 +1236,7 @@ const styles = StyleSheet.create({
   copyButtonText: {
     color: COLORS.accentGreenDark,
     fontWeight: '800',
+    fontFamily: 'Poppins',
     fontSize: scale(10.5),
     marginLeft: 6,
   },
@@ -1120,6 +1251,7 @@ const styles = StyleSheet.create({
   copiedStateText: {
     color: COLORS.textMuted,
     fontWeight: '700',
+    fontFamily: 'Poppins',
     fontSize: scale(10.5),
   },
   purchaseResultBackdrop: {
@@ -1174,6 +1306,58 @@ const styles = StyleSheet.create({
   purchaseResultButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
   purchaseResultClose: { paddingHorizontal: 18, paddingVertical: 12, marginTop: 5 },
   purchaseResultCloseText: { color: COLORS.textMuted, fontSize: 14, fontWeight: '700' },
+  manageModalCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 20,
+  },
+  manageModalTitle: {
+    color: COLORS.textDark,
+    fontFamily: 'Poppins',
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+  manageModalMessage: {
+    color: COLORS.textMuted,
+    fontFamily: 'Poppins',
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 18,
+  },
+  manageModalButton: {
+    minHeight: 46,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  managePrimaryButton: {
+    backgroundColor: COLORS.accentGreen,
+  },
+  manageDangerButton: {
+    backgroundColor: '#B42318',
+  },
+  manageModalButtonText: {
+    color: '#FFFFFF',
+    fontFamily: 'Poppins',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  manageModalSecondary: {
+    minHeight: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 6,
+  },
+  manageModalSecondaryText: {
+    color: COLORS.textMuted,
+    fontFamily: 'Poppins',
+    fontSize: 13,
+    fontWeight: '700',
+  },
 
   // --------------------------------------------------
   // CENTERED MODAL STYLES
@@ -1205,6 +1389,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     color: COLORS.textLight,
+    fontFamily: 'Poppins',
     fontSize: scale(14),
     fontWeight: '800',
   },
@@ -1226,16 +1411,19 @@ const styles = StyleSheet.create({
   },
   previewCountryText: {
     color: COLORS.textMutedLight,
+    fontFamily: 'Poppins',
     fontSize: scale(12),
     fontWeight: '800',
   },
   previewNumberText: {
     color: COLORS.textLight,
+    fontFamily: 'Poppins',
     fontSize: scale(13),
     fontWeight: '800',
   },
   previewSubtext: {
     color: COLORS.textMutedLight,
+    fontFamily: 'Poppins',
     fontSize: scale(9.5),
     marginTop: 1,
   },
@@ -1249,10 +1437,12 @@ const styles = StyleSheet.create({
   },
   breakdownLabel: {
     color: COLORS.textMutedLight,
+    fontFamily: 'Poppins',
     fontSize: scale(11),
   },
   breakdownValue: {
     color: COLORS.textLight,
+    fontFamily: 'Poppins',
     fontSize: scale(11),
     fontWeight: '700',
   },
@@ -1263,11 +1453,13 @@ const styles = StyleSheet.create({
   },
   totalDueLabel: {
     color: COLORS.textLight,
+    fontFamily: 'Poppins',
     fontSize: scale(12),
     fontWeight: '800',
   },
   totalDueValue: {
     color: COLORS.accentGreen,
+    fontFamily: 'Poppins',
     fontSize: scale(14),
     fontWeight: '900',
   },
@@ -1282,11 +1474,13 @@ const styles = StyleSheet.create({
   },
   authorizeButtonText: {
     color: COLORS.textLight,
+    fontFamily: 'Poppins',
     fontSize: scale(13),
     fontWeight: '800',
   },
   modalFooterText: {
     color: COLORS.textMutedLight,
+    fontFamily: 'Poppins',
     fontSize: scale(9.5),
     textAlign: 'center',
   },

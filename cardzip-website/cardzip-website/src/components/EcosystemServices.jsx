@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CreditCard, Globe, Banknote, ShoppingBag, ArrowUpRight, ArrowRight } from 'lucide-react'
+import { CreditCard, Globe, Banknote, ShoppingBag, ArrowUpRight, ArrowRight, Store, Code2, UsersRound, Megaphone, Wallet } from 'lucide-react'
 
 
 export default function EcosystemServices({ onNavigate }) {
@@ -7,36 +7,76 @@ export default function EcosystemServices({ onNavigate }) {
   const cards = [
     {
       id: 'gift-cards',
-      icon: <CreditCard className="card-icon" size={22} />,
+      icon: CreditCard,
       title: 'Gift Cards',
-      description: 'Unlock the value in your cards. Get great rates and instant naira payouts.',
-      linkText: 'Trade your cards',
-      linkUrl: '#trade'
+      description: 'Check supported brands and follow a clear process to submit a card for review.',
+      linkText: 'Explore gift cards',
+      linkUrl: '/gift-cards',
     },
     {
-      id: 'virtual-numbers',
-      icon: <Globe className="card-icon" size={22} />,
-      title: 'Virtual Numbers',
-      description: 'Rent a number to receive verification codes while keeping your personal number private.',
-      linkText: 'Explore numbers',
-      linkUrl: '/virtual-numbers'
+      id: 'store',
+      icon: ShoppingBag,
+      title: 'Online Store',
+      description: 'Browse the product catalog, review product details and complete your order online.',
+      linkText: 'Shop products',
+      linkUrl: '/shop',
+    },
+    {
+      id: 'community',
+      icon: UsersRound,
+      title: 'Community Market',
+      description: 'Discover local listings, or share your own offer with people browsing the marketplace.',
+      linkText: 'Browse listings',
+      linkUrl: '/community-market',
+    },
+    {
+      id: 'business-shops',
+      icon: Store,
+      title: 'Business Shops',
+      description: 'Explore seller storefronts and contact businesses about their products.',
+      linkText: 'Find a shop',
+      linkUrl: '/shops',
+    },
+    {
+      id: 'digital-assets',
+      icon: Code2,
+      title: 'Websites & Apps',
+      description: 'Explore digital products and templates, or learn how to submit a project for review.',
+      linkText: 'Explore digital products',
+      linkUrl: '/digital-assets',
     },
     {
       id: 'bills',
-      icon: <Banknote className="card-icon" size={22} />,
-      title: 'Bills',
-      description: 'Airtime, data, electricity and more. Everyday payments, simplified.',
-      linkText: 'Pay a bill',
-      linkUrl: '#bills'
+      icon: Banknote,
+      title: 'Bills & Utilities',
+      description: 'Access airtime, data, electricity, TV and other supported bill services.',
+      linkText: 'View bill services',
+      linkUrl: '/bills',
     },
     {
-      id: 'shop',
-      icon: <ShoppingBag className="card-icon" size={22} />,
-      title: 'Shop',
-      description: 'Discover tech and essentials. Trusted products, delivered to you.',
-      linkText: 'Explore the store',
-      linkUrl: '#shop'
-    }
+      id: 'virtual-numbers',
+      icon: Globe,
+      title: 'Virtual Numbers',
+      description: 'Browse available numbers for receiving supported verification messages.',
+      linkText: 'Explore numbers',
+      linkUrl: '/virtual-numbers',
+    },
+    {
+      id: 'wallet',
+      icon: Wallet,
+      title: 'Cardzip Wallet',
+      description: 'Manage your balance, review wallet activity and access available withdrawal options.',
+      linkText: 'Open your wallet',
+      linkUrl: '/wallet',
+    },
+    {
+      id: 'advertise',
+      icon: Megaphone,
+      title: 'Promote a Business',
+      description: 'Explore Cardzip advertising placements designed to help businesses reach customers.',
+      linkText: 'View advertising',
+      linkUrl: '/advertise',
+    },
   ]
 
   const steps = [
@@ -77,33 +117,31 @@ export default function EcosystemServices({ onNavigate }) {
         <div className="ecosystem-container ecosystem-section">
           <header className="ecosystem-header">
             <div className="header-left-col">
-              <span className="badge-subtitle">THE CARDZIP ECOSYSTEM</span>
-              <h2 className="section-title">One place. More possibilities.</h2>
+              <span className="badge-subtitle">EXPLORE CARDZIP</span>
+              <h2 className="section-title">More of what you need, in one place.</h2>
             </div>
             <p className="header-right-desc">
-              A smarter way to move value, wherever life takes you.
+              Trade, shop, pay bills, discover local businesses and explore digital products.
             </p>
           </header>
 
-          {/* 4 Dark Feature Cards Grid */}
-          <div className="feature-cards-grid">
+          <div className="home-platform-grid">
             {cards.map((card) => (
-              <div className="feature-card" key={card.id}>
-                <div className="feature-icon-wrapper">{card.icon}</div>
-                <h3 className="feature-card-title">{card.title}</h3>
-                <p className="feature-card-desc">{card.description}</p>
+              <article className="home-platform-card" key={card.id}>
+                <span className="home-platform-icon"><card.icon size={21} /></span>
+                <h3>{card.title}</h3>
+                <p>{card.description}</p>
                 <a
                   href={card.linkUrl}
-                  className="feature-card-link"
                   onClick={(event) => {
                     event.preventDefault()
-                    onNavigate?.(`/${card.id}`)
+                    onNavigate?.(card.linkUrl)
                   }}
                 >
                   <span>{card.linkText}</span>
                   <ArrowUpRight size={14} />
                 </a>
-              </div>
+              </article>
             ))}
           </div>
         </div>

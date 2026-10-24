@@ -1,19 +1,14 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import {
-  Users,
   UserPlus,
   ShieldCheck,
   Search,
-  Filter,
-  MoreVertical,
   Mail,
   Phone,
   CheckCircle2,
   XCircle,
   Edit2,
   Trash2,
-  KeyRound,
-  Shield,
   X
 } from 'lucide-react'
 

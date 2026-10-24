@@ -90,6 +90,7 @@ export default function EcommerceOrderDetailsPage({ onBack, order }) {
               {(currentOrder?.items || []).map((item, index) => <div className="item-row" key={item._id || `${item.name}-${index}`}>
                 <div className="item-info">
                   <span className="item-name font-bold">{item.name}</span>
+                  {item.selectedColor && <small>Color: {item.selectedColor}</small>}
                 </div>
                 <div className="item-qty">Qty: {item.quantity}</div>
                 <div className="item-price font-bold">{new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(Number(item.price || 0) * Number(item.quantity || 0))}</div>

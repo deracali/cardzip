@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import {
-  StyleSheet,
+import { StyleSheet,
   Text,
   View,
   ScrollView,
@@ -9,10 +8,8 @@ import {
   TextInput,
   KeyboardAvoidingView,
   useWindowDimensions,
-  SafeAreaView,
-  StatusBar,
-  Platform,
-} from 'react-native';
+  Platform, } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons, Octicons, Feather } from '@expo/vector-icons';
 
@@ -53,7 +50,6 @@ export default function ItemDetailScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Top Navigation Header */}
       <View style={[styles.header, { paddingHorizontal: scale(16) }]}>

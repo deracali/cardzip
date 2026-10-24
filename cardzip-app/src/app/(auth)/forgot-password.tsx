@@ -1,18 +1,18 @@
 import { useState } from 'react';
 import {
   ActivityIndicator,
-  SafeAreaView,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
+  Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import FeedbackModal from '../(main)/components/FeedbackModal';
-import { requestPasswordResetCode, resetPasswordWithCode } from '../services/api/authRecoveryApi';
+import { requestPasswordResetCode, resetPasswordWithCode } from '../../services/api/authRecoveryApi';
 import KeyboardAwareScrollView from '../../components/KeyboardAwareScrollView';
 
 export default function ForgotPasswordScreen() {
@@ -69,15 +69,20 @@ export default function ForgotPasswordScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#0A111F" />
       <KeyboardAwareScrollView contentContainerStyle={styles.container}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()} accessibilityRole="button">
-          <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
-          <Text style={styles.backText}>Back to sign in</Text>
-        </TouchableOpacity>
+        <View style={styles.topBar}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()} accessibilityRole="button">
+            <Ionicons name="arrow-back" size={20} color="#111827" />
+            <Text style={styles.backText}>Back to sign in</Text>
+          </TouchableOpacity>
+          <View style={styles.brand}>
+            <Image source={require('../../../assets/images/logo.jpg')} style={styles.brandMark} />
+            <Text style={styles.brandName}>Cardzip</Text>
+          </View>
+        </View>
         <View style={styles.card}>
           <View style={styles.iconCircle}>
-            <Ionicons name={step === 'complete' ? 'checkmark' : 'lock-closed-outline'} size={25} color="#1DB954" />
+            <Ionicons name={step === 'complete' ? 'checkmark' : 'lock-closed-outline'} size={25} color="#10B981" />
           </View>
           <Text style={styles.title}>{step === 'complete' ? 'Password updated' : 'Set your password'}</Text>
           <Text style={styles.subtitle}>
@@ -168,18 +173,22 @@ export default function ForgotPasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#0A111F' },
+  safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
   container: { flexGrow: 1, padding: 24, justifyContent: 'center' },
-  backButton: { position: 'absolute', top: 24, left: 24, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  backText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
-  card: { width: '100%', maxWidth: 440, alignSelf: 'center', backgroundColor: '#111C2C', borderRadius: 22, padding: 24, borderWidth: 1, borderColor: '#2A3C55' },
-  iconCircle: { width: 54, height: 54, borderRadius: 27, backgroundColor: '#1DB9541A', alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
-  title: { color: '#FFFFFF', fontSize: 25, fontWeight: '700', marginBottom: 8 },
-  subtitle: { color: '#A1ACB9', fontSize: 14, lineHeight: 21, marginBottom: 22 },
-  label: { color: '#E8EDF3', fontSize: 13, fontWeight: '600', marginBottom: 8, marginTop: 12 },
-  input: { color: '#FFFFFF', backgroundColor: '#1C2637', borderRadius: 12, borderWidth: 1, borderColor: '#2A3C55', paddingHorizontal: 14, paddingVertical: 13, fontSize: 15 },
-  primaryButton: { minHeight: 48, backgroundColor: '#1DB954', borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 22 },
+  topBar: { position: 'absolute', top: 18, left: 24, right: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  backButton: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  backText: { color: '#111827', fontSize: 14, fontWeight: '600' },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  brandMark: { width: 24, height: 24, borderRadius: 6 },
+  brandName: { color: '#111827', fontSize: 16, fontWeight: '800' },
+  card: { width: '100%', maxWidth: 440, alignSelf: 'center', backgroundColor: '#FFFFFF', borderRadius: 22, padding: 24 },
+  iconCircle: { width: 54, height: 54, borderRadius: 27, backgroundColor: '#E8F8F1', alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
+  title: { color: '#111827', fontSize: 25, fontWeight: '700', marginBottom: 8 },
+  subtitle: { color: '#64748B', fontSize: 14, lineHeight: 21, marginBottom: 22 },
+  label: { color: '#111827', fontSize: 13, fontWeight: '600', marginBottom: 8, marginTop: 12 },
+  input: { color: '#111827', backgroundColor: '#F7F8FA', borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB', paddingHorizontal: 14, paddingVertical: 13, fontSize: 15 },
+  primaryButton: { minHeight: 48, backgroundColor: '#10B981', borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 22 },
   primaryText: { color: '#FFFFFF', fontWeight: '700', fontSize: 15 },
   secondaryButton: { alignItems: 'center', justifyContent: 'center', padding: 14 },
-  secondaryText: { color: '#1DB954', fontWeight: '600', fontSize: 14 },
+  secondaryText: { color: '#059669', fontWeight: '600', fontSize: 14 },
 });

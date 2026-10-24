@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, SafeAreaView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useAppDispatch, useAppSelector } from '../../store';
-import { fetchMyAccount, submitKyc } from '../../store/slices/accountSlice';
-import { KycSubmission } from '../../types/account';
+import { useAppDispatch, useAppSelector } from '../../../store';
+import { fetchMyAccount, submitKyc } from '../../../store/slices/accountSlice';
+import { KycSubmission } from '../../../types/account';
 import FeedbackModal from '../components/FeedbackModal';
 import KeyboardAwareScrollView from '../../../components/KeyboardAwareScrollView';
 
@@ -49,7 +50,6 @@ export default function KycScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F4F6F5" />
       <KeyboardAwareScrollView contentContainerStyle={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.iconButton}><Ionicons name="chevron-back" size={21} color="#12201B" /></TouchableOpacity>

@@ -1,24 +1,21 @@
 import React, { useRef, useState } from 'react';
 
-import {
-  StyleSheet,
+import { StyleSheet,
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  SafeAreaView,
-  StatusBar,
   useWindowDimensions,
   Platform,
   Modal,
   Animated,
   Easing,
-  Pressable,
-  Alert,
-} from 'react-native';
+  Pressable, } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import FeedbackModal from '../components/FeedbackModal';
 import KeyboardAwareScrollView from '../../../components/KeyboardAwareScrollView';
 
 // Types
@@ -52,6 +49,7 @@ export default function BuyVirtualCardScreen() {
   const [selectedPreset, setSelectedPreset] = useState('50');
   const [amount, setAmount] = useState('50');
   const [isCustom, setIsCustom] = useState(false);
+  const [feedback, setFeedback] = useState<{ title: string; message: string; tone?: 'success' | 'error' | 'info' } | null>(null);
 
   // Payment Modal State
 const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
@@ -129,7 +127,6 @@ const closePaymentModal = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FAFCFB" />
       <KeyboardAwareScrollView
         contentContainerStyle={[
           styles.container,
@@ -631,10 +628,11 @@ const closePaymentModal = () => {
               style={styles.copyAccountButton}
               activeOpacity={0.7}
               onPress={() => {
-                Alert.alert(
-                  'Account Details',
-                  'Copy account functionality can be connected here.'
-                );
+                setFeedback({
+                  title: 'Account Details',
+                  message: 'Copy account functionality can be connected here.',
+                  tone: 'info',
+                });
               }}
             >
               <Text style={styles.copyAccountText}>
@@ -758,32 +756,19 @@ const closePaymentModal = () => {
         style={styles.payNowButton}
         activeOpacity={0.85}
         onPress={() => {
-
           if (selectedPaymentMethod === 'wallet') {
-            Alert.alert(
-              'Confirm Payment',
-              `Pay ₦${totalInNaira} from your wallet?`,
-              [
-                {
-                  text: 'Cancel',
-                  style: 'cancel',
-                },
-                {
-                  text: 'Continue',
-                  onPress: () => {
-                    // Connect wallet payment API here
-                    console.log('Wallet payment selected');
-                  },
-                },
-              ]
-            );
+            setFeedback({
+              title: 'Confirm Payment',
+              message: `Pay ₦${totalInNaira} from your wallet?`,
+              tone: 'info',
+            });
           } else {
-            Alert.alert(
-              'Payment Method',
-              `You selected ${selectedPaymentMethod}. Connect your payment provider here.`
-            );
+            setFeedback({
+              title: 'Payment Method',
+              message: `You selected ${selectedPaymentMethod}. Connect your payment provider here.`,
+              tone: 'info',
+            });
           }
-
         }}
       >
         <Text style={styles.payNowButtonText}>
@@ -794,6 +779,13 @@ const closePaymentModal = () => {
     </Animated.View>
   </View>
 </Modal>
+    <FeedbackModal
+      visible={feedback !== null}
+      title={feedback?.title ?? ''}
+      message={feedback?.message ?? ''}
+      tone={feedback?.tone}
+      onClose={() => setFeedback(null)}
+    />
     </SafeAreaView>
   );
 }
@@ -1179,6 +1171,7 @@ paymentHeader: {
 },
 
 paymentHeaderTitle: {
+  fontFamily: 'Poppins',
   fontSize: 13,
   fontWeight: '800',
   color: '#0F172A',
@@ -1211,12 +1204,14 @@ paymentSummaryRow: {
 },
 
 paymentSummaryLabel: {
+  fontFamily: 'Poppins',
   fontSize: 9,
   fontWeight: '500',
   color: '#FFFFFF',
 },
 
 paymentSummaryValue: {
+  fontFamily: 'Poppins',
   fontSize: 10,
   fontWeight: '800',
   color: '#FFFFFF',
@@ -1235,12 +1230,14 @@ paymentTotalRow: {
 },
 
 paymentTotalLabel: {
+  fontFamily: 'Poppins',
   fontSize: 9,
   fontWeight: '500',
   color: '#CBD5E1',
 },
 
 paymentTotalValue: {
+  fontFamily: 'Poppins',
   fontSize: 15,
   fontWeight: '900',
   color: '#FFFFFF',
@@ -1249,6 +1246,7 @@ paymentTotalValue: {
 /* Pay With */
 
 payWithLabel: {
+  fontFamily: 'Poppins',
   fontSize: 9,
   fontWeight: '800',
   color: '#64748B',
@@ -1305,12 +1303,14 @@ paymentMethodTitleRow: {
 },
 
 paymentMethodTitle: {
+  fontFamily: 'Poppins',
   fontSize: 10,
   fontWeight: '800',
   color: '#0F172A',
 },
 
 paymentMethodSubtitle: {
+  fontFamily: 'Poppins',
   fontSize: 8,
   fontWeight: '500',
   color: '#64748B',
@@ -1325,6 +1325,7 @@ instantBadge: {
 },
 
 instantBadgeText: {
+  fontFamily: 'Poppins',
   fontSize: 7,
   fontWeight: '800',
   color: '#059669',
@@ -1346,6 +1347,7 @@ copyAccountButton: {
 },
 
 copyAccountText: {
+  fontFamily: 'Poppins',
   fontSize: 7,
   fontWeight: '800',
   color: '#059669',
@@ -1386,6 +1388,7 @@ paymentSecurityRow: {
 },
 
 paymentSecurityText: {
+  fontFamily: 'Poppins',
   fontSize: 8,
   fontWeight: '700',
   color: '#059669',
@@ -1410,6 +1413,7 @@ payNowButton: {
 },
 
 payNowButtonText: {
+  fontFamily: 'Poppins',
   fontSize: 11,
   fontWeight: '900',
   color: '#FFFFFF',

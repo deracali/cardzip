@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ArrowUpRight, CheckCircle2, MessageSquare, ShieldCheck, X, XCircle } from 'lucide-react'
 import { userApi } from '../services/api'
 import { clearCart, getCart } from '../services/cart'
-
-const formatNaira = (value) => `₦${Number(value || 0).toLocaleString('en-NG')}`
+import { formatNaira } from '../utils/currency'
 
 export default function CheckoutPage({ onNavigate }) {
   const [cart] = useState(getCart)
@@ -43,7 +42,7 @@ export default function CheckoutPage({ onNavigate }) {
     setSubmitting(true)
     setError('')
     const body = {
-      items: cart.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+      items: cart.map((item) => ({ productId: item.productId, quantity: item.quantity, selectedColor: item.selectedColor })),
       shippingAddress: shipping,
       paymentMethod: paymentMethod === 'wallet' ? 'wallet' : 'paystack',
     }
@@ -123,7 +122,7 @@ export default function CheckoutPage({ onNavigate }) {
         <aside className="checkout-sidebar-col"><div className="sidebar-card"><h3 className="sidebar-title">Your order</h3>
           {cart.map((item) => <div className="cost-row" key={item.productId}><span>{item.name} × {item.quantity}</span><span>{formatNaira(item.price * item.quantity)}</span></div>)}
           {!cart.length && <p>Your cart is empty.</p>}
-          <div className="cost-breakdown"><div className="cost-row"><span>Subtotal</span><span>{formatNaira(subtotal)}</span></div><div className="cost-row"><span>Shipping</span><span>₦1,500</span></div><div className="cost-row total-row"><span>Total</span><span className="total-val">{formatNaira(total)}</span></div></div>
+          <div className="cost-breakdown"><div className="cost-row"><span>Subtotal</span><span>{formatNaira(subtotal)}</span></div><div className="cost-row"><span>Shipping</span><span>{formatNaira(1500)}</span></div><div className="cost-row total-row"><span>Total</span><span className="total-val">{formatNaira(total)}</span></div></div>
           <button type="submit" disabled={submitting || !cart.length || (paymentMethod === 'wallet' && balance !== null && balance.balance < total)} className="btn-emerald-submit">{submitting ? 'Processing…' : paymentMethod === 'wallet' ? 'Place wallet order' : 'Continue to Paystack'} <ArrowUpRight size={16} /></button>
         </div><div className="protection-card"><ShieldCheck size={18} className="green-txt" /><div><strong>Your checkout is protected</strong><p>Card payment is verified by Paystack. Your card details are never stored here.</p></div></div><div className="support-card-dark"><h4>Need a hand with your order?</h4><p>Contact Cardzip support if checkout fails.</p><a href="mailto:support@cardzip.ng" className="chat-link"><MessageSquare size={14} /> Email support ↗</a></div></aside>
       </form>

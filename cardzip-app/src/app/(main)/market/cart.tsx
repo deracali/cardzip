@@ -1,19 +1,18 @@
-import React, { useState } from 'react';
-import {
-  StyleSheet,
+import React from 'react';
+import { StyleSheet,
   Text,
   View,
   ScrollView,
   TouchableOpacity,
   Dimensions,
-  SafeAreaView,
-  StatusBar,
-  Image,
-} from 'react-native';
+  Image, } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useAppDispatch, useAppSelector } from '../../store';
-import { removeFromCart, updateQuantity as updateCartQuantity } from '../../store/slices/cartSlice';
+import { useAppDispatch, useAppSelector } from '../../../store';
+import { removeFromCart, updateQuantity as updateCartQuantity } from '../../../store/slices/cartSlice';
+import { formatNaira } from '../../../utils/currency';
+import MarketBottomTab from './bottomtab/bottomtab';
 
 const { width, height } = Dimensions.get('window');
 
@@ -29,7 +28,6 @@ const SHIPPING_COST = 1500;
 
 export default function CartScreen() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState('Cart');
   const dispatch = useAppDispatch();
   const cartItems = useAppSelector((state) => state.cart.items);
 
@@ -54,23 +52,23 @@ export default function CartScreen() {
   const subtotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const grandTotal = subtotal > 0 ? subtotal + SHIPPING_COST : 0;
 
-  const formatCurrency = (amount: number) => {
-    return '₦' + amount.toLocaleString('en-US') + '.00';
-  };
-
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0B1220" />
 
       {/* Top Navy Header Section */}
       <View style={styles.headerContainer}>
         <View style={styles.headerTopRow}>
-          <TouchableOpacity style={styles.backButton}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.replace('/(main)/(tabs)/store')}
+            accessibilityRole="button"
+            accessibilityLabel="Back to store"
+          >
             <Feather name="arrow-left" size={scale(20)} color="#FFFFFF" />
           </TouchableOpacity>
           
           <View style={styles.headerTextContainer}>
-            <Text style={styles.headerCategory}>FLEEXA MARKET</Text>
+            <Text style={styles.headerCategory}>CARDZIP MARKET</Text>
             <Text style={styles.headerTitle}>My Cart ({totalItemsCount} items)</Text>
           </View>
         </View>
@@ -109,7 +107,8 @@ export default function CartScreen() {
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.itemPrice}>{formatCurrency(Number(item.price ?? 0))}</Text>
+              <Text style={styles.itemPrice}>{formatNaira(Number(item.price ?? 0), { minimumFractionDigits: 2 })}</Text>
+              {item.selectedColor ? <Text style={styles.itemColor}>Color: {item.selectedColor}</Text> : null}
 
               {/* Quantity Selector */}
               <View style={styles.quantityContainer}>
@@ -150,19 +149,19 @@ export default function CartScreen() {
 
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Subtotal · {totalItemsCount} items</Text>
-            <Text style={styles.summaryValue}>{formatCurrency(subtotal)}</Text>
+            <Text style={styles.summaryValue}>{formatNaira(subtotal, { minimumFractionDigits: 2 })}</Text>
           </View>
 
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Shipping</Text>
-            <Text style={styles.summaryValue}>{formatCurrency(SHIPPING_COST)}</Text>
+            <Text style={styles.summaryValue}>{formatNaira(SHIPPING_COST, { minimumFractionDigits: 2 })}</Text>
           </View>
 
           <View style={styles.divider} />
 
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalValue}>{formatCurrency(grandTotal)}</Text>
+            <Text style={styles.totalValue}>{formatNaira(grandTotal, { minimumFractionDigits: 2 })}</Text>
           </View>
 
           <Text style={styles.taxNote}>All prices include applicable taxes.</Text>
@@ -181,49 +180,7 @@ export default function CartScreen() {
         </View>
       </ScrollView>
 
-      {/* Bottom Navigation Bar */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity
-          style={[styles.navItem, activeTab === 'Home' && styles.activeNavItem]}
-          onPress={() => router.push('/(main)/(tabs)/store')}
-        >
-          <Feather
-            name="home"
-            size={scale(18)}
-            color={activeTab === 'Home' ? '#10B981' : '#64748B'}
-          />
-          <Text style={[styles.navText, activeTab === 'Home' && styles.activeNavText]}>Home</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.navItem, activeTab === 'Cart' && styles.activeNavItem]}
-          onPress={() => router.push('/(main)/market/cart')}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Feather
-              name="shopping-bag"
-              size={scale(18)}
-              color={activeTab === 'Cart' ? '#10B981' : '#64748B'}
-            />
-            <Text style={[styles.navText, { marginLeft: scale(6) }, activeTab === 'Cart' && styles.activeNavText]}>Cart</Text>
-            <View style={styles.cartBadge}>
-              <Text style={styles.cartBadgeText}>{totalItemsCount}</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.navItem, activeTab === 'Orders' && styles.activeNavItem]}
-          onPress={() => router.push('/(main)/market/orders')}
-        >
-          <Feather
-            name="file-text"
-            size={scale(18)}
-            color={activeTab === 'Orders' ? '#10B981' : '#64748B'}
-          />
-          <Text style={[styles.navText, activeTab === 'Orders' && styles.activeNavText]}>Orders</Text>
-        </TouchableOpacity>
-      </View>
+      <MarketBottomTab activeTab="Cart" />
     </SafeAreaView>
   );
 }
@@ -259,6 +216,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerCategory: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(10),
     fontWeight: '700',
     color: '#64748B',
@@ -266,11 +224,13 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(2),
   },
   headerTitle: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(20),
     fontWeight: '700',
     color: '#FFFFFF',
   },
   headerSubtitle: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(12),
     color: '#94A3B8',
     marginLeft: scale(2),
@@ -306,6 +266,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   itemTitle: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(13),
     fontWeight: '600',
     color: '#0F172A',
@@ -316,9 +277,17 @@ const styles = StyleSheet.create({
     padding: scale(2),
   },
   itemPrice: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(14),
     fontWeight: '700',
     color: '#10B981',
+    marginTop: verticalScale(2),
+  },
+  itemColor: {
+    fontFamily: 'Poppins',
+    fontSize: moderateScale(11),
+    fontWeight: '500',
+    color: '#64748B',
     marginTop: verticalScale(2),
   },
   quantityContainer: {
@@ -337,6 +306,7 @@ const styles = StyleSheet.create({
     padding: scale(4),
   },
   quantityText: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(12),
     fontWeight: '600',
     color: '#0F172A',
@@ -365,12 +335,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   deliveryTitle: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(13),
     fontWeight: '700',
     color: '#065F46',
     marginBottom: verticalScale(1),
   },
   deliverySubtitle: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(11),
     color: '#047857',
   },
@@ -384,6 +356,7 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   summaryTitle: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(16),
     fontWeight: '700',
     color: '#0F172A',
@@ -396,10 +369,12 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(10),
   },
   summaryLabel: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(13),
     color: '#64748B',
   },
   summaryValue: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(13),
     fontWeight: '600',
     color: '#0F172A',
@@ -415,12 +390,14 @@ const styles = StyleSheet.create({
   },
   emptyStateTitle: {
     color: '#0F172A',
+    fontFamily: 'Poppins',
     fontSize: moderateScale(16),
     fontWeight: '700',
     marginTop: verticalScale(12),
   },
   emptyStateText: {
     color: '#64748B',
+    fontFamily: 'Poppins',
     fontSize: moderateScale(12),
     marginTop: verticalScale(6),
   },
@@ -433,6 +410,7 @@ const styles = StyleSheet.create({
   },
   emptyStateButtonText: {
     color: '#065F46',
+    fontFamily: 'Poppins',
     fontSize: moderateScale(13),
     fontWeight: '700',
   },
@@ -448,16 +426,19 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(4),
   },
   totalLabel: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(15),
     fontWeight: '600',
     color: '#0F172A',
   },
   totalValue: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(18),
     fontWeight: '700',
     color: '#10B981',
   },
   taxNote: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(11),
     color: '#94A3B8',
     marginTop: verticalScale(2),
@@ -475,6 +456,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   checkoutBtnText: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(14),
     fontWeight: '700',
     color: '#0F172A',
@@ -486,6 +468,7 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(16),
   },
   securityText: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(11),
     color: '#64748B',
   },
@@ -510,6 +493,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0F172A',
   },
   navText: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(12),
     fontWeight: '500',
     color: '#64748B',
@@ -529,6 +513,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cartBadgeText: {
+    fontFamily: 'Poppins',
     fontSize: moderateScale(9),
     fontWeight: '700',
     color: '#0F172A',

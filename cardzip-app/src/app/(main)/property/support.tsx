@@ -1,26 +1,23 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import {
-  StyleSheet,
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { StyleSheet,
   View,
   Text,
   TextInput,
   TouchableOpacity,
   Image,
-  SafeAreaView,
-  StatusBar,
   useWindowDimensions,
-  Platform,
-} from 'react-native';
+  Platform, } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import KeyboardAwareScrollView from '../../../components/KeyboardAwareScrollView';
-import { useAppSelector } from '../../store';
+import { useAppSelector } from '../../../store';
 import CardzipLoader from '../../../components/CardzipLoader';
 import {
   createSupportRequestApi,
   listSupportRequestsApi,
   replySupportRequestApi,
   SupportRequest,
-} from '../../services/api/supportApi';
+} from '../../../services/api/supportApi';
 
 interface FAQItem {
   id: string;
@@ -61,6 +58,10 @@ export default function HelpSupportScreen() {
   // Accordion open state (defaulting to first item opened as seen in design)
   const [expandedId, setExpandedId] = useState<string | null>('1');
   const [searchQuery, setSearchQuery] = useState('');
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const filteredFAQs = normalizedSearch
+    ? FAQ_DATA.filter((item) => `${item.question} ${item.answer}`.toLowerCase().includes(normalizedSearch))
+    : FAQ_DATA;
   const { token } = useAppSelector((state) => state.auth);
   const [requests, setRequests] = useState<SupportRequest[]>([]);
   const [subject, setSubject] = useState('');
@@ -71,6 +72,13 @@ export default function HelpSupportScreen() {
   const [replySubmitting, setReplySubmitting] = useState('');
   const [supportError, setSupportError] = useState('');
   const [supportNotice, setSupportNotice] = useState('');
+  const subjectInputRef = useRef<TextInput>(null);
+
+  const startSupportRequest = (requestSubject: string) => {
+    setSubject(requestSubject);
+    setSupportNotice('Describe your issue below and send the support request.');
+    setTimeout(() => subjectInputRef.current?.focus(), 100);
+  };
 
   const loadRequests = useCallback(async () => {
     if (!token) {
@@ -145,7 +153,6 @@ export default function HelpSupportScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F4F6F5" />
       <KeyboardAwareScrollView
         contentContainerStyle={[
           styles.container,
@@ -183,10 +190,27 @@ export default function HelpSupportScreen() {
               placeholder="Search help, rates, payouts..."
               placeholderTextColor="#82918B"
               value={searchQuery}
-              onChangeText={setSearchQuery}
+              onChangeText={(value) => {
+                setSearchQuery(value);
+                const query = value.trim().toLowerCase();
+                const match = FAQ_DATA.find((item) => `${item.question} ${item.answer}`.toLowerCase().includes(query));
+                if (query && match) setExpandedId(match.id);
+              }}
               style={[styles.searchInput, { fontSize: scale(13) }]}
             />
-            <TouchableOpacity style={[styles.askButton, styles.askButtonGlow]} activeOpacity={0.8}>
+            <TouchableOpacity
+              style={[styles.askButton, styles.askButtonGlow]}
+              activeOpacity={0.8}
+              onPress={() => {
+                const query = searchQuery.trim().toLowerCase();
+                const match = filteredFAQs[0];
+                if (match && query) {
+                  setExpandedId(match.id);
+                  return;
+                }
+                startSupportRequest(searchQuery.trim() ? `Question: ${searchQuery.trim()}` : 'Support request');
+              }}
+            >
               <Text style={[styles.askButtonText, { fontSize: scale(12) }]}>Ask</Text>
             </TouchableOpacity>
           </View>
@@ -198,6 +222,7 @@ export default function HelpSupportScreen() {
           <TouchableOpacity
             style={[styles.actionCard, { backgroundColor: '#4F80FF' }, styles.blueCardGlow]}
             activeOpacity={0.85}
+            onPress={() => startSupportRequest('Live chat request')}
           >
             <View style={[styles.iconBox, { backgroundColor: 'rgba(255, 255, 255, 0.2)' }]}>
               <Ionicons name="chatbubble-ellipses-outline" size={scale(18)} color="#FFFFFF" />
@@ -211,9 +236,8 @@ export default function HelpSupportScreen() {
           </TouchableOpacity>
 
           {/* 2. WhatsApp Card */}
-          <TouchableOpacity
+          <View
             style={[styles.actionCard, { backgroundColor: '#056839' }, styles.greenCardGlow]}
-            activeOpacity={0.85}
           >
             <View style={[styles.iconBox, { backgroundColor: 'rgba(255, 255, 255, 0.2)' }]}>
               <Ionicons name="call-outline" size={scale(18)} color="#FFFFFF" />
@@ -222,15 +246,15 @@ export default function HelpSupportScreen() {
               WhatsApp
             </Text>
             <Text style={[styles.actionSubtitle, { color: 'rgba(255, 255, 255, 0.8)', fontSize: scale(11) }]}>
-              +234 800 123 456
+              Use Contact support below
             </Text>
-          </TouchableOpacity>
+          </View>
 
           {/* 3. Report Issue Card */}
           <TouchableOpacity
             style={[styles.actionCard, { backgroundColor: '#FFFFFF' }]}
             activeOpacity={0.85}
-            onPress={() => { setSubject('Trade dispute'); setSupportNotice('Describe the trade issue below and our team will review it.'); }}
+            onPress={() => startSupportRequest('Trade dispute')}
           >
             <View style={[styles.iconBox, { backgroundColor: '#FEF3C7' }]}>
               <Feather name="flag" size={scale(18)} color="#D97706" />
@@ -244,7 +268,11 @@ export default function HelpSupportScreen() {
           </TouchableOpacity>
 
           {/* 4. FAQs Card */}
-          <TouchableOpacity style={[styles.actionCard, { backgroundColor: '#FFFFFF' }]} activeOpacity={0.85}>
+          <TouchableOpacity
+            style={[styles.actionCard, { backgroundColor: '#FFFFFF' }]}
+            activeOpacity={0.85}
+            onPress={() => setExpandedId((current) => current === FAQ_DATA[0].id ? null : FAQ_DATA[0].id)}
+          >
             <View style={[styles.iconBox, { backgroundColor: '#DCFCE7' }]}>
              <Feather name="book" size={scale(18)} color="#10B981" />
             </View>
@@ -263,6 +291,7 @@ export default function HelpSupportScreen() {
           {supportError ? <Text style={styles.supportError} accessibilityRole="alert">{supportError}</Text> : null}
           {supportNotice ? <Text style={styles.supportNotice} accessibilityLiveRegion="polite">{supportNotice}</Text> : null}
           <TextInput
+            ref={subjectInputRef}
             value={subject}
             onChangeText={setSubject}
             placeholder="Subject"
@@ -333,7 +362,9 @@ export default function HelpSupportScreen() {
 
         {/* FAQ Accordions List */}
         <View style={styles.faqList}>
-          {FAQ_DATA.map((item) => {
+          {filteredFAQs.length === 0 ? (
+            <Text style={styles.supportEmpty}>No help articles match. Tap Ask to contact support.</Text>
+          ) : filteredFAQs.map((item) => {
             const isExpanded = expandedId === item.id;
             return (
               <TouchableOpacity
@@ -383,7 +414,11 @@ export default function HelpSupportScreen() {
             </Text>
           </View>
 
-          <TouchableOpacity style={[styles.chatBtn, styles.chatBtnGlow]} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={[styles.chatBtn, styles.chatBtnGlow]}
+            activeOpacity={0.8}
+            onPress={() => startSupportRequest('Live chat request')}
+          >
             <Text style={[styles.chatBtnText, { fontSize: scale(12) }]}>Chat</Text>
           </TouchableOpacity>
         </View>

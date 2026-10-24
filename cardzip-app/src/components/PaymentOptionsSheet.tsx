@@ -38,9 +38,14 @@ export default function PaymentOptionsSheet({
         <View style={styles.sheet}>
           <View style={styles.handle} />
           <View style={styles.headingRow}>
-            <View>
+            <View style={styles.headingCopy}>
               <Text style={styles.title}>Choose payment method</Text>
-              {hasAmount ? <Text style={styles.subtitle}>Amount due · {formatCurrency(Number(amount))}</Text> : null}
+              {hasAmount ? (
+                <>
+                  <Text style={styles.subtitle}>Amount due</Text>
+                  <Text style={styles.amount}>{formatCurrency(Number(amount))}</Text>
+                </>
+              ) : null}
             </View>
             <TouchableOpacity accessibilityLabel="Close payment options" onPress={onClose} style={styles.closeButton}>
               <Feather name="x" size={20} color="#475569" />
@@ -97,8 +102,10 @@ const styles = StyleSheet.create({
   },
   handle: { alignSelf: 'center', width: 38, height: 4, borderRadius: 2, backgroundColor: '#CBD5E1', marginBottom: 18 },
   headingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  headingCopy: { flex: 1, minWidth: 0, paddingRight: 12 },
   title: { color: '#0F172A', fontSize: 18, fontWeight: '700' },
   subtitle: { color: '#64748B', fontSize: 12, marginTop: 4 },
+  amount: { color: '#0F172A', fontSize: 16, fontWeight: '700', marginTop: 2 },
   closeButton: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F1F5F9' },
   option: { minHeight: 68, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 14, padding: 12, marginBottom: 10 },
   optionDisabled: { opacity: 0.58 },

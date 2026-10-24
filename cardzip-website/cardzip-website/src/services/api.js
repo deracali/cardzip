@@ -2,6 +2,7 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:500
 export const API_ORIGIN = new URL(API_BASE_URL).origin
 const getPaystackCallbackUrl = () => new URL('/payment/callback', window.location.origin).toString()
 const USER_TOKEN_KEY = 'cardzip-user-token'
+const ANALYTICS_VISITOR_ID_KEY = 'cardzip-campaign-analytics-visitor'
 const WALLET_CHANGE_EVENT = 'cardzip-wallet-changed'
 const walletChangingRoutes = new Set([
   'POST /wallet/withdraw',
@@ -22,6 +23,15 @@ const notifyWalletChanged = (path, method) => {
 }
 
 export const getUserToken = () => localStorage.getItem(USER_TOKEN_KEY)
+
+const getCampaignAnalyticsVisitorId = () => {
+  let visitorId = localStorage.getItem(ANALYTICS_VISITOR_ID_KEY)
+  if (!visitorId) {
+    visitorId = `v_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`
+    localStorage.setItem(ANALYTICS_VISITOR_ID_KEY, visitorId)
+  }
+  return visitorId
+}
 
 export const setUserToken = (token) => {
   if (token) localStorage.setItem(USER_TOKEN_KEY, token)
@@ -79,6 +89,79 @@ export const userApi = {
   saveBankAccount: (body) => apiRequest('/users/me/bank-account', { method: 'PUT', body }),
   storeProducts: (query = '') => apiRequest(`/store/products${query}`),
   storeProduct: (slug) => apiRequest(`/store/products/${encodeURIComponent(slug)}`),
+  uploadSellerDigitalAssetImage: (file) => {
+    const body = new FormData()
+    body.append('image', file)
+    return apiRequest('/store/digital-assets/images', { method: 'POST', body })
+  },
+  uploadSellerDigitalAssetSourceCode: (file) => {
+    const body = new FormData()
+    body.append('sourceCode', file)
+    return apiRequest('/store/digital-assets/source-code', { method: 'POST', body })
+  },
+  createSellerDigitalAsset: (body) => apiRequest('/store/digital-assets', { method: 'POST', body }),
+  myDigitalAssets: () => apiRequest('/store/digital-assets/mine'),
+  initializeDigitalProductPayment: (productId, purchaseType) => apiRequest('/payments/paystack/initialize', {
+    method: 'POST',
+    body: { purpose: 'digital_product', productId, purchaseType, callbackUrl: getPaystackCallbackUrl() },
+  }),
+  initializeSellerDigitalAssetPayment: (productId) => apiRequest('/payments/paystack/initialize', {
+    method: 'POST',
+    body: { purpose: 'seller_digital_asset', productId, callbackUrl: getPaystackCallbackUrl() },
+  }),
+  shops: (query = '') => apiRequest(`/store/shops${query}`, { auth: false }),
+  shop: (slug) => apiRequest(`/store/shops/${encodeURIComponent(slug)}`, { auth: false }),
+  shopProducts: (slug, query = '') => apiRequest(`/store/shops/${encodeURIComponent(slug)}/products${query}`, { auth: false }),
+  shopAppointments: (slug) => apiRequest(`/store/shops/${encodeURIComponent(slug)}/appointments`, { auth: false }),
+  bookShopAppointment: (slug, appointmentId) => apiRequest(`/store/shops/${encodeURIComponent(slug)}/appointments/${encodeURIComponent(appointmentId)}/book`, { method: 'POST' }),
+  adPlacements: () => apiRequest('/store/ads/placements', { auth: false }),
+  currentAd: (key) => apiRequest(`/store/ads/current/${encodeURIComponent(key)}`, { auth: false }),
+  trackAdCampaignEvent: (campaignId, eventType) => apiRequest(`/store/ads/campaigns/${encodeURIComponent(campaignId)}/events`, { method: 'POST', body: { eventType, visitorId: getCampaignAnalyticsVisitorId() }, auth: false }),
+  createAdCampaign: (body) => apiRequest('/store/ads/campaigns', { method: 'POST', body }),
+  uploadAdCreative: (file) => {
+    const body = new FormData()
+    body.append('image', file)
+    return apiRequest('/store/ads/images', { method: 'POST', body })
+  },
+  myAdCampaigns: (query = '') => apiRequest(`/store/ads/my-campaigns${query}`),
+  myCommunityPromotions: () => apiRequest('/community-market/promotions/mine'),
+  trackCommunityPromotionEvent: (targetId, targetType, eventType) => apiRequest('/community-market/promotions/events', { method: 'POST', body: { targetId, targetType, eventType, visitorId: getCampaignAnalyticsVisitorId() }, auth: false }),
+  initializeBannerPayment: (campaignId) => apiRequest('/payments/paystack/initialize', {
+    method: 'POST',
+    body: { purpose: 'banner_ad', campaignId, callbackUrl: getPaystackCallbackUrl() },
+  }),
+  myShop: () => apiRequest('/store/my-shop'),
+  myShopAppointments: () => apiRequest('/store/my-shop/appointments'),
+  myBookedShopAppointments: () => apiRequest('/store/my-shop/bookings'),
+  createShopAppointment: (body) => apiRequest('/store/my-shop/appointments', { method: 'POST', body }),
+  updateShopAppointment: (appointmentId, status, cancellationReason = '') => apiRequest(`/store/my-shop/appointments/${encodeURIComponent(appointmentId)}`, { method: 'PATCH', body: { status, cancellationReason } }),
+  deleteShopAppointment: (appointmentId) => apiRequest(`/store/my-shop/appointments/${encodeURIComponent(appointmentId)}`, { method: 'DELETE' }),
+  createShop: (body) => apiRequest('/store/shops', { method: 'POST', body }),
+  uploadShopProductImage: (file) => {
+    const body = new FormData()
+    body.append('image', file)
+    return apiRequest('/store/my-shop/products/image', { method: 'POST', body })
+  },
+  createShopProduct: (body) => apiRequest('/store/my-shop/products', { method: 'POST', body }),
+  communityListings: (query = '') => apiRequest(`/community-market/listings${query}`, { auth: false }),
+  createCommunityListing: (body) => apiRequest('/community-market/listings', { method: 'POST', body }),
+  updateCommunityListing: (id, body) => apiRequest(`/community-market/listings/${encodeURIComponent(id)}`, { method: 'PATCH', body }),
+  deleteCommunityListing: (id) => apiRequest(`/community-market/listings/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  updateCommunityListingSold: (id, isSold) => apiRequest(`/community-market/listings/${encodeURIComponent(id)}/status`, { method: 'PATCH', body: { isSold } }),
+  communityListing: (id) => apiRequest(`/community-market/listings/${encodeURIComponent(id)}`, { auth: false }),
+  relatedCommunityListings: (id) => apiRequest(`/community-market/listings/${encodeURIComponent(id)}/related`, { auth: false }),
+  startCommunityConversation: (listingId) => apiRequest('/community-market/conversations', { method: 'POST', body: { listingId } }),
+  communityConversationMessages: (conversationId) => apiRequest(`/community-market/conversations/${encodeURIComponent(conversationId)}/messages`),
+  sendCommunityMessage: (conversationId, body) => apiRequest(`/community-market/conversations/${encodeURIComponent(conversationId)}/messages`, { method: 'POST', body: { body } }),
+  communityPromotionPricing: () => apiRequest('/community-market/promotions/pricing', { auth: false }),
+  initializeCommunityPromotionPayment: (listingId, duration) => apiRequest('/payments/paystack/initialize', {
+    method: 'POST',
+    body: { purpose: 'community_promotion', listingId, duration, callbackUrl: getPaystackCallbackUrl() },
+  }),
+  initializeDigitalAssetPromotionPayment: (digitalAssetId, duration) => apiRequest('/payments/paystack/initialize', {
+    method: 'POST',
+    body: { purpose: 'community_promotion', digitalAssetId, duration, callbackUrl: getPaystackCallbackUrl() },
+  }),
   storeOrders: (query = '') => apiRequest(`/store/orders${query}`),
   storeOrder: (orderNumber) => apiRequest(`/store/orders/${encodeURIComponent(orderNumber)}`),
   createStoreOrder: (body) => apiRequest('/store/orders', { method: 'POST', body }),
