@@ -32,6 +32,7 @@ import { getStorefrontPreferences } from '../../../services/storePreferences';
 import { getStoreImageUrl } from '../../../utils/storeImages';
 import { Image as CachedImage } from 'expo-image';
 import { fetchDigitalProductsApi } from '../../../services/api/storeApi';
+import useFeatureSettings from '../../../hooks/useFeatureSettings';
 
 
 // Screen Dimensions for responsiveness
@@ -58,6 +59,7 @@ export default function HomeScreen() {
   const [updatingNotificationId, setUpdatingNotificationId] = useState('');
   const dispatch = useAppDispatch();
   const { token, user, sessionReady } = useAppSelector((state) => state.auth);
+  const { featureSettings, error: featureSettingsError } = useFeatureSettings();
   const notificationsEnabled = useAppSelector((state) => state.preferences.notificationsEnabled);
   const { balance } = useAppSelector((state) => state.wallet);
   const { products: featuredProducts, loading: featuredProductsLoading } = useAppSelector((state) => state.store);
@@ -551,7 +553,7 @@ export default function HomeScreen() {
           <Ionicons name="arrow-forward" size={wp(4.5)} color="#8B651F" />
         </TouchableOpacity>
 
-        <TouchableOpacity
+        {featureSettings?.esimEnabled && <TouchableOpacity
           style={styles.homeNumberHubCard}
           activeOpacity={0.88}
           onPress={() => router.push({ pathname: '/(main)/(tabs)/esims', params: { tab: 'catalog' } })}
@@ -579,13 +581,13 @@ export default function HomeScreen() {
             </View>
             <View style={styles.homeNumberHubAction}><Text style={styles.homeNumberHubActionText}>Explore virtual numbers</Text><Ionicons name="chevron-forward" size={wp(4)} color="#0D3826" /></View>
           </LinearGradient>
-        </TouchableOpacity>
+        </TouchableOpacity>}
 
         {/* ================= NEW BILLS & UTILITIES SECTION ================= */}
+        {featureSettings?.vtpassBillsEnabled && <>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Pay Bills & Utilities</Text>
         </View>
-
         <View style={styles.billsGrid}>
           <TouchableOpacity style={styles.billItem} activeOpacity={0.7}
           onPress={() => router.push({ pathname: '/(main)/property/bills', params: { tab: 'airtime' } })}>
@@ -625,6 +627,8 @@ export default function HomeScreen() {
             <Text style={styles.billLabel}>WAEC</Text>
           </TouchableOpacity>
         </View>
+        </>}
+        {featureSettingsError ? <Text style={styles.serviceAvailabilityError}>{featureSettingsError}</Text> : null}
 
         {/* ================= TRADE GIFT CARDS SECTION ================= */}
         <View style={styles.sectionHeader}>
@@ -1083,6 +1087,12 @@ topGlow: {
     justifyContent: 'flex-start',
     columnGap: wp(3),
     marginBottom: wp(5),
+  },
+  serviceAvailabilityError: {
+    color: '#B42318',
+    fontFamily: 'Poppins',
+    fontSize: wp(3),
+    marginBottom: wp(3),
   },
   billItem: {
     width: '31%',

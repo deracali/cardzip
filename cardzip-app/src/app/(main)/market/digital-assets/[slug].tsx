@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, Image, Linking, ScrollView, StyleSheet, Text,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import * as ExpoLinking from 'expo-linking';
+import * as Sharing from 'expo-sharing';
 import * as WebBrowser from 'expo-web-browser';
 import { Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useAppSelector } from '../../../../store';
@@ -13,9 +14,11 @@ import {
   fetchStoreProductBySlugApi,
 } from '../../../../services/api/storeApi';
 import {
+  downloadDigitalProductFileApi,
   initializeDigitalAssetPromotionPaymentApi,
   initializeDigitalProductPaymentApi,
   initializeSellerDigitalAssetPaymentApi,
+  fetchMyDigitalProductPaymentsApi,
   SellerDigitalAssetPaystackVerification,
   verifyCommunityPromotionPaymentApi,
   verifyDigitalProductPaymentApi,
@@ -39,8 +42,9 @@ export default function DigitalAssetDetailsScreen() {
   const [busyOption, setBusyOption] = useState<'use' | 'template' | ''>('');
   const [error, setError] = useState('');
   const [purchaseError, setPurchaseError] = useState('');
-  const [receipt, setReceipt] = useState<{ purchaseType: 'use' | 'template'; accessUrl?: string; sourceCodeUrl?: string } | null>(null);
-  const [sellerReceipt, setSellerReceipt] = useState<SellerDigitalAssetPaystackVerification['sellerDigitalAsset'] | null>(null);
+  const [receipt, setReceipt] = useState<({ productId: string; purchaseType: 'use' | 'template'; accessUrl?: string; sourceCodeAvailable?: boolean; templateSourceCodeAvailable?: boolean; documents: { name: string; mimeType: string }[]; templateDocuments?: { name: string; mimeType: string }[]; reference: string }) | null>(null);
+  const [sellerReceipt, setSellerReceipt] = useState<(SellerDigitalAssetPaystackVerification['sellerDigitalAsset'] & { reference: string }) | null>(null);
+  const [downloadingFile, setDownloadingFile] = useState('');
   const [ownerAssetId, setOwnerAssetId] = useState('');
   const [promotionPrices, setPromotionPrices] = useState<CommunityPromotionDuration[]>([]);
   const [promotionLoading, setPromotionLoading] = useState(false);
@@ -49,6 +53,51 @@ export default function DigitalAssetDetailsScreen() {
   const isApp = asset?.productType === 'app' || asset?.productType === 'ios_app';
   const isAndroidApp = asset?.productType === 'app';
   const productId = String(asset?._id || asset?.id || '');
+
+  useEffect(() => {
+    let active = true;
+    if (!token || !productId) {
+      setReceipt(null);
+      setSellerReceipt(null);
+      return () => { active = false; };
+    }
+    fetchMyDigitalProductPaymentsApi(token, productId)
+      .then(async (payments) => {
+        const verified = await Promise.all(payments
+          .filter((payment) => ['pending', 'completed'].includes(payment.status) && payment.reference)
+          .slice(0, 10)
+          .map(async (payment) => {
+            try {
+              if (payment.purpose === 'seller_digital_asset') {
+                const verification = await verifySellerDigitalAssetPaymentApi(token, payment.reference);
+                const purchased = verification.sellerDigitalAsset;
+                if (verification.status !== 'completed' || purchased.productId !== productId) return null;
+                return { purpose: 'seller_digital_asset' as const, reference: payment.reference, purchased };
+              }
+              const verification = await verifyDigitalProductPaymentApi(token, payment.reference);
+              const purchased = verification.digitalProduct;
+              if (verification.status !== 'completed' || purchased.productId !== productId) return null;
+              return { purpose: 'digital_product' as const, reference: payment.reference, purchased };
+            } catch {
+              return null;
+            }
+          }));
+        if (!active) return;
+        const latestPurchase = verified.find(Boolean);
+        if (!latestPurchase) return;
+        if (latestPurchase.purpose === 'seller_digital_asset') {
+          setSellerReceipt({ ...latestPurchase.purchased, reference: latestPurchase.reference });
+          setReceipt(null);
+        } else {
+          setReceipt({ ...latestPurchase.purchased, reference: latestPurchase.reference });
+          setSellerReceipt(null);
+        }
+      })
+      .catch((requestError: unknown) => {
+        if (active) setPurchaseError(requestError instanceof Error ? requestError.message : 'Could not load your purchase history.');
+      });
+    return () => { active = false; };
+  }, [productId, token]);
 
   useEffect(() => {
     let active = true;
@@ -108,14 +157,20 @@ export default function DigitalAssetDetailsScreen() {
         pendingMessage: 'Payment is still being confirmed. Verify again shortly.',
       });
       setReceipt({
+        productId,
         purchaseType: result.digitalProduct.purchaseType,
         accessUrl: result.digitalProduct.accessUrl,
-        sourceCodeUrl: result.digitalProduct.sourceCodeUrl,
+        documents: result.digitalProduct.documents || [],
+        sourceCodeAvailable: result.digitalProduct.sourceCodeAvailable,
+        templateSourceCodeAvailable: result.digitalProduct.templateSourceCodeAvailable,
+        templateDocuments: result.digitalProduct.templateDocuments || [],
+        reference: payment.reference,
       });
+      setSellerReceipt(null);
       Alert.alert(
         'Payment confirmed',
         option === 'template'
-          ? result.digitalProduct.sourceCodeUrl
+          ? result.digitalProduct.sourceCodeAvailable || result.digitalProduct.templateSourceCodeAvailable
             ? 'Your template source-code ZIP is ready below. Contact Cardzip support to coordinate any setup or upload help.'
             : 'Your full project template is confirmed. Contact Cardzip support to coordinate the backend handover and two weeks of setup and upload.'
           : isApp
@@ -129,7 +184,7 @@ export default function DigitalAssetDetailsScreen() {
     }
   };
 
-  const purchaseSellerListing = async () => {
+  const purchaseSellerListing = async (option: 'use' | 'template') => {
     if (!token) {
       Alert.alert('Sign in required', 'Sign in to purchase this digital listing.', [
         { text: 'Cancel', style: 'cancel' },
@@ -142,7 +197,7 @@ export default function DigitalAssetDetailsScreen() {
     setPurchaseError('');
     try {
       const returnUrl = callbackUrl || ExpoLinking.createURL('payment/callback', { scheme: 'cardzip' });
-      const payment = await initializeSellerDigitalAssetPaymentApi(token, productId, returnUrl);
+      const payment = await initializeSellerDigitalAssetPaymentApi(token, productId, option, returnUrl);
       await openPaystackCheckout(payment.authorizationUrl, returnUrl);
       const result = await verifyPaystackUntilSettled({
         verify: () => verifySellerDigitalAssetPaymentApi(token, payment.reference),
@@ -150,7 +205,8 @@ export default function DigitalAssetDetailsScreen() {
         failureMessage: 'Paystack did not complete this digital-listing payment.',
         pendingMessage: 'Payment is still being confirmed. Verify again shortly.',
       });
-      setSellerReceipt(result.sellerDigitalAsset);
+      setSellerReceipt({ ...result.sellerDigitalAsset, reference: payment.reference });
+      setReceipt(null);
       Alert.alert('Payment confirmed', `You can now access the listing. The seller received ${formatNaira(result.sellerDigitalAsset.sellerShare)} (70%); Cardzip retained 30%.`);
     } catch (requestError) {
       setPurchaseError(requestError instanceof Error ? requestError.message : 'Could not complete this payment.');
@@ -202,6 +258,44 @@ export default function DigitalAssetDetailsScreen() {
     }
   };
 
+  const downloadPurchasedFile = async (
+    fileType: 'source-code' | 'document' | 'template-document',
+    documentIndex: number,
+    filename: string,
+    mimeType = 'application/octet-stream',
+  ) => {
+    const purchased = sellerReceipt || receipt;
+    if (!purchased?.reference) {
+      setPurchaseError('The verified payment reference is missing. Return to this product and check your purchase.');
+      return;
+    }
+    const archiveType = fileType === 'source-code'
+      ? purchased.purchaseType === 'template' ? 'template-source-code' : 'rental-source-code'
+      : fileType;
+    const key = fileType === 'source-code' ? archiveType : `${fileType}-${documentIndex}`;
+    setDownloadingFile(key);
+    setPurchaseError('');
+    try {
+      const uri = await downloadDigitalProductFileApi(
+        token || '',
+        productId,
+        archiveType,
+        documentIndex,
+        purchased.reference,
+        filename,
+      );
+      if (!(await Sharing.isAvailableAsync())) {
+        setPurchaseError('The file was downloaded, but sharing is unavailable on this device.');
+        return;
+      }
+      await Sharing.shareAsync(uri, { mimeType, dialogTitle: filename });
+    } catch (requestError) {
+      setPurchaseError(requestError instanceof Error ? requestError.message : 'Could not download this purchased file.');
+    } finally {
+      setDownloadingFile('');
+    }
+  };
+
   if (loading || loadedSlug !== assetSlug) return <SafeAreaView style={styles.safeArea}><ActivityIndicator style={styles.loader} size="large" color="#087A4C" /></SafeAreaView>;
   if (!asset) return <SafeAreaView style={styles.safeArea}><View style={styles.empty}><Text style={styles.title}>Digital product unavailable</Text><Text style={styles.copy}>{error || 'This website or app could not be found.'}</Text><TouchableOpacity style={styles.primaryButton} onPress={() => router.back()}><Text style={styles.primaryButtonText}>Go back</Text></TouchableOpacity></View></SafeAreaView>;
 
@@ -216,7 +310,7 @@ export default function DigitalAssetDetailsScreen() {
         <View style={styles.art}>
           {asset.image ? <Image source={{ uri: asset.image }} style={styles.artImage} resizeMode="cover" /> : <Feather name={isApp ? 'smartphone' : 'globe'} size={42} color="#8BF0B9" />}
         </View>
-        <Text style={styles.typeLabel}>{isAndroidApp ? 'ANDROID APPLICATION' : asset.productType === 'ios_app' ? 'IOS APPLICATION' : 'WEBSITE'}</Text>
+        <Text style={styles.typeLabel}>{isAndroidApp ? 'ANDROID APPLICATION' : asset.productType === 'ios_app' ? 'IOS APPLICATION' : asset.productType === 'full_stack' ? 'FULL STACK' : asset.productType === 'admin' ? 'ADMIN DASHBOARD' : 'WEBSITE'}</Text>
         <Text style={styles.title}>{asset.name}</Text>
         <Text style={styles.copy}>{asset.description || 'A digital product from the Cardzip collection.'}</Text>
         {!asset.isSellerListing && asset.websiteUrl ? <TouchableOpacity style={styles.previewLink} onPress={() => void Linking.openURL(asset.websiteUrl!)}><Text style={styles.previewText}>Visit website</Text><Feather name="arrow-up-right" size={15} color="#087A4C" /></TouchableOpacity> : null}
@@ -231,11 +325,15 @@ export default function DigitalAssetDetailsScreen() {
         <View style={styles.optionsCard}>
           <Text style={styles.sectionTitle}>Choose your option</Text>
           {asset.isSellerListing ? <>
-            <View style={styles.sellerTerms}><Text style={styles.optionTitle}>Secure purchase from the creator</Text><Text style={styles.optionDescription}>Pay with Paystack to unlock the gallery, open the website or download the APK, and get the source-code ZIP.</Text><Text style={styles.sellerPayout}>Seller receives 70% · Cardzip retains 30% · seller withdrawals take 1–2 business days.</Text></View>
-            <TouchableOpacity style={styles.option} disabled={Boolean(busyOption)} onPress={() => void purchaseSellerListing()}>
-              <View style={styles.optionCopy}><Text style={styles.optionTitle}>Buy and unlock access</Text><Text style={styles.optionDescription}>All photos and downloads are revealed after payment.</Text></View>
-              <Text style={styles.optionPrice}>{busyOption ? 'Opening…' : formatNaira(Number(asset.price))}</Text>
-            </TouchableOpacity>
+            <View style={styles.sellerTerms}><Text style={styles.optionTitle}>Purchase from the creator</Text><Text style={styles.optionDescription}>Each paid option unlocks its own ZIP and buyer files. Full-template buyers also receive its legal documents.</Text><Text style={styles.sellerPayout}>Seller receives 70% · Cardzip retains 30% · seller withdrawals take 1–2 business days.</Text></View>
+            {(Number(asset.usePrice) > 0 || (!Number(asset.usePrice) && !Number(asset.templatePrice) && Number(asset.price) > 0)) ? <TouchableOpacity style={styles.option} disabled={Boolean(busyOption)} onPress={() => void purchaseSellerListing('use')}>
+              <View style={styles.optionCopy}><Text style={styles.optionTitle}>Use / rent</Text><Text style={styles.optionDescription}>Use access, rental ZIP and buyer files.</Text></View>
+              <Text style={styles.optionPrice}>{busyOption === 'use' ? 'Opening…' : formatNaira(Number(asset.usePrice) || Number(asset.price))}</Text>
+            </TouchableOpacity> : null}
+            {Number(asset.templatePrice) > 0 ? <TouchableOpacity style={styles.option} disabled={Boolean(busyOption)} onPress={() => void purchaseSellerListing('template')}>
+              <View style={styles.optionCopy}><Text style={styles.optionTitle}>Full project template</Text><Text style={styles.optionDescription}>Full source ZIP and legal documents.</Text></View>
+              <Text style={styles.optionPrice}>{busyOption === 'template' ? 'Opening…' : formatNaira(Number(asset.templatePrice))}</Text>
+            </TouchableOpacity> : null}
             {isOwner ? <View style={styles.promotionBox}>
               <Text style={styles.optionTitle}>Promote in Community Marketplace</Text>
               <Text style={styles.optionDescription}>Reach people browsing similar websites and apps. Promotion starts after administrator approval.</Text>
@@ -263,15 +361,16 @@ export default function DigitalAssetDetailsScreen() {
           ) : null}
           {purchaseError ? <Text style={styles.error} accessibilityRole="alert">{purchaseError}</Text> : null}
           {receipt?.purchaseType === 'use' && receipt.accessUrl ? <TouchableOpacity style={styles.accessButton} onPress={() => void openAccess(receipt.accessUrl!)}><Feather name={isApp ? 'download' : 'external-link'} size={16} color="#FFFFFF" /><Text style={styles.accessButtonText}>{isAndroidApp ? 'Download hosted APK' : asset.productType === 'ios_app' ? 'Open iOS app access' : 'Open your website'}</Text></TouchableOpacity> : null}
-          {receipt?.purchaseType === 'template' ? <Text style={styles.success}>Template purchase confirmed. Contact support to begin your setup handover.</Text> : null}
-          {receipt?.purchaseType === 'template' && receipt.sourceCodeUrl ? <TouchableOpacity style={styles.accessButton} onPress={() => void openAccess(receipt.sourceCodeUrl!)}><Feather name="download" size={16} color="#FFFFFF" /><Text style={styles.accessButtonText}>Download template source ZIP</Text></TouchableOpacity> : null}
+          {receipt?.purchaseType === 'template' ? <Text style={styles.success}>Template purchase confirmed. Your source archive and files are ready below.</Text> : null}
+          {(receipt?.sourceCodeAvailable || receipt?.templateSourceCodeAvailable || sellerReceipt?.sourceCodeAvailable) ? <TouchableOpacity style={styles.accessButton} disabled={Boolean(downloadingFile)} onPress={() => void downloadPurchasedFile('source-code', 0, `${asset.name}-${sellerReceipt?.purchaseType === 'template' || receipt?.purchaseType === 'template' ? 'full-template' : 'rental'}-source-code.zip`, 'application/zip')}><Feather name="download" size={16} color="#FFFFFF" /><Text style={styles.accessButtonText}>{downloadingFile.includes('source-code') ? 'Downloading source ZIP…' : `Download ${sellerReceipt?.purchaseType === 'template' || receipt?.purchaseType === 'template' ? 'full-template' : 'rental'} source ZIP`}</Text></TouchableOpacity> : null}
+          {(sellerReceipt?.documents || receipt?.documents || []).map((document, index) => <TouchableOpacity key={`${document.name}-${index}`} style={styles.accessButton} disabled={Boolean(downloadingFile)} onPress={() => void downloadPurchasedFile('document', index, document.name, document.mimeType)}><Feather name="file-text" size={16} color="#FFFFFF" /><Text style={styles.accessButtonText}>{downloadingFile === `document-${index}` ? 'Downloading…' : `Download ${document.name}`}</Text></TouchableOpacity>)}
+          {(sellerReceipt?.templateDocuments || receipt?.templateDocuments || []).map((document, index) => <TouchableOpacity key={`legal-${document.name}-${index}`} style={styles.accessButton} disabled={Boolean(downloadingFile)} onPress={() => void downloadPurchasedFile('template-document', index, document.name, document.mimeType)}><Feather name="file-text" size={16} color="#FFFFFF" /><Text style={styles.accessButtonText}>{downloadingFile === `template-document-${index}` ? 'Downloading…' : `Download legal document: ${document.name}`}</Text></TouchableOpacity>)}
           {sellerReceipt ? <>
             <Text style={styles.success}>Payment confirmed. The seller received {formatNaira(sellerReceipt.sellerShare)} (70%).</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sellerGallery}>{sellerReceipt.screenshots.map((image, index) => <Image key={`${image}-${index}`} source={{ uri: image }} style={styles.sellerScreenshot} />)}</ScrollView>
-            {sellerReceipt.websiteUrl ? <TouchableOpacity style={styles.accessButton} onPress={() => void openWebsite(sellerReceipt.websiteUrl!)}><Feather name="globe" size={16} color="#FFFFFF" /><Text style={styles.accessButtonText}>Open website</Text></TouchableOpacity> : null}
+            {sellerReceipt.accessUrl && ['website', 'full_stack', 'admin'].includes(sellerReceipt.productType) ? <TouchableOpacity style={styles.accessButton} onPress={() => void openWebsite(sellerReceipt.accessUrl!)}><Feather name="globe" size={16} color="#FFFFFF" /><Text style={styles.accessButtonText}>Open website</Text></TouchableOpacity> : null}
             {sellerReceipt.apkUrl ? <TouchableOpacity style={styles.accessButton} onPress={() => void openAccess(sellerReceipt.apkUrl!)}><Feather name="download" size={16} color="#FFFFFF" /><Text style={styles.accessButtonText}>Download APK</Text></TouchableOpacity> : null}
             {sellerReceipt.iosAppUrl ? <TouchableOpacity style={styles.accessButton} onPress={() => void openAccess(sellerReceipt.iosAppUrl!)}><Feather name="smartphone" size={16} color="#FFFFFF" /><Text style={styles.accessButtonText}>Open iOS app</Text></TouchableOpacity> : null}
-            <TouchableOpacity style={styles.accessButton} onPress={() => void openAccess(sellerReceipt.sourceCodeUrl)}><Feather name="download" size={16} color="#FFFFFF" /><Text style={styles.accessButtonText}>Download source code ZIP</Text></TouchableOpacity>
           </> : null}
           <View style={styles.contactBox}>
             <Text style={styles.optionTitle}>Want to buy it outright?</Text>

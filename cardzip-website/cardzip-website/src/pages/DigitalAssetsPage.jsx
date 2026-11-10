@@ -5,7 +5,7 @@ import { getStorefrontPreferences, recordStoreSearch } from '../services/storePr
 import { formatNaira } from '../utils/currency'
 import './DigitalAssets.css'
 
-const typeLabels = { website: 'Website', app: 'Android app', ios_app: 'iOS app' }
+const typeLabels = { website: 'Website', app: 'Android app', ios_app: 'iOS app', full_stack: 'Full stack', admin: 'Admin' }
 
 export default function DigitalAssetsPage({ onNavigate }) {
   const [productType, setProductType] = useState('all')
@@ -17,7 +17,7 @@ export default function DigitalAssetsPage({ onNavigate }) {
 
   useEffect(() => {
     let active = true
-    const types = productType === 'all' ? ['website', 'app', 'ios_app'] : [productType]
+    const types = productType === 'all' ? ['website', 'app', 'ios_app', 'full_stack', 'admin'] : [productType]
     const preferences = getStorefrontPreferences()
     Promise.all(types.map((type) => {
       const query = new URLSearchParams({ productType: type, page: '1', limit: '50', sort: 'featured' })
@@ -54,7 +54,7 @@ export default function DigitalAssetsPage({ onNavigate }) {
           <button type="button" className="digital-sell-cta" onClick={() => onNavigate?.('/digital-assets/sell')}>Sell your website or app <ArrowRight size={15} /></button>
         </header>
         <div className="digital-assets-filters" role="group" aria-label="Filter digital products">
-          {[['all', 'All digital products'], ['website', 'Websites'], ['app', 'Android apps'], ['ios_app', 'iOS apps']].map(([value, label]) => (
+          {[['all', 'All digital products'], ['website', 'Websites'], ['app', 'Android apps'], ['ios_app', 'iOS apps'], ['full_stack', 'Full stack'], ['admin', 'Admin']].map(([value, label]) => (
             <button key={value} type="button" className={productType === value ? 'active' : ''} aria-pressed={productType === value} onClick={() => { if (productType !== value) { setLoading(true); setError(''); setProductType(value) } }}>{label}</button>
           ))}
         </div>
@@ -69,10 +69,11 @@ export default function DigitalAssetsPage({ onNavigate }) {
         {!loading && !error && assets.length === 0 ? <div className="digital-assets-empty"><Code2 size={28} /><strong>{searchTerm ? 'No matching websites or apps' : 'New digital products are on the way'}</strong><span>{searchTerm ? 'Try a different search term or clear your search.' : 'Check back soon for websites and apps curated by Cardzip.'}</span>{searchTerm && <button type="button" onClick={() => { setSearchInput(''); setSearchTerm(''); setLoading(true) }}>Clear search</button>}</div> : null}
         <section className="digital-assets-grid" aria-label="Websites and apps">
           {assets.map((asset) => {
-            const Icon = asset.productType === 'website' ? Globe2 : Smartphone
+            const Icon = ['website', 'full_stack', 'admin'].includes(asset.productType) ? Globe2 : Smartphone
+            const sellerPrices = [Number(asset.usePrice), Number(asset.templatePrice)].filter((value) => value > 0)
             const price = asset.isSellerListing
-              ? [Number(asset.price)]
-              : [asset.usePrice, asset.templatePrice].filter((value) => Number(value) > 0).map(Number)
+              ? (sellerPrices.length ? sellerPrices : Number(asset.price) > 0 ? [Number(asset.price)] : [])
+              : sellerPrices
             return (
               <article className="digital-asset-card" key={asset._id}>
                 <div className="digital-asset-card-image">{asset.image ? <img src={asset.image} alt="" loading="lazy" /> : <Icon size={32} />}{asset.isPromoted && <span className="digital-asset-promoted">PROMOTED</span>}</div>

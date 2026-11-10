@@ -4,7 +4,7 @@ export interface StoreProduct {
   name: string;
   slug?: string;
   category?: string;
-  productType?: 'product' | 'website' | 'app' | 'ios_app';
+  productType?: 'product' | 'website' | 'app' | 'ios_app' | 'full_stack' | 'admin';
   description?: string;
   expectedDelivery?: string;
   keyHighlights?: string[];
@@ -56,6 +56,21 @@ export interface CommunityListing {
   promotionExpiresAt?: string | null;
   sellerName: string;
   createdAt?: string;
+}
+
+export interface CommunityListingReview {
+  _id: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  updatedAt: string;
+  reviewer: { name: string; profileImage?: string };
+}
+
+export interface CommunityListingReviewSummary {
+  reviews: CommunityListingReview[];
+  averageRating: number;
+  totalReviews: number;
 }
 
 export interface StoreOrderItem {

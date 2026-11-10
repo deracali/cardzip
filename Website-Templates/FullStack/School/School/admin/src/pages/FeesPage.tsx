@@ -1,0 +1,14 @@
+import { useMemo, useState } from 'react'
+import { ArrowRight, CheckCircle2, Search } from 'lucide-react'
+import { money } from '../data'
+import type { FeeRecord } from '../types'
+import { PageHeader, Panel } from '../components/PageHeader'
+
+export function FeesPage({ fees, onMarkPaid }: { fees: FeeRecord[]; onMarkPaid: (id: string) => void }) {
+  const [query, setQuery] = useState('')
+  const [notice, setNotice] = useState('')
+  const filtered = useMemo(() => fees.filter((row) => `${row.student} ${row.className} ${row.id}`.toLowerCase().includes(query.toLowerCase())), [fees, query])
+  const collected = fees.reduce((sum, row) => sum + row.paid, 0)
+  const outstanding = fees.reduce((sum, row) => sum + row.amount - row.paid, 0)
+  return <><PageHeader title="Fees & collection" description="Track tuition payments, outstanding balances, and family accounts." action={<button className="primary-button" onClick={() => setNotice('Payment reconciliation prepared in this demo.')}><CheckCircle2 size={14}/> Reconcile payments</button>}/><div className="summary-cards"><article><span>COLLECTED THIS TERM</span><b>{money(collected)}</b><small>72% of school target</small></article><article><span>OUTSTANDING</span><b>{money(outstanding)}</b><small>Across {fees.filter((row) => row.status !== 'Paid').length} demo accounts</small></article><article><span>FAMILIES PAID IN FULL</span><b>{fees.filter((row) => row.status === 'Paid').length}</b><small>Current term ledger</small></article></div><Panel title="Fee tracking & automated alerts" note="Demo records - payment links are not connected" action={<button className="secondary-button" onClick={() => setNotice('Reminder preview created. No message was sent.')}>Send reminders <ArrowRight size={13}/></button>}><label className="search-field"><Search size={15}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search student or class"/></label><div className="table-scroll"><table><thead><tr><th>STUDENT</th><th>CLASS</th><th>TERM FEE</th><th>PAID</th><th>BALANCE</th><th>STATUS</th><th>ACTION</th></tr></thead><tbody>{filtered.map((row) => <tr key={row.id}><td><b>{row.student}</b><small>{row.id}</small></td><td>{row.className}</td><td>{money(row.amount)}</td><td>{money(row.paid)}</td><td>{money(row.amount - row.paid)}</td><td><span className={`status ${row.status.toLowerCase()}`}>{row.status}</span></td><td>{row.status === 'Paid' ? <span className="receipt-ready">Receipt ready</span> : <button className="table-link" onClick={() => { onMarkPaid(row.id); setNotice(`Demo account ${row.id} marked paid.`) }}>Mark paid</button>}</td></tr>)}</tbody></table></div>{notice&&<p className="inline-notice" role="status">{notice}</p>}</Panel><p className="demo-notice">Checkout in the student app is a payment demonstration. Do not enter real payment details.</p></>
+}

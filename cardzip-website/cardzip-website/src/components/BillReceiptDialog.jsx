@@ -1,5 +1,6 @@
 import { CheckCircle2, Clock3, Download, Printer, X } from 'lucide-react'
 import { useState } from 'react'
+import { addCardzipLogo } from '../utils/receiptPdf'
 
 const formatNaira = (amount) => `₦${Number(amount || 0).toLocaleString('en-NG')}`
 const formatBillDate = (date) => date ? new Date(date).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' }) : '—'
@@ -47,13 +48,20 @@ export default function BillReceiptDialog({ bill, status, message, onClose }) {
     const left = 20
     const right = 190
     let y = 24
+    try {
+      await addCardzipLogo(document, left, y - 8)
+    } catch (error) {
+      console.error('Bill receipt logo could not be loaded:', error)
+      setDownloadError('Could not load the Cardzip logo for this receipt. Please try again.')
+      return
+    }
     document.setFont('helvetica', 'bold')
     document.setFontSize(20)
     document.setTextColor(4, 120, 87)
-    document.text('Cardzip', left, y)
+    document.text('Cardzip', left + 15, y)
     document.setFontSize(9)
     document.setTextColor(100, 116, 139)
-    document.text('PAYMENT RECEIPT', left, y + 6)
+    document.text('PAYMENT RECEIPT', left + 15, y + 6)
     const statusColor = succeeded ? [4, 120, 87] : pending ? [180, 83, 9] : [185, 28, 28]
     document.setFont('helvetica', 'bold')
     document.setFontSize(10)
@@ -122,7 +130,7 @@ export default function BillReceiptDialog({ bill, status, message, onClose }) {
         <article className={`bill-receipt-card ${succeeded ? 'success' : pending ? 'pending' : 'failed'}`}>
           <header className="bill-receipt-header">
             <div className="bill-receipt-brand">
-              <span className="bill-receipt-mark">C</span>
+              <img className="bill-receipt-mark" src="/cardzip-logo.jpg" alt="Cardzip logo" />
               <span><strong>Cardzip</strong><small>PAYMENT RECEIPT</small></span>
             </div>
             <span className="bill-receipt-status">{succeeded ? 'PAID' : pending ? 'PROCESSING' : 'FAILED'}</span>

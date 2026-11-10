@@ -404,7 +404,8 @@ export default function CommunityMarketScreen({ manageOnly = false }: { manageOn
         {token && promotionPerformance.length > 0 ? <View style={styles.performanceCard}>
           <Text style={styles.performanceTitle}>Your community promotion performance</Text>
           {promotionPerformance.map((promotion) => <View key={promotion._id} style={styles.performanceRow}>
-            <Text style={styles.performanceName} numberOfLines={1}>{promotion.targetName} · {promotion.status.replaceAll('_', ' ')}</Text>
+            <Text style={styles.performanceName} numberOfLines={1}>{promotion.targetName} · {promotion.displayStatus === 'expired' ? 'Expired' : promotion.displayStatus || promotion.status.replaceAll('_', ' ')}</Text>
+            <Text style={styles.analyticsLabel}>ANALYTICS</Text>
             <Text style={styles.performanceMetrics}>{promotion.impressions} unique impressions  ·  {promotion.clicks} unique clicks  ·  {promotion.clickThroughRate}% CTR</Text>
           </View>)}
         </View> : null}
@@ -556,6 +557,7 @@ const styles = StyleSheet.create({
   performanceTitle: { color: '#14231C', fontSize: 12, fontWeight: '800' },
   performanceRow: { paddingTop: 8, borderTopWidth: 1, borderTopColor: '#DDEBE1' },
   performanceName: { color: '#33473B', fontSize: 10, fontWeight: '700' },
+  analyticsLabel: { marginTop: 4, color: '#748278', fontSize: 8, fontWeight: '800', letterSpacing: 0.8 },
   performanceMetrics: { marginTop: 3, color: '#087A4C', fontSize: 10, fontWeight: '700' },
   form: { gap: 10, marginTop: 15, padding: 14, borderRadius: 8, borderWidth: 1, borderColor: '#DCE6DF', backgroundColor: '#FFFFFF' },
   formTitleRow: { marginBottom: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

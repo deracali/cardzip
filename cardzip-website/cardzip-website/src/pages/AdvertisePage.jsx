@@ -131,12 +131,15 @@ export default function AdvertisePage({ onNavigate, showCampaignsOnly = false })
             </form>}
             <section className="advertise-campaigns">
               <div className="advertise-campaigns-heading"><div><span>CAMPAIGN ACTIVITY</span><h2>Your advertisements</h2></div>{!showCampaignsOnly && <button type="button" onClick={() => onNavigate?.('/my-adverts')}>View all <ArrowRight size={14} /></button>}</div>
-              {campaigns.length === 0 ? <div className="advertise-empty"><CheckCircle2 size={21} /><strong>No campaigns yet</strong><span>Your paid campaigns and scheduled run dates will appear here.</span></div> : campaigns.map((campaign) => (
-                <article className="advertise-campaign-card" key={campaign._id}>
-                  {campaign.imageUrl && <img src={campaign.imageUrl} alt="" />}
-                  <div><span className={`advertise-status ${campaign.status}`}>{campaign.status.replaceAll('_', ' ')}</span><h3>{campaign.title}</h3><p>{campaign.placementName} · {campaign.months} {campaign.months === 1 ? 'month' : 'months'}</p><small>Scheduled {formatDate(campaign.startAt)} – {formatDate(campaign.endAt)}</small><small className="advertise-performance">{campaign.impressions || 0} unique impressions · {campaign.clicks || 0} unique clicks · {campaign.clickThroughRate || 0}% CTR</small>{campaign.reviewNote && <small className="advertise-review-note">{campaign.reviewNote}</small>}</div>
-                </article>
-              ))}
+              {campaigns.length === 0 ? <div className="advertise-empty"><CheckCircle2 size={21} /><strong>No campaigns yet</strong><span>Your paid campaigns and scheduled run dates will appear here.</span></div> : campaigns.map((campaign) => {
+                const displayStatus = campaign.displayStatus || campaign.status
+                return (
+                  <article className="advertise-campaign-card" key={campaign._id}>
+                    {campaign.imageUrl && <img src={campaign.imageUrl} alt="" />}
+                    <div><span className={`advertise-status ${displayStatus}`}>{displayStatus === 'expired' ? 'Expired' : displayStatus.replaceAll('_', ' ')}</span><h3>{campaign.title}</h3><p>{campaign.placementName} · {campaign.months} {campaign.months === 1 ? 'month' : 'months'}</p><small>Scheduled {formatDate(campaign.startAt)} – {formatDate(campaign.endAt)}</small><small className="advertise-performance">Analytics: {campaign.impressions || 0} unique impressions · {campaign.clicks || 0} unique clicks · {campaign.clickThroughRate || 0}% CTR</small>{campaign.reviewNote && <small className="advertise-review-note">{campaign.reviewNote}</small>}</div>
+                  </article>
+                )
+              })}
               {!showCampaignsOnly && error && <p className="advertise-error" role="alert">{error}</p>}
               {showCampaignsOnly && error && <p className="advertise-error" role="alert">{error}</p>}
             </section>

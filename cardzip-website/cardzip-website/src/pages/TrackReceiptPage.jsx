@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { userApi } from '../services/api'
 import { formatNaira } from '../utils/currency'
+import { addCardzipLogo } from '../utils/receiptPdf'
 
 const formatDate = (value) => value ? new Date(value).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' }) : '—'
 const statusText = (status) => ({
@@ -60,13 +61,14 @@ export default function TrackReceiptPage({ orderId, onNavigate }) {
       const right = 190
       let y = 24
       const paid = order.paymentStatus === 'paid'
+      await addCardzipLogo(pdf, left, y - 8)
       pdf.setFont('helvetica', 'bold')
       pdf.setFontSize(20)
       pdf.setTextColor(4, 120, 87)
-      pdf.text('Cardzip', left, y)
+      pdf.text('Cardzip', left + 15, y)
       pdf.setFontSize(9)
       pdf.setTextColor(100, 116, 139)
-      pdf.text('E-COMMERCE RECEIPT', left, y + 7)
+      pdf.text('E-COMMERCE RECEIPT', left + 15, y + 7)
       pdf.setFontSize(10)
       pdf.setTextColor(paid ? 4 : 180, paid ? 120 : 83, paid ? 87 : 9)
       pdf.text(`PAYMENT ${String(order.paymentStatus || 'unknown').toUpperCase()}`, right, y, { align: 'right' })

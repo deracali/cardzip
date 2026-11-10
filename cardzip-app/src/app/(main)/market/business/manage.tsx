@@ -48,7 +48,7 @@ export default function ManageBusinessAppointmentsScreen() {
   const [serviceName, setServiceName] = useState('');
   const [appointmentDate, setAppointmentDate] = useState('');
   const [appointmentTime, setAppointmentTime] = useState('');
-  const [durationMinutes, setDurationMinutes] = useState('30');
+  const [durationMinutes, setDurationMinutes] = useState('');
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [reasonTarget, setReasonTarget] = useState<{ appointment: ShopAppointment; status: 'rejected' | 'cancelled' } | null>(null);
@@ -109,6 +109,7 @@ export default function ManageBusinessAppointmentsScreen() {
       setServiceName('');
       setAppointmentDate('');
       setAppointmentTime('');
+      setDurationMinutes('');
       setNotice('Appointment time published.');
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Could not publish this appointment.');

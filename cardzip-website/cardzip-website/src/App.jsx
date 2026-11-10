@@ -19,6 +19,7 @@ const ShopDirectoryPage = lazy(() => import('./pages/ShopDirectoryPage'))
 const CreateShopPage = lazy(() => import('./pages/CreateShopPage'))
 const MyShopPage = lazy(() => import('./pages/MyShopPage'))
 const ShopProfilePage = lazy(() => import('./pages/ShopProfilePage'))
+const ShopProductDetailsPage = lazy(() => import('./pages/ShopProductDetailsPage'))
 const CommunityMarketPage = lazy(() => import('./pages/CommunityMarketPage'))
 const CommunityListingDetailsPage = lazy(() => import('./pages/CommunityListingDetailsPage'))
 const ShopPageWithCart = lazy(() => import('./pages/ShopPageWithCart'))
@@ -87,10 +88,29 @@ function FloatingSupportButton({ onClick }) {
   )
 }
 
+function FeatureUnavailablePage({ onNavigate, title }) {
+  return (
+    <section className="page-container" role="status">
+      <h1>{title} are temporarily unavailable</h1>
+      <p>This service is currently turned off. Please check back later.</p>
+      <button type="button" className="btn-primary" onClick={() => onNavigate('/')}>Go to home</button>
+    </section>
+  )
+}
+
 function App() {
   const [path, setPath] = useState(() => window.location.pathname)
   const [user, setUser] = useState(null)
   const [authChecked, setAuthChecked] = useState(!getUserToken())
+  const [featureSettings, setFeatureSettings] = useState({ esimEnabled: true, vtpassBillsEnabled: true })
+
+  useEffect(() => {
+    let active = true
+    userApi.featureSettings()
+      .then((result) => { if (active) setFeatureSettings(result.data) })
+      .catch((error) => console.error('Could not load service availability:', error))
+    return () => { active = false }
+  }, [])
 
   useEffect(() => {
     if (!getUserToken()) return
@@ -152,9 +172,12 @@ function App() {
   }
 
   const productSlug = path.startsWith('/product/') ? path.slice('/product/'.length) : null
+  const shopProductMatch = path.match(/^\/shops\/([^/]+)\/products\/([^/]+)$/)
+  const shopProductSlug = shopProductMatch?.[2] || null
+  const shopProductShopSlug = shopProductMatch?.[1] || null
   const digitalAssetSlug = path.startsWith('/digital-assets/') && path !== '/digital-assets/sell' ? path.slice('/digital-assets/'.length) : null
   const communityListingId = path.startsWith('/community-market/') ? path.slice('/community-market/'.length) : null
-  const shopSlug = path.startsWith('/shops/') && path !== '/shops/create'
+  const shopSlug = path.startsWith('/shops/') && path !== '/shops/create' && !shopProductMatch
     ? path.slice('/shops/'.length)
     : null
   const orderId = path.startsWith('/orders/') ? path.slice('/orders/'.length) : null
@@ -184,10 +207,10 @@ function App() {
     }
     navigate(pathsByTab[tab] || '/')
   }
-  if (!page && !productSlug && !digitalAssetSlug && !communityListingId && !orderId && !shopSlug) {
+  if (!page && !productSlug && !digitalAssetSlug && !communityListingId && !orderId && !shopSlug && !shopProductSlug) {
     return (
       <div className="app-container">
-        <Header currentTab="home" onSelectTab={(tab) => selectTab(tab)} onOpenDashboard={() => navigate('/profile')} onOpenWallet={() => navigate('/wallet')} />
+        <Header currentTab="home" onSelectTab={(tab) => selectTab(tab)} onOpenDashboard={() => navigate('/profile')} onOpenWallet={() => navigate('/wallet')} user={user} featureSettings={featureSettings} />
         <main className="app-main-content">
           <section className="page-container" role="status">
             <h1>Page not found</h1>
@@ -199,8 +222,16 @@ function App() {
       </div>
     )
   }
-  const Page = communityListingId
+  const serviceDisabled = (
+    (['/esim', '/virtual-numbers'].includes(path) && !featureSettings.esimEnabled)
+    || (path === '/bills' && !featureSettings.vtpassBillsEnabled)
+  )
+  const Page = serviceDisabled
+    ? FeatureUnavailablePage
+    : communityListingId
     ? CommunityListingDetailsPage
+    : shopProductSlug
+    ? ShopProductDetailsPage
     : shopSlug
     ? ShopProfilePage
     : digitalAssetSlug
@@ -214,14 +245,16 @@ function App() {
   return (
     <div className="app-container">
       <Header
-        currentTab={page?.tab || (productSlug || digitalAssetSlug || communityListingId || shopSlug ? 'shop' : 'home')}
+        currentTab={page?.tab || (productSlug || digitalAssetSlug || communityListingId || shopSlug || shopProductSlug ? 'shop' : 'home')}
         onSelectTab={selectTab}
         onOpenDashboard={() => navigate('/profile')}
         onOpenWallet={() => navigate('/wallet')}
+        user={user}
+        featureSettings={featureSettings}
       />
       <main className="app-main-content">
         <Suspense fallback={<main className="session-loading" role="status"><span className="session-brand">C</span><span className="session-spinner" />LOADING CARDZIP</main>}>
-          <Page key={productSlug || digitalAssetSlug || communityListingId || shopSlug || orderId || path} onNavigate={navigate} onLogout={logout} productSlug={productSlug} digitalAssetSlug={digitalAssetSlug} listingId={communityListingId} shopSlug={shopSlug} orderId={orderId} user={user} />
+          <Page key={productSlug || digitalAssetSlug || communityListingId || shopProductSlug || shopSlug || orderId || path} onNavigate={navigate} onLogout={logout} productSlug={productSlug} digitalAssetSlug={digitalAssetSlug} listingId={communityListingId} shopSlug={shopProductShopSlug || shopSlug} shopProductSlug={shopProductSlug} orderId={orderId} user={user} featureSettings={featureSettings} title={path === '/bills' ? 'Bill payments' : 'eSIM / virtual numbers'} />
         </Suspense>
       </main>
       {path !== '/support' && <FloatingSupportButton onClick={() => navigate('/support')} />}

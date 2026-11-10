@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, ArrowRight, CalendarDays, Camera, Copy, MapPin, MessageCircle, Package, Phone, Store } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CalendarDays, Camera, Copy, Download, MapPin, MessageCircle, Package, Phone, Store } from 'lucide-react'
+import jsPDF from 'jspdf'
 import { getUserToken, userApi } from '../services/api'
 import { formatNaira } from '../utils/currency'
+import { addCardzipLogo } from '../utils/receiptPdf'
 import './ShopMarketplace.css'
 
 const whatsappNumber = (phone) => {
@@ -22,6 +24,7 @@ export default function ShopProfilePage({ shopSlug, onNavigate }) {
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, totalItems: 0 })
   const [loading, setLoading] = useState(true)
   const [bookingId, setBookingId] = useState('')
+  const [downloadingReceiptId, setDownloadingReceiptId] = useState('')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
@@ -75,12 +78,75 @@ export default function ShopProfilePage({ shopSlug, onNavigate }) {
     try {
       const bookedAppointment = await userApi.bookShopAppointment(shopSlug, appointmentId)
       setAppointments((current) => current.filter((appointment) => appointment._id !== appointmentId))
-      setMyBookings((current) => [bookedAppointment.data || bookedAppointment, ...current])
+      setMyBookings((current) => [{ ...(bookedAppointment.data || bookedAppointment), shop }, ...current])
       setNotice('Appointment request sent. The business will review and confirm it.')
     } catch (requestError) {
       setError(requestError.message || 'Could not book this appointment time.')
     } finally {
       setBookingId('')
+    }
+  }
+
+  const downloadAppointmentReceipt = async (appointment) => {
+    if (!shop) return
+    setDownloadingReceiptId(appointment._id)
+    setError('')
+    try {
+      const pdf = new jsPDF({ unit: 'mm', format: 'a4' })
+      const left = 20
+      const right = 190
+      let y = 25
+      await addCardzipLogo(pdf, left, y - 8)
+      const addRow = (label, value) => {
+        pdf.setFont('helvetica', 'bold')
+        pdf.setTextColor(100, 116, 108)
+        pdf.setFontSize(9)
+        pdf.text(label.toUpperCase(), left, y)
+        y += 6
+        pdf.setFont('helvetica', 'normal')
+        pdf.setTextColor(23, 40, 31)
+        pdf.setFontSize(11)
+        const lines = pdf.splitTextToSize(String(value || 'Not provided'), right - left)
+        pdf.text(lines, left, y)
+        y += Math.max(8, lines.length * 5 + 3)
+      }
+
+      pdf.setFont('helvetica', 'bold')
+      pdf.setTextColor(8, 122, 76)
+      pdf.setFontSize(22)
+      pdf.text('Cardzip', left + 15, y)
+      y += 7
+      pdf.setFont('helvetica', 'normal')
+      pdf.setTextColor(100, 116, 108)
+      pdf.setFontSize(9)
+      pdf.text('APPOINTMENT BOOKING RECEIPT', left + 15, y)
+      y += 12
+      pdf.setDrawColor(220, 233, 223)
+      pdf.line(left, y, right, y)
+      y += 10
+      addRow('Receipt reference', appointment._id)
+      addRow('Status', `${appointment.status} appointment`)
+      addRow('Business', appointment.shop?.businessName || shop.businessName)
+      addRow('Service', appointment.serviceName)
+      addRow('Appointment date and time', formatAppointmentDate(appointment.startsAt))
+      addRow('Duration', `${appointment.durationMinutes} minutes`)
+      addRow('Request submitted', formatAppointmentDate(appointment.requestedAt || appointment.createdAt))
+      addRow('Business address', appointment.shop?.address || shop.address)
+      addRow('Business phone', appointment.shop?.contactPhone || shop.contactPhone)
+      if (appointment.cancellationReason) addRow('Update reason', appointment.cancellationReason)
+      pdf.setDrawColor(220, 233, 223)
+      pdf.line(left, Math.min(y, 270), right, Math.min(y, 270))
+      pdf.setFont('helvetica', 'normal')
+      pdf.setTextColor(100, 116, 108)
+      pdf.setFontSize(8)
+      pdf.text('This confirms your appointment request; it is not a payment receipt. Keep it for your records.', left, Math.min(y + 6, 278))
+      const reference = String(appointment._id || 'booking').replace(/[^a-zA-Z0-9-]/g, '')
+      pdf.save(`cardzip-appointment-receipt-${reference}.pdf`)
+    } catch (receiptError) {
+      console.error('Appointment receipt could not be generated:', receiptError)
+      setError('Could not prepare the appointment receipt. Please try again.')
+    } finally {
+      setDownloadingReceiptId('')
     }
   }
 
@@ -117,6 +183,9 @@ export default function ShopProfilePage({ shopSlug, onNavigate }) {
                         <span>{formatAppointmentDate(appointment.startsAt)} · {appointment.durationMinutes} minutes</span>
                         <span className={`shop-appointment-status ${appointment.status}`}>{appointment.status}</span>
                         {appointment.cancellationReason && <p className="shop-appointment-reason">Reason: {appointment.cancellationReason}</p>}
+                        <button type="button" className="shop-appointment-receipt" disabled={Boolean(downloadingReceiptId)} onClick={() => downloadAppointmentReceipt(appointment)}>
+                          <Download size={13} />{downloadingReceiptId === appointment._id ? 'Preparing receipt…' : 'Download appointment receipt'}
+                        </button>
                       </article>)}</div>
                     </section>}
                     {notice && <p className="shop-market-success" role="status">{notice}</p>}
@@ -142,9 +211,23 @@ export default function ShopProfilePage({ shopSlug, onNavigate }) {
                       <div className="shop-market-section-heading"><div><span>AVAILABLE FROM THIS BUSINESS</span><h2>Shop products</h2></div><small>{pagination.totalItems} {pagination.totalItems === 1 ? 'product' : 'products'}</small></div>
                       {products.length === 0 ? <div className="shop-market-empty"><Camera size={25} /><strong>No available products yet</strong><span>Check back later to see what this shop has listed.</span></div> : (
                         <div className="shop-product-grid">{products.map((product) => (
-                          <article className="shop-product-card" key={product._id}>
-                            <div className="shop-product-image">{product.imageUrl ? <img src={product.imageUrl} alt={product.name} loading="lazy" onError={(event) => { event.currentTarget.hidden = true; event.currentTarget.parentElement?.classList.add('is-empty') }} /> : <Camera size={25} />}</div>
-                            <div className="shop-product-info"><span>{product.category || 'General'} · {product.condition === 'used' ? 'Used' : 'Brand new'}</span><h3>{product.name}</h3><p>{product.description}</p><div><strong>{formatNaira(product.price)}</strong><small>{product.stock} available</small></div><a className="shop-product-contact" href={`https://wa.me/${whatsappNumber(shop.contactPhone)}?text=${encodeURIComponent(`Hi, I'm interested in ${product.name} from ${shop.businessName}.`)}`} target="_blank" rel="noreferrer">Ask about this product <ArrowRight size={15} /></a></div>
+                          <article
+                            className="shop-product-card shop-product-card-clickable"
+                            key={product._id}
+                            role="link"
+                            tabIndex={0}
+                            aria-label={`View ${product.name} details`}
+                            onClick={() => onNavigate?.(`/shops/${encodeURIComponent(shop.slug)}/products/${encodeURIComponent(product.slug)}`)}
+                            onKeyDown={(event) => {
+                              if (event.target !== event.currentTarget) return
+                              if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault()
+                                onNavigate?.(`/shops/${encodeURIComponent(shop.slug)}/products/${encodeURIComponent(product.slug)}`)
+                              }
+                            }}
+                          >
+                            <div className="shop-product-image">{(product.images?.[0] || product.imageUrl) ? <img src={product.images?.[0] || product.imageUrl} alt={product.name} loading="lazy" onError={(event) => { event.currentTarget.hidden = true; event.currentTarget.parentElement?.classList.add('is-empty') }} /> : <Camera size={25} />}</div>
+                            <div className="shop-product-info"><span>{product.category || 'General'} · {product.condition === 'used' ? 'Used' : 'Brand new'}</span><h3>{product.name}</h3><p>{product.description}</p><div><strong>{formatNaira(product.price)}</strong><small>{product.stock} available</small></div></div>
                           </article>
                         ))}</div>
                       )}

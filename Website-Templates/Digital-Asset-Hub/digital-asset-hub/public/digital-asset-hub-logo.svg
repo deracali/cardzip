@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 224 40">
+  <rect x="1" y="1" width="38" height="38" rx="10" fill="#10b989"/>
+  <path d="M8 9h13a12 12 0 1 1 0 24H8V9Zm7 6v12h6a6 6 0 0 0 0-12h-6Z" fill="#07131c"/>
+  <path d="M26 9h7v6h-7zM26 20h7v6h-7zM26 31h7v2h-7z" fill="#e9fff7"/>
+  <text x="49" y="26" fill="#edf2fb" font-family="Arial, sans-serif" font-size="17" font-weight="700">Digital Asset Hub</text>
+</svg>

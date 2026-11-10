@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './config';
+import * as FileSystem from 'expo-file-system/legacy';
 import { CreateStoreOrderPayload, StoreOrder } from '../../types/store';
 import type { AdCampaign } from './advertisementApi';
 
@@ -45,10 +46,14 @@ export interface DigitalProductPaystackVerification {
   digitalProduct: {
     productId: string;
     productName: string;
-    productType: 'website' | 'app' | 'ios_app';
+    productType: 'website' | 'app' | 'ios_app' | 'full_stack' | 'admin';
     purchaseType: 'use' | 'template';
     accessUrl?: string;
+    sourceCodeAvailable?: boolean;
+    templateSourceCodeAvailable?: boolean;
     sourceCodeUrl?: string;
+    documents: { name: string; mimeType: string }[];
+    templateDocuments?: { name: string; mimeType: string }[];
   };
 }
 
@@ -57,7 +62,8 @@ export interface SellerDigitalAssetPaystackVerification {
   sellerDigitalAsset: {
     productId: string;
     productName: string;
-    productType: 'website' | 'app' | 'ios_app';
+    productType: 'website' | 'app' | 'ios_app' | 'full_stack' | 'admin';
+    purchaseType: 'use' | 'template';
     amount: number;
     sellerShare: number;
     companyShare: number;
@@ -65,8 +71,18 @@ export interface SellerDigitalAssetPaystackVerification {
     websiteUrl?: string;
     apkUrl?: string;
     iosAppUrl?: string;
-    sourceCodeUrl: string;
+    accessUrl?: string;
+    sourceCodeAvailable: boolean;
+    documents?: { name: string; mimeType: string }[];
+    templateDocuments?: { name: string; mimeType: string }[];
   };
+}
+
+export interface DigitalProductPaymentHistoryItem {
+  reference: string;
+  status: 'pending' | 'completed';
+  purpose: 'digital_product' | 'seller_digital_asset';
+  purchaseType: 'use' | 'template';
 }
 
 const paymentRequest = async <T>(token: string, path: string, body: Record<string, unknown>): Promise<T> => {
@@ -181,10 +197,12 @@ export const verifyDigitalProductPaymentApi = (
 export const initializeSellerDigitalAssetPaymentApi = (
   token: string,
   productId: string,
+  purchaseType: 'use' | 'template',
   callbackUrl: string,
 ): Promise<PaystackInitialization> => paymentRequest(token, 'initialize', {
   purpose: 'seller_digital_asset',
   productId,
+  purchaseType,
   callbackUrl,
 });
 
@@ -192,3 +210,56 @@ export const verifySellerDigitalAssetPaymentApi = (
   token: string,
   reference: string,
 ): Promise<SellerDigitalAssetPaystackVerification> => paymentRequest(token, 'verify', { reference });
+
+export const fetchMyDigitalProductPaymentsApi = async (
+  token: string,
+  productId: string,
+): Promise<DigitalProductPaymentHistoryItem[]> => {
+  const response = await fetch(`${API_BASE_URL}/api/payments/digital-products/${encodeURIComponent(productId)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const result = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message = result && typeof result === 'object' && 'message' in result
+      ? String(result.message)
+      : `Could not load purchases (${response.status}).`;
+    throw new Error(message);
+  }
+  return result && typeof result === 'object' && Array.isArray(result.data)
+    ? result.data as DigitalProductPaymentHistoryItem[]
+    : [];
+};
+
+export const downloadDigitalProductFileApi = async (
+  token: string,
+  productId: string,
+  fileType: 'rental-source-code' | 'template-source-code' | 'document' | 'template-document',
+  documentIndex: number,
+  reference: string,
+  filename: string,
+): Promise<string> => {
+  if (!reference) throw new Error('The verified payment reference is missing. Return to this product and check your purchase.');
+  if (!FileSystem.cacheDirectory) throw new Error('Device file storage is unavailable.');
+  const safeFilename = filename.replace(/[<>:"/\\|?*\u0000-\u001f]/g, '-').slice(0, 180) || 'cardzip-download';
+  const url = `${API_BASE_URL}/payments/digital-products/${encodeURIComponent(productId)}/download/${encodeURIComponent(fileType)}/${documentIndex}`;
+  const result = await FileSystem.downloadAsync(url, `${FileSystem.cacheDirectory}${Date.now()}-${safeFilename}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'X-Payment-Reference': reference,
+    },
+  });
+  if (result.status !== 200) {
+    let message = `Could not download this file (${result.status}).`;
+    try {
+      const body = await FileSystem.readAsStringAsync(result.uri);
+      const payload = JSON.parse(body);
+      if (typeof payload?.message === 'string') message = payload.message;
+    } catch {
+      // The response body may not be JSON.
+    } finally {
+      await FileSystem.deleteAsync(result.uri, { idempotent: true });
+    }
+    throw new Error(message);
+  }
+  return result.uri;
+};

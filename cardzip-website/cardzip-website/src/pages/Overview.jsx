@@ -4,9 +4,10 @@ import GlobalConnectivity from '../components/GlobalConnectivity'
 import TrustAndFaq from '../components/TrustAndFaq'
 import AppDownloadFooter from '../components/AppDownloadFooter'
 import HomeProductsSection from '../components/HomeProductsSection'
+import AdvertisementBanner from '../components/AdvertisementBanner'
 
 
-export default function Overview({ onNavigate }) {
+export default function Overview({ onNavigate, featureSettings }) {
   return (
     <div className="overview-container">
     
@@ -15,12 +16,14 @@ export default function Overview({ onNavigate }) {
       <main className="overview-main-content">
         <HeroSection
           onStartTrading={() => onNavigate?.('/gift-cards')}
-          onExploreUtilities={() => onNavigate?.('/bills')}
+          onExploreUtilities={() => onNavigate?.(featureSettings?.vtpassBillsEnabled === false ? '/about' : '/bills')}
           onNavigate={onNavigate}
+          featureSettings={featureSettings}
         />
+        <AdvertisementBanner placementKey="home-promo" fallbackOnly onNavigate={onNavigate} />
         <HomeProductsSection onNavigate={onNavigate} />
-        <EcosystemServices onNavigate={onNavigate} />
-        <GlobalConnectivity onExploreClick={() => onNavigate?.('/virtual-numbers')} />
+        <EcosystemServices onNavigate={onNavigate} featureSettings={featureSettings} />
+        {featureSettings?.esimEnabled !== false && <GlobalConnectivity onExploreClick={() => onNavigate?.('/virtual-numbers')} />}
         <TrustAndFaq onNavigate={onNavigate} />
       </main>
 

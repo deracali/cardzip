@@ -6057,7 +6057,7 @@ textarea:focus {
 .bill-receipt-card { overflow: hidden; margin: 18px 0; border: 1px solid #e2e8f0; border-radius: 14px; background: #ffffff; color: #0f172a; text-align: left; box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08); }
 .bill-receipt-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 15px 18px; border-bottom: 1px solid #e2e8f0; }
 .bill-receipt-brand { display: flex; align-items: center; gap: 9px; }
-.bill-receipt-mark { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 10px; background: #ecfdf5; color: #047857; font-size: 17px; font-weight: 900; }
+.bill-receipt-mark { display: block; width: 34px; height: 34px; border-radius: 10px; object-fit: cover; }
 .bill-receipt-brand strong,.bill-receipt-brand small { display: block; }
 .bill-receipt-brand strong { font-size: 13px; }
 .bill-receipt-brand small { margin-top: 2px; color: #64748b; font-size: 8px; font-weight: 800; letter-spacing: 1px; }

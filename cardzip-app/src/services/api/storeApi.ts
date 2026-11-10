@@ -1,14 +1,16 @@
-import { CommunityListing, CreateStoreOrderPayload, StoreOrder, StoreProduct } from '../../types/store';
+import { CommunityListing, CommunityListingReview, CommunityListingReviewSummary, CreateStoreOrderPayload, StoreOrder, StoreProduct } from '../../types/store';
 import { Platform } from 'react-native';
 import { PaginatedList, PaginationInfo } from '../../types/pagination';
 import { API_BASE_URL } from './config';
 import type { StorefrontPreferences } from '../../services/storePreferences';
 import type {
   CreateShopAppointmentPayload,
+  CreateShopProductPayload,
   OwnerShopResponse,
   ShopAppointment,
   ShopAppointmentStatus,
   ShopApplicationPayload,
+  ShopProduct,
   ShopProfile,
 } from '../../types/shop';
 
@@ -84,11 +86,11 @@ export const fetchStoreProductsApi = async (
 };
 
 export const fetchDigitalProductsApi = async (
-  productType: 'website' | 'app' | 'ios_app' | 'all' = 'all',
+  productType: 'website' | 'app' | 'ios_app' | 'full_stack' | 'admin' | 'all' = 'all',
   search = '',
   preferences?: StorefrontPreferences,
 ): Promise<StoreProduct[]> => {
-  const types = productType === 'all' ? ['website', 'app', 'ios_app'] : [productType];
+  const types = productType === 'all' ? ['website', 'app', 'ios_app', 'full_stack', 'admin'] : [productType];
   const results = await Promise.all(types.map((type) => {
     const query = new URLSearchParams({ productType: type, page: '1', limit: '50', sort: 'featured' });
     if (search.trim()) query.set('search', search.trim().slice(0, 100));
@@ -107,12 +109,19 @@ export const fetchStoreProductBySlugApi = async (slug: string): Promise<StorePro
 
 export interface CreateSellerDigitalAssetPayload {
   name: string;
-  productType: 'website' | 'app' | 'ios_app';
+  productType: 'website' | 'app' | 'ios_app' | 'full_stack' | 'admin';
   category: string;
   description: string;
   price: number;
+  usePrice: number;
+  templatePrice: number;
   sellerContact: string;
-  sourceCodeUrl: string;
+  sourceCodeUrl?: string;
+  sourceCodeCloudinaryUrl?: string;
+  templateSourceCodeUrl?: string;
+  templateSourceCodeCloudinaryUrl?: string;
+  documents: Array<{ name: string; url: string; cloudinaryUrl?: string; mimeType: string }>;
+  templateDocuments: Array<{ name: string; url: string; cloudinaryUrl?: string; mimeType: string }>;
   websiteUrl?: string;
   apkUrl?: string;
   iosAppUrl?: string;
@@ -122,8 +131,10 @@ export interface CreateSellerDigitalAssetPayload {
 export interface SellerDigitalAssetSubmission {
   _id: string;
   name: string;
-  productType: 'website' | 'app' | 'ios_app';
+  productType: 'website' | 'app' | 'ios_app' | 'full_stack' | 'admin';
   price: number;
+  usePrice?: number;
+  templatePrice?: number;
   sellerListingStatus: 'pending_review' | 'approved' | 'rejected';
   sellerReviewNote?: string;
   createdAt?: string;
@@ -151,19 +162,37 @@ export const uploadSellerDigitalAssetImageApi = async (
 export const uploadSellerDigitalAssetSourceCodeApi = async (
   token: string,
   file: { uri: string; name: string; mimeType?: string | null },
-): Promise<string> => {
+): Promise<{ sourceCodeUrl: string; sourceCodeCloudinaryUrl?: string }> => {
   const body = new FormData();
   body.append('sourceCode', {
     uri: file.uri,
     name: file.name,
     type: file.mimeType || 'application/zip',
   } as never);
-  const result = await request<{ sourceCodeUrl: string }>('/api/store/digital-assets/source-code', {
+  const result = await request<{ sourceCodeUrl: string; sourceCodeCloudinaryUrl?: string }>('/api/store/digital-assets/source-code', {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
     body,
   });
-  return result.sourceCodeUrl;
+  return result;
+};
+
+export const uploadSellerDigitalAssetDocumentApi = async (
+  token: string,
+  file: { uri: string; name: string; mimeType?: string | null },
+): Promise<{ name: string; url: string; cloudinaryUrl?: string; mimeType: string }> => {
+  const body = new FormData();
+  body.append('document', {
+    uri: file.uri,
+    name: file.name,
+    type: file.mimeType || 'application/octet-stream',
+  } as never);
+  const result = await request<{ document: { name: string; url: string; cloudinaryUrl?: string; mimeType: string } }>('/api/store/digital-assets/documents', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body,
+  });
+  return result.document;
 };
 
 export const createSellerDigitalAssetApi = async (
@@ -193,6 +222,7 @@ export interface CommunityPromotionPerformance {
   _id: string;
   targetName: string;
   status: string;
+  displayStatus?: string;
   startsAt?: string;
   endsAt?: string;
   impressions: number;
@@ -263,6 +293,25 @@ export const fetchCommunityListingApi = async (id: string): Promise<CommunityLis
   return request<CommunityListing>(`/api/community-market/listings/${encodeURIComponent(id)}`);
 };
 
+export const fetchCommunityListingReviewsApi = async (id: string): Promise<CommunityListingReviewSummary> =>
+  request<CommunityListingReviewSummary>(`/api/community-market/listings/${encodeURIComponent(id)}/reviews`);
+
+export const fetchMyCommunityListingReviewApi = async (token: string, id: string): Promise<CommunityListingReview | null> =>
+  request<CommunityListingReview | null>(`/api/community-market/listings/${encodeURIComponent(id)}/reviews/mine`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+export const saveCommunityListingReviewApi = async (
+  token: string,
+  id: string,
+  rating: number,
+  comment: string,
+): Promise<CommunityListingReview> => request<CommunityListingReview>(`/api/community-market/listings/${encodeURIComponent(id)}/reviews`, {
+  method: 'POST',
+  headers: { Authorization: `Bearer ${token}` },
+  body: JSON.stringify({ rating, comment }),
+});
+
 export const fetchRelatedCommunityListingsApi = async (id: string): Promise<CommunityListing[]> => {
   return request<CommunityListing[]>(`/api/community-market/listings/${encodeURIComponent(id)}/related`);
 };
@@ -275,6 +324,46 @@ export const fetchShopsApi = async (page = 1, limit = 50): Promise<PaginatedList
 export const fetchShopApi = async (slug: string): Promise<ShopProfile> =>
   request<ShopProfile>(`/api/store/shops/${encodeURIComponent(slug)}`);
 
+export const fetchShopProductsApi = async (slug: string, page = 1, limit = 50): Promise<PaginatedList<ShopProduct>> => {
+  const query = new URLSearchParams({ page: String(page), limit: String(limit) });
+  return requestList<ShopProduct>(`/api/store/shops/${encodeURIComponent(slug)}/products?${query.toString()}`, page, limit);
+};
+
+export const fetchShopProductApi = async (shopSlug: string, productSlug: string): Promise<{ product: ShopProduct; shop: ShopProfile }> =>
+  request<{ product: ShopProduct; shop: ShopProfile }>(`/api/store/shops/${encodeURIComponent(shopSlug)}/products/${encodeURIComponent(productSlug)}`);
+
+export const createShopProductApi = async (token: string, payload: CreateShopProductPayload): Promise<ShopProduct> =>
+  request<ShopProduct>('/api/store/my-shop/products', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + token },
+    body: JSON.stringify(payload),
+  });
+
+export const uploadShopProductImageApi = async (
+  token: string,
+  photo: { uri: string; fileName?: string | null; mimeType?: string | null },
+): Promise<string> => {
+  const body = new FormData();
+  const type = photo.mimeType || 'image/jpeg';
+  body.append('image', {
+    uri: photo.uri,
+    name: photo.fileName || `shop-product.${type.split('/')[1] || 'jpg'}`,
+    type,
+  } as never);
+  const result = await request<{ url: string }>('/api/store/my-shop/products/image', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + token },
+    body,
+  });
+  return result.url;
+};
+
+export const deleteShopProductApi = async (token: string, productId: string): Promise<void> =>
+  request<void>(`/api/store/my-shop/products/${encodeURIComponent(productId)}`, {
+    method: 'DELETE',
+    headers: { Authorization: 'Bearer ' + token },
+  });
+
 export const fetchMyShopApi = async (token: string): Promise<OwnerShopResponse | null> =>
   request<OwnerShopResponse | null>('/api/store/my-shop', {
     headers: { Authorization: `Bearer ${token}` },
@@ -284,6 +373,7 @@ export const createShopApi = async (
   token: string,
   payload: ShopApplicationPayload,
   banner?: { uri: string; fileName?: string | null; mimeType?: string | null },
+  applicationId?: string,
 ): Promise<OwnerShopResponse> => {
   const body = new FormData();
   body.append('shopType', payload.shopType);
@@ -291,6 +381,7 @@ export const createShopApi = async (
   body.append('address', payload.address);
   body.append('contactPhone', payload.contactPhone);
   body.append('description', payload.description || '');
+  if (applicationId) body.append('applicationId', applicationId);
   if (banner) {
     const mimeType = banner.mimeType || 'image/jpeg';
     body.append('banner', {

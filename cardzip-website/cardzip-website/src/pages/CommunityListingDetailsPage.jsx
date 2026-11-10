@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, ArrowRight, BadgeCheck, Megaphone, MessageCircle, Phone, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BadgeCheck, Megaphone, MessageCircle, Phone, ShieldCheck, Star } from 'lucide-react'
 import { getUserToken, userApi } from '../services/api'
 import { recordProductInteraction } from '../services/storePreferences'
 import { formatNaira } from '../utils/currency'
 import CommunityChatDialog from '../components/CommunityChatDialog'
+import CommunitySellerInbox from '../components/CommunitySellerInbox'
 import './CommunityListingDetailsPage.css'
 
 const getListingImages = (listing) => (
@@ -16,6 +17,12 @@ const getWhatsAppNumber = (phone) => {
   const digits = String(phone || '').replace(/\D/g, '')
   return digits.startsWith('0') && digits.length === 11 ? `234${digits.slice(1)}` : digits
 }
+const getId = (value) => String(value?._id || value?.id || value || '')
+const RatingStars = ({ rating, size = 15 }) => (
+  <span className="community-review-stars" aria-label={`${rating} out of 5 stars`}>
+    {Array.from({ length: 5 }, (_, index) => <Star key={index} size={size} fill={index < Math.round(rating) ? 'currentColor' : 'none'} />)}
+  </span>
+)
 
 export default function CommunityListingDetailsPage({ listingId, onNavigate, user }) {
   const [listing, setListing] = useState(null)
@@ -31,10 +38,21 @@ export default function CommunityListingDetailsPage({ listingId, onNavigate, use
   const [promotionError, setPromotionError] = useState('')
   const [activeChat, setActiveChat] = useState(null)
   const [chatError, setChatError] = useState('')
-  const userId = String(user?._id || user?.id || user?.email || 'guest')
+  const [reviewSummary, setReviewSummary] = useState({ reviews: [], averageRating: 0, totalReviews: 0 })
+  const [myReview, setMyReview] = useState(null)
+  const [reviewRating, setReviewRating] = useState(5)
+  const [reviewComment, setReviewComment] = useState('')
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
+  const [reviewError, setReviewError] = useState('')
+  const interactionUserId = String(user?._id || user?.id || user?.email || 'guest')
 
   useEffect(() => {
     let active = true
+    setReviewSummary({ reviews: [], averageRating: 0, totalReviews: 0 })
+    setMyReview(null)
+    setReviewRating(5)
+    setReviewComment('')
+    setReviewError('')
     Promise.all([
       userApi.communityListing(listingId),
       userApi.communityPromotionPricing(),
@@ -52,12 +70,30 @@ export default function CommunityListingDetailsPage({ listingId, onNavigate, use
     userApi.relatedCommunityListings(listingId)
       .then((result) => { if (active) setRelatedListings(result.data || []) })
       .catch((requestError) => { if (active) setRelatedError(requestError.message || 'Could not load similar listings.') })
+    userApi.communityListingReviews(listingId)
+      .then((result) => { if (active) setReviewSummary(result.data || { reviews: [], averageRating: 0, totalReviews: 0 }) })
+      .catch((requestError) => { if (active) setReviewError(requestError.message || 'Could not load reviews.') })
+    if (getUserToken()) {
+      userApi.myCommunityListingReview(listingId)
+        .then((result) => {
+          if (!active) return
+          setMyReview(result.data || null)
+          setReviewRating(result.data?.rating || 5)
+          setReviewComment(result.data?.comment || '')
+        })
+        .catch((requestError) => { if (active) setReviewError(requestError.message || 'Could not load your review.') })
+    } else {
+      setMyReview(null)
+      setReviewRating(5)
+      setReviewComment('')
+    }
     return () => { active = false }
-  }, [listingId, user, userId])
+  }, [listingId, user, interactionUserId])
 
   const images = useMemo(() => getListingImages(listing), [listing])
   const selectedPrice = pricing.find((item) => item.key === selectedDuration)?.price || 0
-  const isOwner = listing && String(listing.sellerId) === String(user?._id || user?.id)
+  const ownerUserId = getId(user?._id || user?.id || user?.userId)
+  const isOwner = Boolean(listing && ownerUserId && getId(listing.sellerId || listing.seller) === ownerUserId)
 
   const startPromotion = () => {
     if (!getUserToken()) {
@@ -94,6 +130,26 @@ export default function CommunityListingDetailsPage({ listingId, onNavigate, use
     } catch (requestError) {
       setPromotionError(requestError.message || 'Could not start promotion checkout.')
       setPaymentLoading(false)
+    }
+  }
+
+  const submitReview = async (event) => {
+    event.preventDefault()
+    if (!getUserToken()) {
+      onNavigate?.(`/login?redirect=${encodeURIComponent(`/community-market/${listingId}`)}`)
+      return
+    }
+    setReviewSubmitting(true)
+    setReviewError('')
+    try {
+      const saved = await userApi.saveCommunityListingReview(listing._id, { rating: reviewRating, comment: reviewComment })
+      setMyReview(saved.data)
+      const refreshed = await userApi.communityListingReviews(listing._id)
+      setReviewSummary(refreshed.data || { reviews: [], averageRating: 0, totalReviews: 0 })
+    } catch (requestError) {
+      setReviewError(requestError.message || 'Could not save your review.')
+    } finally {
+      setReviewSubmitting(false)
     }
   }
 
@@ -142,11 +198,36 @@ export default function CommunityListingDetailsPage({ listingId, onNavigate, use
               <a href={`https://wa.me/${getWhatsAppNumber(listing.phone)}`} target="_blank" rel="noreferrer"><MessageCircle size={16} /> WhatsApp</a>
             </div> : listing.isSold ? <p className="community-detail-sold-note">This item has been sold.</p> : null}
             {chatError && <p className="community-chat-action-error" role="alert">{chatError}</p>}
-            {isOwner && !listing.isSold && <button type="button" className="community-promote-button" onClick={startPromotion}>
-              <Megaphone size={17} /><span><strong>Promote this product</strong><small>Choose a package. Your promotion starts after admin approval.</small></span><ArrowRight size={16} />
-            </button>}
+            {isOwner && <>
+              <CommunitySellerInbox user={user} listingId={listing._id} />
+              {!listing.isSold && <button type="button" className="community-promote-button" onClick={startPromotion}>
+                <Megaphone size={17} /><span><strong>Promote this product</strong><small>Choose a package. Your promotion starts after admin approval.</small></span><ArrowRight size={16} />
+              </button>}
+            </>}
           </section>
         </div>
+
+        <section className="community-reviews-section" aria-labelledby="community-reviews-title">
+          <div className="community-reviews-heading">
+            <div><span>COMMUNITY REVIEWS</span><h2 id="community-reviews-title">Product reviews</h2></div>
+            <div className="community-review-summary"><RatingStars rating={reviewSummary.averageRating} /><strong>{reviewSummary.averageRating ? reviewSummary.averageRating.toFixed(1) : 'New'}</strong><span>{reviewSummary.totalReviews} {reviewSummary.totalReviews === 1 ? 'review' : 'reviews'}</span></div>
+          </div>
+          {reviewError && <p className="community-review-error" role="alert">{reviewError}</p>}
+          {reviewSummary.reviews.length > 0 ? <div className="community-review-list">
+            {reviewSummary.reviews.map((review) => <article className="community-review-item" key={review._id}>
+              <div className="community-review-item-heading"><strong>{review.reviewer?.name || 'Cardzip member'}</strong><RatingStars rating={review.rating} size={13} /><time dateTime={review.createdAt}>{new Date(review.createdAt).toLocaleDateString()}</time></div>
+              <p>{review.comment}</p>
+            </article>)}
+          </div> : <p className="community-review-empty">No reviews yet. Share your experience with this product.</p>}
+          {!isOwner && (getUserToken() ? <form className="community-review-form" onSubmit={submitReview}>
+            <h3>{myReview ? 'Update your review' : 'Leave a review'}</h3>
+            <div className="community-review-picker" role="group" aria-label="Your rating">
+              {Array.from({ length: 5 }, (_, index) => <button key={index} type="button" className={index < reviewRating ? 'selected' : ''} aria-label={`Rate ${index + 1} out of 5`} aria-pressed={reviewRating === index + 1} onClick={() => setReviewRating(index + 1)}><Star size={21} fill={index < reviewRating ? 'currentColor' : 'none'} /></button>)}
+            </div>
+            <textarea value={reviewComment} onChange={(event) => setReviewComment(event.target.value)} placeholder="What should other customers know?" maxLength={1000} minLength={3} required aria-label="Review comment" />
+            <div className="community-review-form-footer"><span>{reviewComment.length}/1000</span><button type="submit" disabled={reviewSubmitting || reviewComment.trim().length < 3}>{reviewSubmitting ? 'Saving…' : myReview ? 'Update review' : 'Post review'}</button></div>
+          </form> : <p className="community-review-signin">Sign in to share your experience. <button type="button" onClick={() => onNavigate?.(`/login?redirect=${encodeURIComponent(`/community-market/${listingId}`)}`)}>Sign in</button></p>)}
+        </section>
 
         <section className="community-related-section">
           <div><span>SIMILAR FINDS</span><h2>Related community listings</h2></div>

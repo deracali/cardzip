@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "Greenfield Student",
+    "slug": "greenfield-student",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": { "backgroundColor": "#102747" },
+    "ios": { "supportsTablet": true, "bundleIdentifier": "example.greenfield.student" },
+    "android": { "package": "example.greenfield.student" }
+  }
+}

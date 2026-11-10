@@ -118,7 +118,7 @@ export default function ShopPage({ onNavigate, cartBackground = false, user }) {
     <div className={`shop-wrapper${cartBackground ? ' cart-background' : ''}`}><div className="shop-container">
       <div className="shop-header"><div className="breadcrumb">Home / Shop</div><h1 className="page-title">Everyday essentials. Extraordinary value.</h1><p className="page-subtitle">Discover genuine tech and accessories from the live Cardzip catalog.</p></div>
       <div className="shop-hero-banner"><div className="banner-left"><span className="pill-tag">CARDZIP STORE</span><h2>Upgrade the little things.</h2><p>Great sound. A smarter desk. More power for your day.</p></div><div className="banner-features"><div className="feat-item"><ShieldCheck size={20} /><span>Genuine products</span></div><div className="feat-item"><Truck size={20} /><span>Nationwide delivery</span></div><div className="feat-item"><Wallet size={20} /><span>Wallet or Paystack</span></div></div></div>
-      <AdvertisementBanner placementKey="web-shop-banner" />
+      <AdvertisementBanner placementKey="web-shop-banner" onNavigate={onNavigate} />
       <nav className="shop-explore-links" aria-label="Explore more on Cardzip">
         <span className="shop-explore-links-label">Explore more</span>
         <button type="button" onClick={() => onNavigate?.('/community-market')}><ShoppingBag size={14} /> Community</button>
@@ -190,7 +190,7 @@ export default function ShopPage({ onNavigate, cartBackground = false, user }) {
               <span>In stock only</span>
             </label>
           </div>
-          <AdvertisementBanner placementKey="web-shop-sidebar" />
+          <AdvertisementBanner placementKey="web-shop-sidebar" onNavigate={onNavigate} />
         </aside>
         <main className="product-grid-section"><div className="showing-info"><span>{loading ? 'Loading products…' : `Showing ${visibleProducts.length} products`}</span><span className="green-txt">{category === 'all' ? 'All products' : category}</span></div>
           {error && <p className="wallet-notice error" role="alert">{error}</p>}

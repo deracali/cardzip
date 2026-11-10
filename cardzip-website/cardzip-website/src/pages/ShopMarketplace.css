@@ -169,6 +169,9 @@
 .shop-my-bookings article { display: grid; gap: 4px; padding: 10px; border: 1px solid #e0e9e3; border-radius: 9px; background: #fff; }
 .shop-my-bookings article > strong { color: #1c3024; font-size: 11px; }
 .shop-my-bookings article > span:not(.shop-appointment-status) { color: #6d7b72; font-size: 10px; }
+.shop-appointment-receipt { display: inline-flex; width: fit-content; min-height: 32px; align-items: center; gap: 6px; margin-top: 4px; padding: 0 10px; border: 1px solid #c9ddd1; border-radius: 8px; background: #fff; color: #087a4c; font: inherit; font-size: 10px; font-weight: 750; cursor: pointer; }
+.shop-appointment-receipt:hover:not(:disabled) { background: #eff8f2; }
+.shop-appointment-receipt:disabled { opacity: .55; cursor: wait; }
 .shop-appointment-reason-backdrop { position: fixed; z-index: 1000; inset: 0; display: grid; place-items: center; padding: 18px; background: rgba(10,22,16,.56); }
 .shop-appointment-reason-dialog { width: min(100%, 490px); padding: 22px; border: 1px solid #dce9df; border-radius: 16px; background: #fff; box-shadow: 0 24px 70px rgba(0,0,0,.2); }
 .shop-appointment-reason-dialog > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
@@ -185,6 +188,8 @@
 .shop-direct-contact-note { margin: 0; padding: 11px 13px; border-radius: 9px; background: #f2f7f3; color: #5c6e62; font-size: 10px; line-height: 1.6; }
 .shop-product-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; }
 .shop-product-card { overflow: hidden; border: 1px solid #e2e9e4; border-radius: 15px; background: #fff; box-shadow: 0 5px 18px rgba(20,53,36,.04); }
+.shop-product-card-clickable { cursor: pointer; }
+.shop-product-card-clickable:focus-visible { outline: 3px solid rgba(8,122,76,.35); outline-offset: 2px; }
 .shop-product-image { display: grid; height: 190px; place-items: center; overflow: hidden; background: repeating-linear-gradient(135deg,#f1f5f2 0,#f1f5f2 13px,#eaf0ec 13px,#eaf0ec 26px); color: #a0ada4; }
 .shop-product-image img { width: 100%; height: 100%; object-fit: cover; }
 .shop-product-info { padding: 15px; }
@@ -196,6 +201,35 @@
 .shop-product-info > div > small { color: #718077; font-size: 9px; }
 .shop-product-contact { display: flex; min-height: 36px; align-items: center; justify-content: center; gap: 7px; margin-top: 13px; border: 1px solid #cfe2d6; border-radius: 8px; color: #087a4c; font-size: 10px; font-weight: 800; text-decoration: none; }
 .shop-product-contact:hover { background: #eff8f2; }
+.shop-product-image-list { display: flex; flex-wrap: wrap; gap: 9px; }
+.shop-product-image-preview { position: relative; width: 74px; height: 74px; overflow: hidden; border: 1px solid #dce8df; border-radius: 9px; }
+.shop-product-image-preview img { width: 100%; height: 100%; object-fit: cover; }
+.shop-product-image-remove { position: absolute; top: 4px; right: 4px; display: grid; width: 22px; height: 22px; place-items: center; border: 0; border-radius: 50%; background: rgba(23,40,31,.82); color: #fff; cursor: pointer; }
+.shop-product-detail-shell { max-width: 1000px; }
+.shop-product-detail { display: grid; grid-template-columns: minmax(0,1fr) minmax(280px,.85fr); gap: 28px; margin-top: 20px; padding: 24px; border: 1px solid #dce9df; border-radius: 18px; background: #fff; }
+.shop-product-detail-image { display: grid; min-height: 360px; place-items: center; overflow: hidden; border-radius: 13px; background: #f1f5f2; color: #a0ada4; }
+.shop-product-detail-image img { width: 100%; height: 100%; max-height: 520px; object-fit: contain; }
+.shop-product-detail-thumbnails { display: flex; gap: 8px; margin-top: 10px; overflow-x: auto; }
+.shop-product-detail-thumbnails button { width: 66px; height: 66px; flex: 0 0 auto; padding: 0; overflow: hidden; border: 2px solid transparent; border-radius: 8px; background: #f1f5f2; cursor: pointer; }
+.shop-product-detail-thumbnails button.selected { border-color: #087a4c; }
+.shop-product-detail-thumbnails img { width: 100%; height: 100%; object-fit: cover; }
+.shop-product-detail-copy h1 { margin: 8px 0 12px; color: #17281f; font-size: clamp(25px,4vw,36px); }
+.shop-product-detail-price { color: #087a4c; font-size: 24px; }
+.shop-product-detail-stock { color: #718077; font-size: 11px; }
+.shop-product-detail-description { margin: 20px 0; color: #58695e; font-size: 13px; line-height: 1.8; white-space: pre-wrap; }
+.shop-product-detail-store { display: grid; gap: 7px; padding: 13px; border-radius: 10px; background: #f5f9f6; color: #31483a; font-size: 11px; }
+.shop-product-detail-store span { display: flex; gap: 6px; color: #65756b; }
+.shop-product-detail-actions { display: grid; gap: 8px; margin-top: 16px; }
+.shop-product-detail-actions a { display: flex; min-height: 42px; align-items: center; justify-content: center; gap: 8px; border: 1px solid #cfe2d6; border-radius: 9px; color: #087a4c; font-size: 11px; font-weight: 800; text-decoration: none; }
+.shop-product-detail-actions a:first-child { background: #eff8f2; }
+.shop-related-products { margin-top: 28px; }
+.shop-related-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 13px; }
+.shop-related-card { display: grid; gap: 7px; padding: 0 0 12px; overflow: hidden; border: 1px solid #e2e9e4; border-radius: 12px; background: #fff; color: #1c3024; text-align: left; cursor: pointer; }
+.shop-related-card .shop-product-image { width: 100%; height: 135px; }
+.shop-related-card > span:not(.shop-product-image),.shop-related-card > strong { margin: 0 11px; }
+.shop-related-card > strong { font-size: 11px; }
+.shop-related-category { color: #087a4c; font-size: 9px; text-transform: uppercase; }
+.shop-related-price { color: #087a4c; font-size: 11px; font-weight: 800; }
 .shop-profile-hero { display: flex; align-items: center; gap: 19px; margin: 25px 0 16px; padding: 27px; border: 1px solid #dce9df; border-radius: 20px; background: radial-gradient(ellipse at 85% 0%,rgba(16,185,129,.13),transparent 45%),#fff; box-shadow: 0 12px 34px rgba(20,53,36,.05); }
 .shop-profile-mark { width: 64px; height: 64px; border-radius: 19px; }
 .shop-profile-banner { display: block; width: min(100%, 280px); height: 120px; flex: 0 0 auto; object-fit: cover; border-radius: 13px; background: #edf4ef; }
@@ -247,4 +281,7 @@
   .shop-market-pagination { align-items: stretch; flex-direction: column; text-align: center; }
   .shop-market-pagination > div { width: 100%; }
   .shop-market-pagination button { flex: 1; }
+  .shop-product-detail { grid-template-columns: 1fr; gap: 19px; padding: 16px; }
+  .shop-product-detail-image { min-height: 250px; }
+  .shop-related-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }

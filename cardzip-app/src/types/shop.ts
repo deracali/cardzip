@@ -15,13 +15,41 @@ export interface ShopProfile {
   reviewNote?: string;
 }
 
+export interface ShopProduct {
+  _id: string;
+  shop: string;
+  name: string;
+  slug: string;
+  category?: string;
+  description: string;
+  price: number;
+  images: string[];
+  imageUrl?: string;
+  condition: 'brand_new' | 'used';
+  stock: number;
+  isActive: boolean;
+}
+
+export interface CreateShopProductPayload {
+  name: string;
+  category: string;
+  description: string;
+  price: number;
+  stock: number;
+  condition: 'brand_new' | 'used';
+  images: string[];
+}
+
 export interface ShopAppointment {
   _id: string;
-  shop: string | Pick<ShopProfile, '_id' | 'businessName' | 'slug' | 'bannerImage'>;
+  shop: string | Pick<ShopProfile, '_id' | 'businessName' | 'slug' | 'bannerImage' | 'address' | 'contactPhone'>;
   serviceName: string;
   startsAt: string;
   durationMinutes: number;
   status: ShopAppointmentStatus;
+  requestedAt?: string | null;
+  reviewedAt?: string | null;
+  createdAt?: string;
   cancellationReason?: string;
   customer?: { _id: string; name: string; email: string } | null;
 }
@@ -42,5 +70,5 @@ export interface CreateShopAppointmentPayload {
 
 export interface OwnerShopResponse {
   shop: ShopProfile;
-  products: unknown[];
+  products: ShopProduct[];
 }

@@ -5,6 +5,42 @@ import { useRouter } from 'expo-router';
 import { fetchCurrentAdApi, trackAdCampaignEventApi } from '../services/api/advertisementApi';
 import { getCampaignAnalyticsVisitorId } from '../services/campaignAnalytics';
 
+const fallbackCampaigns = [
+  {
+    image: require('../../assets/ad-banners/business.jpg'),
+    eyebrow: 'GROW YOUR BUSINESS',
+    title: 'Your next customer is already browsing.',
+    copy: 'Open a Cardzip business shop and put your products in front of more customers.',
+    action: 'Explore business shops',
+    destination: '/(main)/market/business',
+    imageAlt: 'Small business owners collaborating at a table',
+  },
+  {
+    image: require('../../assets/ad-banners/community.jpg'),
+    eyebrow: 'CARDZIP COMMUNITY',
+    title: 'Find your people. Build your community.',
+    copy: 'Discover community listings, local services, and new ways to connect.',
+    action: 'Explore the community',
+    destination: '/market/community',
+    imageAlt: 'People coming together at a community event',
+  },
+  {
+    image: require('../../assets/ad-banners/digital.jpg'),
+    eyebrow: 'WEBSITES & APPS',
+    title: 'Discover your next digital project.',
+    copy: 'Browse websites, apps, and source-code templates with secure downloads.',
+    action: 'Browse websites & apps',
+    destination: '/(main)/market/digital-assets',
+    imageAlt: 'A laptop displaying a web development workspace',
+  },
+];
+
+const getInitialCampaignIndex = (placementKey: string) => {
+  if (placementKey.includes('market')) return 2;
+  if (placementKey.includes('home')) return 1;
+  return 0;
+};
+
 const optimizeImageUrl = (uri: string) => {
   if (!uri) return uri;
   const cleanUri = uri.trim();
@@ -23,6 +59,7 @@ const optimizeImageUrl = (uri: string) => {
 export default function AdvertisementBanner({ placementKey }: { placementKey: string }) {
   const router = useRouter();
   const [ad, setAd] = useState<Awaited<ReturnType<typeof fetchCurrentAdApi>>>(null);
+  const [fallbackIndex, setFallbackIndex] = useState(() => getInitialCampaignIndex(placementKey));
 
   useEffect(() => {
     let active = true;
@@ -31,6 +68,14 @@ export default function AdvertisementBanner({ placementKey }: { placementKey: st
       .catch((error: unknown) => console.error(`Could not load ${placementKey} advertisement:`, error));
     return () => { active = false; };
   }, [placementKey]);
+
+  useEffect(() => {
+    if (ad?.imageUrl) return undefined;
+    const timer = setInterval(() => {
+      setFallbackIndex((current) => (current + 1) % fallbackCampaigns.length);
+    }, 8000);
+    return () => clearInterval(timer);
+  }, [ad?.imageUrl]);
 
   useEffect(() => {
     if (!ad?._id) return;
@@ -49,22 +94,21 @@ export default function AdvertisementBanner({ placementKey }: { placementKey: st
   };
 
   if (!ad?.imageUrl) {
+    const campaign = fallbackCampaigns[fallbackIndex];
     return (
       <TouchableOpacity
-        activeOpacity={0.86}
-        accessibilityRole="button"
-        accessibilityLabel="Advertise your business in this Cardzip banner placement"
-        onPress={() => router.push('/(main)/market/advertise' as never)}
-        style={{ minHeight: 116, marginVertical: 12, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 13, borderRadius: 14, borderWidth: 1, borderColor: '#CFE8D7', backgroundColor: '#F2FAF5' }}
+        activeOpacity={0.88}
+        accessibilityRole="link"
+        accessibilityLabel={`${campaign.eyebrow}: ${campaign.title}`}
+        onPress={() => router.push(campaign.destination as never)}
+        style={{ overflow: 'hidden', marginVertical: 12, borderRadius: 14, borderWidth: 1, borderColor: '#DCE8E0', backgroundColor: '#FFFFFF' }}
       >
-        <View style={{ width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 13, backgroundColor: '#FFFFFF' }}>
-          <Feather name="speaker" size={20} color="#087A4C" />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: '#087A4C', fontSize: 9, fontWeight: '800', letterSpacing: 1 }}>FEATURED ADVERTISEMENT</Text>
-          <Text style={{ marginTop: 5, color: '#14251B', fontSize: 15, fontWeight: '800' }}>Your business could be here</Text>
-          <Text style={{ marginTop: 4, color: '#64746A', fontSize: 10, lineHeight: 15 }}>Promote your brand with a Cardzip banner.</Text>
-          <Text style={{ marginTop: 6, color: '#087A4C', fontSize: 10, fontWeight: '800' }}>Explore ad placements  →</Text>
+        <Image source={campaign.image} accessibilityLabel={campaign.imageAlt} style={{ width: '100%', height: 142, backgroundColor: '#EDF4EF' }} resizeMode="cover" />
+        <View style={{ padding: 12 }}>
+          <Text style={{ color: '#087A4C', fontSize: 9, fontWeight: '800', letterSpacing: 1 }}>{campaign.eyebrow}</Text>
+          <Text style={{ marginTop: 4, color: '#14251B', fontSize: 15, fontWeight: '800' }}>{campaign.title}</Text>
+          <Text style={{ marginTop: 4, color: '#64746A', fontSize: 11, lineHeight: 16 }}>{campaign.copy}</Text>
+          <Text style={{ marginTop: 7, color: '#087A4C', fontSize: 11, fontWeight: '800' }}>{campaign.action}  →</Text>
         </View>
       </TouchableOpacity>
     );

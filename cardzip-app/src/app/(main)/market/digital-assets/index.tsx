@@ -9,20 +9,22 @@ import { formatNaira } from '../../../../utils/currency';
 import { getStorefrontPreferences, recordStoreSearch } from '../../../../services/storePreferences';
 import MarketBottomTab from '../bottomtab/bottomtab';
 
-type DigitalFilter = 'all' | 'website' | 'app' | 'ios_app';
+type DigitalFilter = 'all' | 'website' | 'app' | 'ios_app' | 'full_stack' | 'admin';
 
 const filters: { key: DigitalFilter; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'website', label: 'Websites' },
   { key: 'app', label: 'Android apps' },
   { key: 'ios_app', label: 'iOS apps' },
+  { key: 'full_stack', label: 'Full stack' },
+  { key: 'admin', label: 'Admin' },
 ];
 
-const startingPrice = (asset: StoreProduct) => (
-  (asset.isSellerListing ? [Number(asset.price)] : [Number(asset.usePrice), Number(asset.templatePrice)])
-    .filter((price) => price > 0)
-    .sort((left, right) => left - right)[0]
-);
+const startingPrice = (asset: StoreProduct) => {
+  const prices = [Number(asset.usePrice), Number(asset.templatePrice)].filter((price) => price > 0);
+  if (asset.isSellerListing && prices.length === 0 && Number(asset.price) > 0) prices.push(Number(asset.price));
+  return prices.sort((left, right) => left - right)[0];
+};
 
 export default function DigitalAssetsScreen() {
   const router = useRouter();
@@ -96,11 +98,11 @@ export default function DigitalAssetsScreen() {
             return (
               <TouchableOpacity key={id} style={styles.card} activeOpacity={0.88} onPress={() => router.push(`/(main)/market/digital-assets/${encodeURIComponent(asset.slug || id)}` as Href)}>
                 <View style={styles.cardImage}>
-                  {asset.image ? <Image source={{ uri: asset.image }} style={styles.image} resizeMode="cover" /> : <Feather name={asset.productType === 'website' ? 'globe' : 'smartphone'} size={33} color="#8BF0B9" />}
+                  {asset.image ? <Image source={{ uri: asset.image }} style={styles.image} resizeMode="cover" /> : <Feather name={asset.productType === 'website' || asset.productType === 'full_stack' || asset.productType === 'admin' ? 'globe' : 'smartphone'} size={33} color="#8BF0B9" />}
                   {asset.isPromoted ? <Text style={styles.promotedBadge}>PROMOTED</Text> : null}
                 </View>
                 <View style={styles.cardBody}>
-                  <Text style={styles.typeLabel}>{asset.productType === 'app' ? 'ANDROID APP' : asset.productType === 'ios_app' ? 'IOS APP' : 'WEBSITE'}</Text>
+                  <Text style={styles.typeLabel}>{asset.productType === 'app' ? 'ANDROID APP' : asset.productType === 'ios_app' ? 'IOS APP' : asset.productType === 'full_stack' ? 'FULL STACK' : asset.productType === 'admin' ? 'ADMIN' : 'WEBSITE'}</Text>
                   <Text style={styles.cardTitle} numberOfLines={1}>{asset.name}</Text>
                   <Text style={styles.cardDescription} numberOfLines={2}>{asset.description || asset.usageInstructions || 'Explore usage options and setup support.'}</Text>
                   <View style={styles.cardFooter}>

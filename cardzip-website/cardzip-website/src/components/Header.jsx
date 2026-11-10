@@ -2,9 +2,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowLeft, Bell, CheckCheck, Menu, Wallet, X } from 'lucide-react'
 import { getUserToken, userApi } from '../services/api'
+import CommunitySellerInbox from './CommunitySellerInbox'
 
 
-export default function Header({ currentTab = 'home', onSelectTab, onOpenDashboard, onOpenWallet }) {
+export default function Header({ currentTab = 'home', onSelectTab, onOpenDashboard, onOpenWallet, user, featureSettings }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [walletBalance, setWalletBalance] = useState(null)
   const [walletError, setWalletError] = useState('')
@@ -121,9 +122,9 @@ export default function Header({ currentTab = 'home', onSelectTab, onOpenDashboa
     { id: 'home', label: 'Home' },
     { id: 'about', label: 'About' },
     { id: 'gift-cards', label: 'Gift Cards' },
-    { id: 'esim', label: 'Virtual Numbers' },
+    ...(featureSettings?.esimEnabled === false ? [] : [{ id: 'esim', label: 'Virtual Numbers' }]),
     { id: 'shop', label: 'Shop' },
-    { id: 'bills', label: 'Bills' },
+    ...(featureSettings?.vtpassBillsEnabled === false ? [] : [{ id: 'bills', label: 'Bills' }]),
     { id: 'wallet', label: 'Wallet' },
   ]
 
@@ -187,6 +188,7 @@ export default function Header({ currentTab = 'home', onSelectTab, onOpenDashboa
           <span>Notifications</span>
           {unreadNotifications > 0 && <span className="header-notification-badge">{unreadNotifications > 99 ? '99+' : unreadNotifications}</span>}
         </button>}
+        <CommunitySellerInbox user={user} placement="header" />
 
         {/* Separator Line */}
         {getUserToken() && <div className="header-divider" />}

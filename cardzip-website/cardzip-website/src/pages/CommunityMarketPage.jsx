@@ -4,6 +4,7 @@ import { getUserToken, userApi } from '../services/api'
 import { getStorefrontPreferences, recordProductInteraction } from '../services/storePreferences'
 import { formatNaira } from '../utils/currency'
 import CommunityChatDialog from '../components/CommunityChatDialog'
+import CommunitySellerInbox from '../components/CommunitySellerInbox'
 import './CommunityMarketPage.css'
 
 const emptyListing = { title: '', category: '', description: '', price: '', phone: '', condition: 'brand_new', isSold: false }
@@ -19,6 +20,11 @@ const getListingImages = (listing) => (
   Array.isArray(listing.images) && listing.images.length
     ? listing.images
     : listing.imageUrl ? [listing.imageUrl] : []
+)
+const getId = (value) => String(value?._id || value?.id || value || '')
+const isOwnListing = (listing, user) => (
+  getId(user?._id || user?.id || user?.userId) !== ''
+  && getId(user?._id || user?.id || user?.userId) === getId(listing?.sellerId || listing?.seller)
 )
 
 const recordPromotionEvent = (listing, eventType) => {
@@ -255,13 +261,15 @@ export default function CommunityMarketPage({ onNavigate, user }) {
           <div><strong>Safety for local community listings</strong><p>For local items, never send a deposit or pay in advance. Meet in a safe public place, examine and test the item, and only then pay the seller. Promoted websites and apps are Cardzip digital listings with secure checkout on their detail pages.</p></div>
         </section>
 
+        <CommunitySellerInbox user={user} />
+
         {notice && <p className="community-success" role="status"><ShieldCheck size={16} />{notice}</p>}
         {managementError && <p className="community-form-error" role="alert">{managementError}</p>}
         {getUserToken() && promotionPerformance.length > 0 && <section className="community-performance">
           <h2>Your community promotion performance</h2>
           {promotionPerformance.map((promotion) => <div className="community-performance-row" key={promotion._id}>
-            <strong>{promotion.targetName} · {promotion.status.replaceAll('_', ' ')}</strong>
-            <span>{promotion.impressions} unique impressions · {promotion.clicks} unique clicks · {promotion.clickThroughRate}% CTR</span>
+            <strong>{promotion.targetName} · {promotion.displayStatus === 'expired' ? 'Expired' : promotion.displayStatus || promotion.status.replaceAll('_', ' ')}</strong>
+            <span>Analytics: {promotion.impressions} unique impressions · {promotion.clicks} unique clicks · {promotion.clickThroughRate}% CTR</span>
           </div>)}
         </section>}
 
@@ -336,14 +344,14 @@ export default function CommunityMarketPage({ onNavigate, user }) {
                       <strong className="community-listing-price">{Number(listing.price) === 0 ? 'Free' : formatNaira(listing.price)}</strong>
                       <p className="community-listing-description">{listing.description}</p>
                       <span className="community-seller-name">Listed by {listing.sellerName}</span>
-                      {!listing.isDigitalAsset && String(user?._id || user?.id) === listing.sellerId && <div className="community-owner-actions">
+                      {!listing.isDigitalAsset && isOwnListing(listing, user) && <div className="community-owner-actions">
                         <button className="community-owner-status" type="button" disabled={updatingListingId === listing._id} onClick={() => void updateSoldStatus(listing)}>{updatingListingId === listing._id ? 'Updating…' : listing.isSold ? 'Mark available' : 'Mark sold'}</button>
                         <button className="community-owner-edit" type="button" disabled={updatingListingId === listing._id} onClick={() => editListing(listing)}>Edit listing</button>
                         <button className="community-owner-delete" type="button" disabled={updatingListingId === listing._id} onClick={() => void deleteListing(listing)}>{updatingListingId === listing._id ? 'Working…' : 'Delete'}</button>
                       </div>}
                       {!listing.isDigitalAsset && <div className="community-contact-actions">
                         {listing.isSold ? <span className="community-sold-message">This item has been sold</span> : <>
-                          {String(user?._id || user?.id || '') !== String(listing.sellerId) && <button type="button" onClick={() => void openChat(listing)}><MessageCircle size={15} /> Chat seller</button>}
+                          {!isOwnListing(listing, user) && <button type="button" onClick={() => void openChat(listing)}><MessageCircle size={15} /> Chat seller</button>}
                           <a href={`tel:${listing.phone}`}><Phone size={15} /> Call</a>
                           <a href={`https://wa.me/${whatsappNumber(listing.phone)}`} target="_blank" rel="noreferrer"><MessageCircle size={15} /> WhatsApp</a>
                         </>}

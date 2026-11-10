@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <defs>
+    <linearGradient id="nexara" x1="5" y1="4" x2="43" y2="44" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8178ff"/>
+      <stop offset="1" stop-color="#5753df"/>
+    </linearGradient>
+  </defs>
+  <rect width="48" height="48" rx="13" fill="url(#nexara)"/>
+  <path d="M13.5 34V14l21 20V14" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/>
+  <circle cx="13.5" cy="14" r="2.5" fill="#9af2f0"/>
+  <circle cx="34.5" cy="34" r="2.5" fill="#9af2f0"/>
+</svg>

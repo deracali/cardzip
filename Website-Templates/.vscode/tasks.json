@@ -1,0 +1,56 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Verify VoltPay main build",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"--prefix",
+				"FullStack\\Fintech\\Fintech",
+				"run",
+				"build"
+			],
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			]
+		},
+		{
+			"label": "Verify VoltPay admin build",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"--prefix",
+				"FullStack\\Fintech\\Fintech",
+				"run",
+				"build:admin"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Verify VoltPay mobile typecheck",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"--prefix",
+				"FullStack\\Fintech\\Fintech\\mobile",
+				"run",
+				"typecheck"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Install VoltPay mobile dependencies",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/d",
+				"/s",
+				"/c",
+				"cd /d C:\\Users\\hp\\Documents\\Cardzip\\Website-Templates\\FullStack\\Fintech\\Fintech\\mobile && npm install"
+			],
+			"isBackground": false
+		}
+	]
+}

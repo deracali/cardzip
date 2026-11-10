@@ -49,7 +49,7 @@ const heroSlides = [
   },
 ]
 
-export default function HeroSection({ onStartTrading, onExploreUtilities, onNavigate }) {
+export default function HeroSection({ onStartTrading, onExploreUtilities, onNavigate, featureSettings }) {
   const [sponsoredAd, setSponsoredAd] = useState(null)
   const [activeSlide, setActiveSlide] = useState(0)
   const [paused, setPaused] = useState(false)
@@ -70,7 +70,10 @@ export default function HeroSection({ onStartTrading, onExploreUtilities, onNavi
     return () => { active = false }
   }, [])
 
-  const slides = sponsoredAd?.imageUrl ? [...heroSlides, {
+  const visibleHeroSlides = heroSlides.filter((item) => (
+    item.id !== 'everyday' || featureSettings?.vtpassBillsEnabled !== false && featureSettings?.esimEnabled !== false
+  ))
+  const slides = sponsoredAd?.imageUrl ? [...visibleHeroSlides, {
     id: 'sponsored',
     eyebrow: 'SPONSORED',
     title: <>{sponsoredAd.title}</>,
@@ -83,7 +86,7 @@ export default function HeroSection({ onStartTrading, onExploreUtilities, onNavi
     visualDetail: sponsoredAd.copy,
     theme: 'sponsored',
     imageUrl: sponsoredAd.imageUrl,
-  }] : heroSlides
+  }] : visibleHeroSlides
 
   useEffect(() => {
     if (paused || reducedMotion || slides.length < 2) return undefined
@@ -93,7 +96,8 @@ export default function HeroSection({ onStartTrading, onExploreUtilities, onNavi
     return () => window.clearInterval(timer)
   }, [paused, reducedMotion, slides.length])
 
-  const slide = slides[activeSlide] || slides[0]
+  const activeSlideIndex = activeSlide % slides.length
+  const slide = slides[activeSlideIndex] || slides[0]
   const SlideIcon = slide.icon
   const navigateTo = (destination) => {
     if (destination && new URL(destination, window.location.origin).origin !== window.location.origin) {
@@ -104,7 +108,7 @@ export default function HeroSection({ onStartTrading, onExploreUtilities, onNavi
   }
 
   const moveSlide = (direction) => {
-    setActiveSlide((current) => (current + direction + slides.length) % slides.length)
+    setActiveSlide((current) => (current % slides.length + direction + slides.length) % slides.length)
   }
 
   return (
@@ -152,9 +156,9 @@ export default function HeroSection({ onStartTrading, onExploreUtilities, onNavi
         </div>
         <div className="home-hero-controls">
           <div className="home-hero-dots" aria-label="Choose a featured slide">
-            {slides.map((item, index) => <button key={item.id} type="button" aria-label={`Show slide ${index + 1}: ${item.eyebrow}`} aria-current={activeSlide === index ? 'true' : undefined} className={activeSlide === index ? 'active' : ''} onClick={() => setActiveSlide(index)} />)}
+            {slides.map((item, index) => <button key={item.id} type="button" aria-label={`Show slide ${index + 1}: ${item.eyebrow}`} aria-current={activeSlideIndex === index ? 'true' : undefined} className={activeSlideIndex === index ? 'active' : ''} onClick={() => setActiveSlide(index)} />)}
           </div>
-          <span className="home-hero-slide-count">{String(activeSlide + 1).padStart(2, '0')} <span>/</span> {String(slides.length).padStart(2, '0')}</span>
+          <span className="home-hero-slide-count">{String(activeSlideIndex + 1).padStart(2, '0')} <span>/</span> {String(slides.length).padStart(2, '0')}</span>
           <div className="home-hero-arrows">
             <button type="button" aria-label="Previous slide" onClick={() => moveSlide(-1)}><ChevronLeft size={17} /></button>
             <button type="button" aria-label="Next slide" onClick={() => moveSlide(1)}><ChevronRight size={17} /></button>
@@ -165,8 +169,8 @@ export default function HeroSection({ onStartTrading, onExploreUtilities, onNavi
         <span>YOUR EVERYDAY DIGITAL ECONOMY</span>
         <div><CreditCard size={15} /> Gift cards</div>
         <div><ShoppingBag size={15} /> Shopping</div>
-        <div><Zap size={15} /> Bills</div>
-        <div><Globe size={15} /> Virtual numbers</div>
+        {featureSettings?.vtpassBillsEnabled !== false && <div><Zap size={15} /> Bills</div>}
+        {featureSettings?.esimEnabled !== false && <div><Globe size={15} /> Virtual numbers</div>}
       </div>
     </div>
   )

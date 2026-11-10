@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+  Alert,
   ActivityIndicator,
   Image,
   ScrollView,
@@ -17,10 +18,14 @@ import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import {
   createShopApi,
+  createShopProductApi,
+  deleteShopProductApi,
   fetchMyShopApi,
   fetchShopsApi,
+  uploadShopProductImageApi,
 } from '../../../../services/api/storeApi';
-import type { ShopApplicationPayload, ShopProfile, ShopType } from '../../../../types/shop';
+import type { ShopApplicationPayload, ShopProduct, ShopProfile, ShopType } from '../../../../types/shop';
+import { formatNaira } from '../../../../utils/currency';
 import { useAppSelector } from '../../../../store';
 
 type PageMode = 'directory' | 'manage';
@@ -41,6 +46,21 @@ export default function BusinessHubScreen() {
   const [mode, setMode] = useState<PageMode>('directory');
   const [shops, setShops] = useState<ShopProfile[]>([]);
   const [shop, setShop] = useState<ShopProfile | null>(null);
+  const [products, setProducts] = useState<ShopProduct[]>([]);
+  const [productDraft, setProductDraft] = useState({
+    name: '',
+    category: '',
+    description: '',
+    price: '',
+    stock: '1',
+    condition: 'brand_new' as 'brand_new' | 'used',
+  });
+  const [productImages, setProductImages] = useState<string[]>([]);
+  const [productSubmitting, setProductSubmitting] = useState(false);
+  const [productDeletingId, setProductDeletingId] = useState('');
+  const [productImagesUploading, setProductImagesUploading] = useState(false);
+  const [editingShopId, setEditingShopId] = useState('');
+  const [editingApplication, setEditingApplication] = useState(false);
   const [application, setApplication] = useState(emptyApplication);
   const [banner, setBanner] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [loading, setLoading] = useState(true);
@@ -69,6 +89,7 @@ export default function BusinessHubScreen() {
       const result = await fetchMyShopApi(token);
       const ownerShop = result?.shop ?? null;
       setShop(ownerShop);
+      setProducts(result?.products ?? []);
       if (ownerShop?.status === 'rejected') {
         setApplication({
           shopType: ownerShop.shopType,
@@ -104,8 +125,10 @@ export default function BusinessHubScreen() {
         uri: banner.uri,
         fileName: banner.fileName,
         mimeType: banner.mimeType,
-      } : undefined);
+      } : undefined, editingShopId || undefined);
       setShop(result.shop);
+      setEditingShopId('');
+      setEditingApplication(false);
       setMode('manage');
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Could not submit your application.');
@@ -152,6 +175,103 @@ export default function BusinessHubScreen() {
     setApplication((current) => ({ ...current, [key]: value }));
   };
 
+  const startNewApplication = () => {
+    setEditingShopId('');
+    setEditingApplication(true);
+    setApplication(emptyApplication);
+    setBanner(null);
+    setError('');
+  };
+
+  const chooseProductImages = async () => {
+    const remainingSlots = 8 - productImages.length;
+    if (remainingSlots <= 0) {
+      setError('You can add up to 8 photos to each product.');
+      return;
+    }
+    setError('');
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        setError('Allow photo-library access to choose product photos.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsMultipleSelection: true,
+        selectionLimit: remainingSlots,
+        allowsEditing: false,
+      });
+      if (result.canceled) return;
+      setProductImagesUploading(true);
+      const uploadedUrls: string[] = [];
+      for (const [index, asset] of result.assets.entries()) {
+        const resized = await ImageManipulator.manipulateAsync(
+          asset.uri,
+          [{ resize: { width: Math.min(asset.width, 2000) } }],
+          { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG },
+        );
+        const url = await uploadShopProductImageApi(token || '', {
+          uri: resized.uri,
+          fileName: `shop-product-${Date.now()}-${index + 1}.jpg`,
+          mimeType: 'image/jpeg',
+        });
+        uploadedUrls.push(url);
+      }
+      setProductImages((current) => [...current, ...uploadedUrls].slice(0, 8));
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Could not upload product photos.');
+    } finally {
+      setProductImagesUploading(false);
+    }
+  };
+
+  const submitShopProduct = async () => {
+    if (!token) return;
+    setProductSubmitting(true);
+    setError('');
+    setNotice('');
+    try {
+      const product = await createShopProductApi(token, {
+        ...productDraft,
+        price: Number(productDraft.price),
+        stock: Number(productDraft.stock),
+        images: productImages,
+      });
+      setProducts((current) => [product, ...current]);
+      setProductDraft({ name: '', category: '', description: '', price: '', stock: '1', condition: 'brand_new' });
+      setProductImages([]);
+      setNotice('Product added to your store.');
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Could not add this product.');
+    } finally {
+      setProductSubmitting(false);
+    }
+  };
+
+  const deleteShopProduct = (product: ShopProduct) => {
+    if (!token) return;
+    Alert.alert('Delete product?', `Delete "${product.name}" from your store?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          setProductDeletingId(product._id);
+          setError('');
+          setNotice('');
+          void deleteShopProductApi(token, product._id)
+            .then(() => {
+              setProducts((current) => current.filter((item) => item._id !== product._id));
+              setNotice('Product deleted.');
+            })
+            .catch((requestError) => setError(requestError instanceof Error ? requestError.message : 'Could not delete this product.'))
+            .finally(() => setProductDeletingId(''));
+        },
+      },
+    ]);
+  };
+
   const openBusiness = (slug: string) => {
     router.push(`/(main)/market/business/${encodeURIComponent(slug)}` as Href);
   };
@@ -189,11 +309,11 @@ export default function BusinessHubScreen() {
       <View style={styles.panelHeading}>
         <Feather name="briefcase" size={20} color="#087A4C" />
         <View style={styles.flexCopy}>
-          <Text style={styles.panelTitle}>{shop?.status === 'rejected' ? 'Update your application' : 'Create a profile'}</Text>
-          <Text style={styles.panelDescription}>{shop?.status === 'rejected' ? 'Your existing details are prefilled. Update the items mentioned in the review feedback, then resubmit.' : 'Choose Store for product listings or Business for appointments.'}</Text>
+          <Text style={styles.panelTitle}>{editingShopId ? 'Update your application' : 'Create a profile'}</Text>
+          <Text style={styles.panelDescription}>{editingShopId ? 'Your existing details are prefilled. Update the items mentioned in the review feedback, then resubmit.' : 'Choose Store for product listings or Business for appointments.'}</Text>
         </View>
       </View>
-      {shop?.status === 'rejected' && shop.reviewNote ? <Text style={styles.reviewNote}>Requested changes: {shop.reviewNote}</Text> : null}
+      {editingShopId && shop?.reviewNote ? <Text style={styles.reviewNote}>Requested changes: {shop.reviewNote}</Text> : null}
       <View style={styles.typeOptions}>
         {renderTypeOption('store', 'Store', 'List products and connect with customers.', 'shopping-bag')}
         {renderTypeOption('business', 'Business', 'Publish appointment times and manage bookings.', 'calendar')}
@@ -209,10 +329,10 @@ export default function BusinessHubScreen() {
       <Text style={styles.descriptionCount}>{application.description?.length || 0}/500</Text>
       <Text style={styles.label}>Profile logo or banner (optional)</Text>
       <TouchableOpacity style={styles.uploadButton} onPress={() => void chooseBanner()} accessibilityRole="button" accessibilityLabel="Choose profile logo or banner image">
-        {banner ? <Image source={{ uri: banner.uri }} style={styles.bannerPreview} resizeMode="cover" /> : shop?.status === 'rejected' && shop.bannerImage ? <Image source={{ uri: shop.bannerImage }} style={styles.bannerPreview} resizeMode="cover" /> : <View style={styles.uploadIcon}><Feather name="image" size={19} color="#087A4C" /></View>}
+        {banner ? <Image source={{ uri: banner.uri }} style={styles.bannerPreview} resizeMode="cover" /> : editingShopId && shop?.bannerImage ? <Image source={{ uri: shop.bannerImage }} style={styles.bannerPreview} resizeMode="cover" /> : <View style={styles.uploadIcon}><Feather name="image" size={19} color="#087A4C" /></View>}
         <View style={styles.flexCopy}>
           <Text style={styles.uploadTitle}>{banner || shop?.bannerImage ? 'Change profile image' : 'Choose an image'}</Text>
-          <Text style={styles.uploadDescription}>{banner?.fileName || (shop?.status === 'rejected' && shop.bannerImage ? 'Current image retained unless you choose another' : 'JPEG, PNG or WebP · up to 8 MB')}</Text>
+          <Text style={styles.uploadDescription}>{banner?.fileName || (editingShopId && shop?.bannerImage ? 'Current image retained unless you choose another' : 'JPEG, PNG or WebP · up to 8 MB')}</Text>
         </View>
         <Feather name="upload" size={17} color="#087A4C" />
       </TouchableOpacity>
@@ -226,7 +346,7 @@ export default function BusinessHubScreen() {
         disabled={submitting || application.businessName.trim().length < 2 || application.address.trim().length < 8 || application.contactPhone.replace(/\D/g, '').length < 7}
         onPress={() => void submitApplication()}
       >
-        {submitting ? <ActivityIndicator color="#FFFFFF" /> : <><Text style={styles.primaryButtonText}>{shop?.status === 'rejected' ? 'Resubmit updated application' : 'Submit for review'}</Text><Feather name="arrow-right" size={17} color="#FFFFFF" /></>}
+        {submitting ? <ActivityIndicator color="#FFFFFF" /> : <><Text style={styles.primaryButtonText}>{editingShopId ? 'Resubmit updated application' : 'Submit for review'}</Text><Feather name="arrow-right" size={17} color="#FFFFFF" /></>}
       </TouchableOpacity>
     </View>
   );
@@ -244,7 +364,7 @@ export default function BusinessHubScreen() {
         </View>
       );
     }
-    if (!shop) return renderApplication();
+    if (editingApplication || !shop) return renderApplication();
     if (shop.status !== 'approved') {
       return (
         <View style={styles.emptyCard}>
@@ -252,25 +372,101 @@ export default function BusinessHubScreen() {
           <Text style={styles.emptyTitle}>{shop.businessName}</Text>
           <Text style={styles.statusPill}>{shop.status === 'pending' ? 'UNDER REVIEW' : 'CHANGES REQUESTED'}</Text>
           <Text style={styles.emptyDescription}>{shop.status === 'pending' ? 'Your application will be visible after it has been reviewed.' : shop.reviewNote || 'Please contact support for help updating your application.'}</Text>
-          {shop.status === 'rejected' ? <TouchableOpacity style={styles.primaryButton} onPress={() => { setApplication({ shopType: shop.shopType, businessName: shop.businessName, address: shop.address, contactPhone: shop.contactPhone, description: shop.description || '' }); setMode('manage'); }}>
+          {shop.status === 'rejected' ? <TouchableOpacity style={styles.primaryButton} onPress={() => { setApplication({ shopType: shop.shopType, businessName: shop.businessName, address: shop.address, contactPhone: shop.contactPhone, description: shop.description || '' }); setEditingShopId(shop._id); setEditingApplication(true); setMode('manage'); }}>
             <Text style={styles.primaryButtonText}>Correct and resubmit</Text><Feather name="edit-2" size={16} color="#FFFFFF" />
           </TouchableOpacity> : null}
+          <TouchableOpacity style={styles.secondaryButton} onPress={startNewApplication}>
+            <Text style={styles.secondaryButtonText}>Create another store or business</Text>
+          </TouchableOpacity>
         </View>
       );
     }
     if (shop.shopType !== 'business') {
       return (
-        <View style={styles.emptyCard}>
-          <Feather name="shopping-bag" size={25} color="#087A4C" />
-          <Text style={styles.emptyTitle}>{shop.businessName} is a Store profile</Text>
-          <Text style={styles.emptyDescription}>Appointment management is available to approved Business profiles. Each account can have one profile.</Text>
-          {notice ? <Text style={styles.notice}>{notice}</Text> : null}
-          <TouchableOpacity style={styles.secondaryButton} onPress={() => void copyPublicPage(shop.slug)}>
-            <Feather name="copy" size={15} color="#087A4C" /><Text style={styles.secondaryButtonText}>Copy public store page</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.secondaryButton} onPress={() => router.push('/(main)/(tabs)/store' as Href)}>
-            <Text style={styles.secondaryButtonText}>Go to Store</Text>
-          </TouchableOpacity>
+        <View style={{ gap: 14 }}>
+          <View style={styles.emptyCard}>
+            <Feather name="shopping-bag" size={25} color="#087A4C" />
+            <Text style={styles.emptyTitle}>{shop.businessName} is a Store profile</Text>
+            <Text style={styles.emptyDescription}>Manage your products here. You can also create additional Store or Business profiles at any time.</Text>
+            {notice ? <Text style={styles.notice}>{notice}</Text> : null}
+            <TouchableOpacity style={styles.secondaryButton} onPress={() => void copyPublicPage(shop.slug)}>
+              <Feather name="copy" size={15} color="#087A4C" /><Text style={styles.secondaryButtonText}>Copy public store page</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.secondaryButton} onPress={() => router.push('/(main)/(tabs)/store' as Href)}>
+              <Text style={styles.secondaryButtonText}>Go to Store</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.secondaryButton} onPress={startNewApplication}>
+              <Text style={styles.secondaryButtonText}>Create another store or business</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.panel}>
+            <Text style={styles.panelTitle}>Add a product</Text>
+            <Text style={styles.panelDescription}>Add up to 8 photos to show different angles of your product.</Text>
+            <Text style={styles.label}>Product name</Text>
+            <TextInput style={styles.input} value={productDraft.name} onChangeText={(value) => setProductDraft((current) => ({ ...current, name: value }))} maxLength={120} placeholder="Product name" />
+            <Text style={styles.label}>Category</Text>
+            <TextInput style={styles.input} value={productDraft.category} onChangeText={(value) => setProductDraft((current) => ({ ...current, category: value }))} maxLength={60} placeholder="Fashion, home, electronics…" />
+            <Text style={styles.label}>Price (NGN)</Text>
+            <TextInput style={styles.input} value={productDraft.price} onChangeText={(value) => setProductDraft((current) => ({ ...current, price: value }))} keyboardType="number-pad" placeholder="25000" />
+            <Text style={styles.label}>Available quantity</Text>
+            <TextInput style={styles.input} value={productDraft.stock} onChangeText={(value) => setProductDraft((current) => ({ ...current, stock: value }))} keyboardType="number-pad" placeholder="1" />
+            <Text style={styles.label}>Condition</Text>
+            <View style={styles.productConditionRow}>
+              {(['brand_new', 'used'] as const).map((condition) => (
+                <TouchableOpacity key={condition} style={[styles.productConditionButton, productDraft.condition === condition && styles.productConditionSelected]} onPress={() => setProductDraft((current) => ({ ...current, condition }))}>
+                  <Text style={[styles.productConditionText, productDraft.condition === condition && styles.productConditionTextSelected]}>{condition === 'used' ? 'Used' : 'Brand new'}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={styles.label}>Description</Text>
+            <TextInput style={[styles.input, styles.multiline]} value={productDraft.description} onChangeText={(value) => setProductDraft((current) => ({ ...current, description: value }))} maxLength={2000} multiline placeholder="Describe this product" />
+            <TouchableOpacity style={styles.secondaryButton} disabled={productImagesUploading || productImages.length >= 8} onPress={() => void chooseProductImages()}>
+              <Feather name="image" size={16} color="#087A4C" />
+              <Text style={styles.secondaryButtonText}>{productImagesUploading ? 'Uploading photos…' : `Add product photos (${productImages.length}/8)`}</Text>
+            </TouchableOpacity>
+            {productImages.map((image, index) => (
+              <View key={`${image}-${index}`} style={styles.productImageRow}>
+                <Image source={{ uri: image }} style={styles.productImagePreview} />
+                <Text style={styles.productImageCaption}>Photo {index + 1}</Text>
+                <TouchableOpacity onPress={() => setProductImages((current) => current.filter((item) => item !== image))} accessibilityLabel={`Remove product photo ${index + 1}`}>
+                  <Feather name="x-circle" size={18} color="#A33A31" />
+                </TouchableOpacity>
+              </View>
+            ))}
+            <TouchableOpacity
+              style={[styles.primaryButton, (productSubmitting || productImagesUploading || productDraft.name.trim().length < 2 || productDraft.description.trim().length === 0 || Number(productDraft.price) < 1 || !Number.isSafeInteger(Number(productDraft.stock))) && styles.buttonDisabled]}
+              disabled={productSubmitting || productImagesUploading || productDraft.name.trim().length < 2 || productDraft.description.trim().length === 0 || Number(productDraft.price) < 1 || !Number.isSafeInteger(Number(productDraft.stock))}
+              onPress={() => void submitShopProduct()}
+            >
+              {productSubmitting ? <ActivityIndicator color="#FFFFFF" /> : <><Text style={styles.primaryButtonText}>Add product</Text><Feather name="plus" size={16} color="#FFFFFF" /></>}
+            </TouchableOpacity>
+          </View>
+          <View style={styles.panel}>
+            <View style={styles.sectionHeader}>
+              <View><Text style={styles.sectionEyebrow}>YOUR CATALOG</Text><Text style={styles.sectionTitle}>Listed products</Text></View>
+              <Text style={styles.productStock}>{products.length}</Text>
+            </View>
+            {products.length === 0 ? <Text style={styles.emptyDescription}>Your store is ready for its first product.</Text> : products.map((product) => (
+              <View style={styles.ownerProductCard} key={product._id}>
+                <TouchableOpacity
+                  style={styles.ownerProductMain}
+                  onPress={() => router.push(`/(main)/market/shop-product/${encodeURIComponent(product.slug)}?shopSlug=${encodeURIComponent(shop.slug)}` as Href)}
+                >
+                  {product.images?.[0] || product.imageUrl
+                    ? <Image source={{ uri: product.images?.[0] || product.imageUrl }} style={styles.productImagePreview} />
+                    : <View style={[styles.productImagePreview, styles.productPlaceholder]}><Feather name="camera" size={18} color="#8B9A90" /></View>}
+                  <View style={styles.productInfo}>
+                    <Text style={styles.productName}>{product.name}</Text>
+                    <Text style={styles.productPrice}>{formatNaira(product.price)}</Text>
+                    <Text style={styles.productStock}>{product.stock} available · View details</Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity disabled={productDeletingId === product._id} onPress={() => deleteShopProduct(product)} accessibilityLabel={`Delete ${product.name}`}>
+                  {productDeletingId === product._id ? <ActivityIndicator color="#A33A31" /> : <Feather name="trash-2" size={18} color="#A33A31" />}
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
         </View>
       );
     }
@@ -293,6 +489,12 @@ export default function BusinessHubScreen() {
         </TouchableOpacity>
         <TouchableOpacity style={styles.secondaryButton} onPress={() => void copyPublicPage(shop.slug)}>
           <Feather name="copy" size={15} color="#087A4C" /><Text style={styles.secondaryButtonText}>Copy public business page</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.secondaryButton} onPress={startNewApplication}>
+          <Text style={styles.secondaryButtonText}>Create another store or business</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.secondaryButton} onPress={startNewApplication}>
+          <Text style={styles.secondaryButtonText}>Create another store or business</Text>
         </TouchableOpacity>
       </View>
     );
@@ -421,6 +623,21 @@ const styles = StyleSheet.create({
   buttonDisabled: { opacity: 0.55 },
   secondaryButton: { minHeight: 42, marginTop: 10, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center', borderRadius: 10, borderWidth: 1, borderColor: '#C9DDD1', backgroundColor: '#FFFFFF' },
   secondaryButtonText: { color: '#087A4C', fontSize: 11, fontWeight: '800' },
+  productConditionRow: { flexDirection: 'row', gap: 8 },
+  productConditionButton: { flex: 1, minHeight: 38, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#D9E3DC', borderRadius: 9, backgroundColor: '#FFFFFF' },
+  productConditionSelected: { borderColor: '#087A4C', backgroundColor: '#F1FAF4' },
+  productConditionText: { color: '#65756B', fontSize: 10, fontWeight: '700' },
+  productConditionTextSelected: { color: '#087A4C' },
+  productImageRow: { minHeight: 48, marginTop: 7, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  productImagePreview: { width: 48, height: 48, borderRadius: 8, backgroundColor: '#EEF3EF' },
+  productImageCaption: { flex: 1, color: '#52665A', fontSize: 10 },
+  productPlaceholder: { alignItems: 'center', justifyContent: 'center' },
+  ownerProductCard: { minHeight: 66, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#E0EAE3' },
+  ownerProductMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  productInfo: { flex: 1, gap: 3 },
+  productName: { color: '#193A29', fontSize: 11, fontWeight: '800' },
+  productPrice: { color: '#087A4C', fontSize: 11, fontWeight: '800' },
+  productStock: { color: '#75847A', fontSize: 9 },
   ownerHint: { color: '#6E7C73', fontSize: 11, lineHeight: 17 },
   reviewNote: { marginTop: 12, padding: 11, borderRadius: 9, backgroundColor: '#FFF4F2', color: '#805A55', fontSize: 10, lineHeight: 15 },
   notice: { marginTop: 9, color: '#087A4C', fontSize: 10, lineHeight: 15 },

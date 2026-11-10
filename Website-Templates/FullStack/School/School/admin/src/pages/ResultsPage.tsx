@@ -1,0 +1,10 @@
+import { useState } from 'react'
+import { BookOpen, FileText } from 'lucide-react'
+import { PageHeader, Panel } from '../components/PageHeader'
+
+const resultRows = [['Adaeze Okafor','JSS 3 Gold','Mathematics','92','A'],['Tunde Bakare','JSS 3 Gold','Mathematics','76','B'],['Fatima Musa','JSS 2 Blue','Basic Science','88','A'],['Emeka Obi','JSS 3 Gold','English','69','C'],['Zainab Ali','SS 1 Gold','Mathematics','84','A']]
+export function ResultsPage() {
+  const [published, setPublished] = useState(false)
+  const [notice, setNotice] = useState('')
+  return <><PageHeader title="Results & performance" description="Review assessment outcomes and term progress." action={<button className="primary-button" onClick={() => { setPublished(true); setNotice('Results published in this local demo only.') }}><BookOpen size={14}/> Publish results</button>}/><div className="summary-cards"><article><span>RESULTS ENTERED</span><b>2,340</b><small>Of 3,120 expected records</small></article><article><span>CLASS AVERAGE</span><b>78.6%</b><small>Across current term</small></article><article><span>AWAITING REVIEW</span><b>86</b><small>Teacher submissions</small></article></div><Panel title="Assessment results" note={published ? 'Latest demo results marked as published' : 'Term 1 · Continuous assessment'} action={<span className={`status ${published ? 'paid' : 'partial'}`}>{published ? 'Published' : 'Draft'}</span>}><div className="table-scroll"><table><thead><tr><th>STUDENT</th><th>CLASS</th><th>SUBJECT</th><th>SCORE</th><th>GRADE</th><th>REVIEW</th></tr></thead><tbody>{resultRows.map(([name, className, subject, score, grade]) => <tr key={`${name}-${subject}`}><td><b>{name}</b></td><td>{className}</td><td>{subject}</td><td>{score}%</td><td><span className="grade-pill">{grade}</span></td><td><button className="table-link" onClick={() => setNotice(`Result for ${name} reviewed.`)}><FileText size={13}/> Review</button></td></tr>)}</tbody></table></div>{notice&&<p className="inline-notice" role="status">{notice}</p>}</Panel></>
+}

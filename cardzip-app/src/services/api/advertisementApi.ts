@@ -12,7 +12,6 @@ export interface AdPlacement {
   checkoutAvailable: boolean;
   durationPrices: { months: 1 | 12; price: number }[];
   nextAvailableAt: string;
-  checkoutAvailable: boolean;
 }
 
 export interface AdCampaign {
@@ -26,6 +25,7 @@ export interface AdCampaign {
   startAt: string;
   endAt: string;
   status: string;
+  displayStatus?: string;
   reviewNote?: string;
   impressions?: number;
   clicks?: number;

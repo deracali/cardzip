@@ -38,6 +38,8 @@ export const adminApi = {
   bootstrap: (body) => apiRequest('/admin/signup', { method: 'POST', body, auth: false }),
   signIn: (body) => apiRequest('/admin/signin', { method: 'POST', body, auth: false }),
   profile: () => apiRequest('/admin/me'),
+  featureSettings: () => apiRequest('/admin/feature-settings'),
+  updateFeatureSettings: (body) => apiRequest('/admin/feature-settings', { method: 'PUT', body }),
   overview: (query = '') => apiRequest(`/admin/overview${query}`),
   walletDashboard: (query = '') => apiRequest(`/admin/wallet${query}`),
   treasury: () => apiRequest('/admin/treasury'),
@@ -79,6 +81,11 @@ export const adminApi = {
     const body = new FormData()
     body.append('sourceCode', file)
     return apiRequest('/store/admin/products/source-code', { method: 'POST', body })
+  },
+  uploadStoreProductDocument: (file) => {
+    const body = new FormData()
+    body.append('document', file)
+    return apiRequest('/store/admin/products/documents', { method: 'POST', body })
   },
   createStoreProduct: (body) => apiRequest('/store/admin/products', { method: 'POST', body }),
   updateStoreProduct: (id, body) => apiRequest(`/store/admin/products/${encodeURIComponent(id)}`, { method: 'PUT', body }),

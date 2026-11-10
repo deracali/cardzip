@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Linking, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Linking, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ExpoLinking from 'expo-linking';
 import { Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useAppSelector } from '../../../../store';
@@ -10,17 +10,25 @@ import MarketBottomTab from '../bottomtab/bottomtab';
 import {
   CommunityPromotionDuration,
   fetchCommunityListingApi,
+  fetchCommunityListingReviewsApi,
+  fetchMyCommunityListingReviewApi,
   fetchCommunityPromotionPricingApi,
   fetchRelatedCommunityListingsApi,
+  saveCommunityListingReviewApi,
   startCommunityConversationApi,
 } from '../../../../services/api/storeApi';
-import { CommunityListing } from '../../../../types/store';
+import { CommunityListing, CommunityListingReview, CommunityListingReviewSummary } from '../../../../types/store';
 import { initializeCommunityPromotionPaymentApi, verifyCommunityPromotionPaymentApi } from '../../../../services/api/paymentApi';
 import { openPaystackCheckout, verifyPaystackUntilSettled } from '../../../../services/api/paystackFlow';
 import { recordCommunityCategoryInterest } from '../../../../services/communityPreferences';
 import { formatNaira } from '../../../../utils/currency';
 
 const callbackUrl = process.env.EXPO_PUBLIC_PAYSTACK_CALLBACK_URL?.trim();
+const ReviewStars = ({ rating, size = 14 }: { rating: number; size?: number }) => (
+  <View style={styles.reviewStars} accessibilityLabel={`${rating} out of 5 stars`}>
+    {Array.from({ length: 5 }, (_, index) => <MaterialCommunityIcons key={index} name={index < Math.round(rating) ? 'star' : 'star-outline'} size={size} color={index < Math.round(rating) ? '#D78A1F' : '#C6CFC9'} />)}
+  </View>
+);
 
 export default function CommunityListingDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -39,6 +47,12 @@ export default function CommunityListingDetailsScreen() {
   const [promotionError, setPromotionError] = useState('');
   const [notice, setNotice] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
+  const [reviewSummary, setReviewSummary] = useState<CommunityListingReviewSummary>({ reviews: [], averageRating: 0, totalReviews: 0 });
+  const [myReview, setMyReview] = useState<CommunityListingReview | null>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewError, setReviewError] = useState('');
   const ownerId = String(user?.id || '');
   const isOwner = Boolean(listing && listing.sellerId === ownerId);
   const images = useMemo(() => (
@@ -71,6 +85,38 @@ export default function CommunityListingDetailsScreen() {
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [listingId]);
+
+  useEffect(() => {
+    let active = true;
+    setReviewSummary({ reviews: [], averageRating: 0, totalReviews: 0 });
+    setMyReview(null);
+    setReviewRating(5);
+    setReviewComment('');
+    setReviewError('');
+    void fetchCommunityListingReviewsApi(listingId)
+      .then((summary) => { if (active) setReviewSummary(summary); })
+      .catch((requestError: unknown) => { if (active) setReviewError(requestError instanceof Error ? requestError.message : 'Could not load reviews.'); });
+    if (token) {
+      void fetchMyCommunityListingReviewApi(token, listingId)
+        .then((review) => {
+          if (!active) return;
+          setMyReview(review);
+          if (review) {
+            setReviewRating(review.rating);
+            setReviewComment(review.comment);
+          } else {
+            setReviewRating(5);
+            setReviewComment('');
+          }
+        })
+        .catch((requestError: unknown) => { if (active) setReviewError(requestError instanceof Error ? requestError.message : 'Could not load your review.'); });
+    } else {
+      setMyReview(null);
+      setReviewRating(5);
+      setReviewComment('');
+    }
+    return () => { active = false; };
+  }, [listingId, token]);
 
   const contactSeller = async (url: string) => {
     try {
@@ -124,6 +170,30 @@ export default function CommunityListingDetailsScreen() {
     }
   };
 
+  const submitReview = async () => {
+    if (!token) {
+      Alert.alert('Sign in to review', 'Sign in to share your experience with this product.', [
+        { text: 'Not now', style: 'cancel' },
+        { text: 'Sign in', onPress: () => router.push('/(auth)/login' as Href) },
+      ]);
+      return;
+    }
+    if (reviewComment.trim().length < 3 || reviewSubmitting) return;
+    setReviewSubmitting(true);
+    setReviewError('');
+    try {
+      const saved = await saveCommunityListingReviewApi(token, listingId, reviewRating, reviewComment.trim());
+      setMyReview(saved);
+      setReviewComment(saved.comment);
+      const summary = await fetchCommunityListingReviewsApi(listingId);
+      setReviewSummary(summary);
+    } catch (requestError) {
+      setReviewError(requestError instanceof Error ? requestError.message : 'Could not save your review.');
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
+
   if (loading || loadedListingId !== listingId) return <SafeAreaView style={styles.safeArea}><CardzipLoader label="Loading community listing…" /></SafeAreaView>;
   if (!listing) {
     return <SafeAreaView style={styles.safeArea}>
@@ -171,6 +241,25 @@ export default function CommunityListingDetailsScreen() {
             </View>
           </> : null}
           {isOwner && !listing.isSold ? <TouchableOpacity style={styles.promoteButton} onPress={() => { setPromotionError(''); setPromotionOpen(true); }}><Feather name="trending-up" size={16} color="#087A4C" /><Text style={styles.promoteText}>Promote this product</Text><Feather name="arrow-right" size={15} color="#087A4C" /></TouchableOpacity> : null}
+        </View>
+        <View style={styles.reviewsSection}>
+          <View style={styles.reviewsHeading}>
+            <View><Text style={styles.reviewsEyebrow}>COMMUNITY REVIEWS</Text><Text style={styles.reviewsTitle}>Product reviews</Text></View>
+            <View style={styles.reviewSummary}><ReviewStars rating={reviewSummary.averageRating} /><Text style={styles.reviewAverage}>{reviewSummary.averageRating ? reviewSummary.averageRating.toFixed(1) : 'New'}</Text><Text style={styles.reviewCount}>{reviewSummary.totalReviews} {reviewSummary.totalReviews === 1 ? 'review' : 'reviews'}</Text></View>
+          </View>
+          {reviewError ? <Text style={styles.reviewError}>{reviewError}</Text> : null}
+          {reviewSummary.reviews.length ? reviewSummary.reviews.map((review) => <View key={review._id} style={styles.reviewItem}>
+            <View style={styles.reviewItemHeading}><Text style={styles.reviewAuthor}>{review.reviewer?.name || 'Cardzip member'}</Text><ReviewStars rating={review.rating} size={12} /><Text style={styles.reviewDate}>{new Date(review.createdAt).toLocaleDateString()}</Text></View>
+            <Text style={styles.reviewBody}>{review.comment}</Text>
+          </View>) : <Text style={styles.noReviews}>No reviews yet. Share your experience with this product.</Text>}
+          {!isOwner ? token ? <View style={styles.reviewForm}>
+            <Text style={styles.reviewFormTitle}>{myReview ? 'Update your review' : 'Leave a review'}</Text>
+            <View style={styles.reviewPicker} accessibilityLabel="Your rating">
+              {Array.from({ length: 5 }, (_, index) => <TouchableOpacity key={index} style={styles.reviewStarButton} onPress={() => setReviewRating(index + 1)} accessibilityRole="button" accessibilityLabel={`Rate ${index + 1} out of 5`} accessibilityState={{ selected: reviewRating === index + 1 }}><MaterialCommunityIcons name={index < reviewRating ? 'star' : 'star-outline'} size={23} color={index < reviewRating ? '#D78A1F' : '#C6CFC9'} /></TouchableOpacity>)}
+            </View>
+            <TextInput value={reviewComment} onChangeText={setReviewComment} placeholder="What should other customers know?" placeholderTextColor="#82918B" multiline maxLength={1000} style={styles.reviewInput} accessibilityLabel="Review comment" />
+            <View style={styles.reviewFormFooter}><Text style={styles.reviewCharacterCount}>{reviewComment.length}/1000</Text><TouchableOpacity style={[styles.reviewSubmitButton, (reviewSubmitting || reviewComment.trim().length < 3) && styles.reviewSubmitDisabled]} disabled={reviewSubmitting || reviewComment.trim().length < 3} onPress={() => void submitReview()}>{reviewSubmitting ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.reviewSubmitText}>{myReview ? 'Update review' : 'Post review'}</Text>}</TouchableOpacity></View>
+          </View> : <View style={styles.reviewSignIn}><Text style={styles.noReviews}>Sign in to share your experience.</Text><TouchableOpacity onPress={() => router.push('/(auth)/login' as Href)}><Text style={styles.reviewSignInText}>Sign in</Text></TouchableOpacity></View> : null}
         </View>
         <View style={styles.relatedSection}>
           <Text style={styles.relatedTitle}>Related community listings</Text>
@@ -231,6 +320,33 @@ const styles = StyleSheet.create({
   contactButton: { flex: 1, minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderWidth: 1, borderColor: '#CFE2D6', borderRadius: 7, backgroundColor: '#FFFFFF' },
   contactText: { color: '#087A4C', fontSize: 11, fontWeight: '800' },
   soldMessage: { marginTop: 16, color: '#991B1B', fontSize: 12, fontWeight: '800' },
+  reviewsSection: { gap: 12, marginTop: 24, paddingHorizontal: 18, paddingTop: 20, borderTopWidth: 1, borderTopColor: '#DFE8E2' },
+  reviewsHeading: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 },
+  reviewsEyebrow: { color: '#07804E', fontSize: 9, fontWeight: '800', letterSpacing: 0.8 },
+  reviewsTitle: { marginTop: 4, color: '#0F172A', fontSize: 17, fontWeight: '800' },
+  reviewSummary: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  reviewStars: { flexDirection: 'row', alignItems: 'center', gap: 1 },
+  reviewAverage: { color: '#1E293B', fontSize: 12, fontWeight: '800' },
+  reviewCount: { color: '#64748B', fontSize: 9 },
+  reviewItem: { paddingVertical: 11, borderTopWidth: 1, borderTopColor: '#E6ECE8' },
+  reviewItemHeading: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 7 },
+  reviewAuthor: { color: '#26392E', fontSize: 11, fontWeight: '800' },
+  reviewDate: { marginLeft: 'auto', color: '#718077', fontSize: 9 },
+  reviewBody: { marginTop: 7, color: '#56665C', fontSize: 11, lineHeight: 17 },
+  noReviews: { color: '#64748B', fontSize: 11, lineHeight: 17 },
+  reviewForm: { gap: 10, padding: 13, borderWidth: 1, borderColor: '#DCE6DF', borderRadius: 8, backgroundColor: '#FFFFFF' },
+  reviewFormTitle: { color: '#26392E', fontSize: 12, fontWeight: '800' },
+  reviewPicker: { flexDirection: 'row', gap: 3 },
+  reviewStarButton: { width: 35, height: 35, alignItems: 'center', justifyContent: 'center' },
+  reviewInput: { minHeight: 84, paddingHorizontal: 10, paddingVertical: 9, borderWidth: 1, borderColor: '#DCE6DF', borderRadius: 6, color: '#26392E', fontSize: 11, textAlignVertical: 'top' },
+  reviewFormFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  reviewCharacterCount: { color: '#718077', fontSize: 9 },
+  reviewSubmitButton: { minHeight: 37, paddingHorizontal: 13, alignItems: 'center', justifyContent: 'center', borderRadius: 6, backgroundColor: '#087A4C' },
+  reviewSubmitDisabled: { opacity: 0.55 },
+  reviewSubmitText: { color: '#FFFFFF', fontSize: 10, fontWeight: '800' },
+  reviewSignIn: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  reviewSignInText: { color: '#087A4C', fontSize: 11, fontWeight: '800' },
+  reviewError: { color: '#A32836', fontSize: 10, lineHeight: 15 },
   promoteButton: { minHeight: 44, marginTop: 14, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderWidth: 1, borderColor: '#B9D9C6', borderRadius: 8, backgroundColor: '#EFF8F2' },
   promoteText: { flex: 1, color: '#087A4C', fontSize: 11, fontWeight: '800' },
   relatedSection: { gap: 10, marginTop: 28, paddingHorizontal: 18 },

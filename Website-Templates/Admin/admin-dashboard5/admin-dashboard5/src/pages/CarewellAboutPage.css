@@ -1,0 +1,327 @@
+.carewell-info-page {
+  min-height: 100vh;
+  background: #fff;
+  color: #17243a;
+}
+
+.carewell-about-page .about-hero,
+.carewell-about-page .info-section,
+.carewell-about-page .about-commitments,
+.carewell-about-page .about-next-step {
+  width: min(100% - 48px, 1180px);
+  margin: 0 auto;
+}
+
+.carewell-about-page .about-hero {
+  display: grid;
+  min-height: 430px;
+  grid-template-columns: 1fr 0.95fr;
+  align-items: center;
+  gap: clamp(32px, 6vw, 78px);
+  padding-top: 40px;
+  padding-bottom: 48px;
+}
+
+.info-breadcrumb {
+  display: inline-flex;
+  gap: 8px;
+  margin-bottom: 32px;
+  color: #738399;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.info-breadcrumb span {
+  color: #b0bbc7;
+}
+
+.info-eyebrow {
+  display: block;
+  color: #0e978b;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.carewell-about-page .about-hero h1 {
+  max-width: 570px;
+  margin: 12px 0 16px;
+  color: #17243a;
+  font-size: clamp(36px, 5vw, 58px);
+  letter-spacing: -0.055em;
+  line-height: 1.08;
+}
+
+.carewell-about-page .about-hero-copy > p,
+.carewell-about-page .about-story-copy p,
+.carewell-about-page .info-section-heading > p,
+.carewell-about-page .commitment-card p,
+.carewell-about-page .about-next-step p {
+  color: #718198;
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.carewell-about-page .about-hero-copy > p {
+  max-width: 470px;
+  margin: 0 0 24px;
+}
+
+.info-primary-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 0 17px;
+  border-radius: 8px;
+  background: #0e978b;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+  transition: background 150ms ease;
+}
+
+.info-primary-link:hover {
+  background: #0b8178;
+}
+
+.carewell-about-page .about-hero-image {
+  position: relative;
+  min-width: 0;
+  height: clamp(260px, 32vw, 390px);
+}
+
+.carewell-about-page .about-hero-image > img {
+  width: 100%;
+  height: 100%;
+  border-radius: 18px;
+  object-fit: cover;
+  object-position: center 38%;
+}
+
+.about-image-note {
+  position: absolute;
+  right: -14px;
+  bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 14px 17px;
+  border: 1px solid #e8edf0;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 26px rgba(27, 44, 66, 0.1);
+}
+
+.about-image-note > svg {
+  color: #0e978b;
+}
+
+.about-image-note strong,
+.about-image-note small {
+  display: block;
+}
+
+.about-image-note strong {
+  color: #25364b;
+  font-size: 12px;
+}
+
+.about-image-note small {
+  margin-top: 4px;
+  color: #8290a0;
+  font-size: 10px;
+}
+
+.carewell-about-page .about-story {
+  display: grid;
+  grid-template-columns: 0.9fr 1fr;
+  gap: 48px;
+  padding-top: 64px;
+  padding-bottom: 68px;
+  border-top: 1px solid #edf1f3;
+}
+
+.carewell-about-page .about-section-label > span {
+  color: #0e978b;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.carewell-about-page .about-section-label h2,
+.carewell-about-page .info-section-heading h2,
+.carewell-about-page .about-next-step h2 {
+  margin: 10px 0 0;
+  color: #1b2b40;
+  font-size: clamp(25px, 3.2vw, 36px);
+  letter-spacing: -0.045em;
+  line-height: 1.2;
+}
+
+.carewell-about-page .about-story-copy p {
+  margin: 0 0 14px;
+}
+
+.carewell-about-page .about-story-copy p:last-child {
+  margin-bottom: 0;
+}
+
+.carewell-about-page .about-commitments {
+  padding-top: 60px;
+  padding-bottom: 68px;
+  border-top: 1px solid #edf1f3;
+}
+
+.carewell-about-page .info-section-heading {
+  max-width: 600px;
+  margin: 0 auto 30px;
+  text-align: center;
+}
+
+.carewell-about-page .info-section-heading h2 {
+  margin-top: 10px;
+}
+
+.carewell-about-page .info-section-heading > p {
+  margin: 10px 0 0;
+}
+
+.carewell-about-page .commitment-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.carewell-about-page .commitment-card {
+  padding: 24px;
+  border: 1px solid #e8edf0;
+  border-radius: 13px;
+  background: #fbfcfc;
+}
+
+.carewell-about-page .commitment-card > span {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 11px;
+  background: #e6f5f2;
+  color: #0e978b;
+}
+
+.carewell-about-page .commitment-card h3 {
+  margin: 17px 0 7px;
+  color: #26364a;
+  font-size: 16px;
+}
+
+.carewell-about-page .commitment-card p {
+  margin: 0;
+  font-size: 12px;
+}
+
+.carewell-about-page .about-next-step {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  margin-bottom: 60px;
+  padding: 30px 34px;
+  border-radius: 16px;
+  background: #eff9f7;
+}
+
+.carewell-about-page .about-next-step h2 {
+  font-size: clamp(23px, 3vw, 32px);
+}
+
+.carewell-about-page .about-next-step p {
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+
+@media (max-width: 760px) {
+  .carewell-about-page .about-hero,
+  .carewell-about-page .info-section,
+  .carewell-about-page .about-commitments,
+  .carewell-about-page .about-next-step {
+    width: calc(100% - 40px);
+  }
+
+  .carewell-about-page .about-hero {
+    min-height: 0;
+    grid-template-columns: 1fr;
+    gap: 28px;
+    padding-top: 26px;
+    padding-bottom: 40px;
+  }
+
+  .info-breadcrumb {
+    margin-bottom: 24px;
+  }
+
+  .carewell-about-page .about-hero h1 {
+    max-width: 540px;
+    font-size: clamp(34px, 8vw, 48px);
+  }
+
+  .carewell-about-page .about-hero-copy > p {
+    font-size: 13px;
+  }
+
+  .carewell-about-page .about-hero-image {
+    height: clamp(230px, 58vw, 350px);
+  }
+
+  .about-image-note {
+    right: 10px;
+    bottom: 12px;
+  }
+
+  .carewell-about-page .about-story {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding-top: 42px;
+    padding-bottom: 44px;
+  }
+
+  .carewell-about-page .about-commitments {
+    padding-top: 42px;
+    padding-bottom: 44px;
+  }
+
+  .carewell-about-page .commitment-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .carewell-about-page .commitment-card {
+    padding: 20px;
+  }
+
+  .carewell-about-page .about-next-step {
+    align-items: flex-start;
+    flex-direction: column;
+    margin-bottom: 40px;
+    padding: 24px;
+  }
+}
+
+@media (max-width: 380px) {
+  .carewell-about-page .about-hero,
+  .carewell-about-page .info-section,
+  .carewell-about-page .about-commitments,
+  .carewell-about-page .about-next-step {
+    width: calc(100% - 32px);
+  }
+
+  .about-image-note {
+    right: 7px;
+    left: 7px;
+    gap: 8px;
+    padding: 12px;
+  }
+}

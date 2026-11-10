@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { ArrowUp, LoaderCircle, X } from 'lucide-react'
 import { userApi } from '../services/api'
 import './CommunityChatDialog.css'
 
-export default function CommunityChatDialog({ conversationId, listingTitle, user, onClose }) {
+export default function CommunityChatDialog({ conversationId, listingTitle, user, title = 'Chat with seller', onClose }) {
   const [messages, setMessages] = useState([])
   const [draft, setDraft] = useState('')
   const [loading, setLoading] = useState(true)
@@ -16,6 +17,7 @@ export default function CommunityChatDialog({ conversationId, listingTitle, user
       const result = await userApi.communityConversationMessages(conversationId)
       const nextMessages = Array.isArray(result.data?.messages) ? result.data.messages : []
       setMessages(nextMessages)
+      await userApi.markCommunityConversationRead(conversationId)
       if (nextMessages.length === 0) {
         setDraft((current) => current || `Hi, I'm interested in ${listingTitle}. Is it still available?`)
       }
@@ -59,11 +61,11 @@ export default function CommunityChatDialog({ conversationId, listingTitle, user
 
   const userId = String(user?._id || user?.id || '')
 
-  return (
+  return createPortal(
     <div className="community-chat-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
       <section className="community-chat-dialog" role="dialog" aria-modal="true" aria-labelledby="community-chat-title">
         <header className="community-chat-header">
-          <div><h2 id="community-chat-title">Chat with seller</h2><p>{listingTitle}</p></div>
+          <div><h2 id="community-chat-title">{title}</h2><p>{listingTitle}</p></div>
           <button type="button" aria-label="Close chat" onClick={onClose}><X size={19} /></button>
         </header>
         <div className="community-chat-messages" ref={messageListRef} aria-live="polite">
@@ -82,6 +84,7 @@ export default function CommunityChatDialog({ conversationId, listingTitle, user
           <button type="submit" disabled={!draft.trim() || sending} aria-label="Send message">{sending ? <LoaderCircle size={17} className="community-chat-spinner" /> : <ArrowUp size={18} />}</button>
         </form>
       </section>
-    </div>
+    </div>,
+    document.body,
   )
 }

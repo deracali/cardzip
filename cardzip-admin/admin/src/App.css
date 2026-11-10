@@ -2153,6 +2153,9 @@ html, body, #root {
 .ecom-product-modal-title > svg { color: #059669; }
 .ecom-product-form { overflow-y: auto; }
 .ecom-product-form .form-group { gap: 6px; }
+.ecom-digital-product-fields { display: grid; gap: 18px; }
+.ecom-digital-product-fields > .form-group { margin: 0; }
+.ecom-digital-product-fields > .ecom-product-form-row { margin: 0; }
 .ecom-listing-type-field { position: relative; z-index: 4; }
 .ecom-listing-type-field > span { color: #334155; font-size: 12px; font-weight: 750; }
 .ecom-listing-type-select { position: relative; }
@@ -2205,6 +2208,19 @@ html, body, #root {
 .ecom-upload-image-button.is-disabled { opacity: .5; cursor: wait; pointer-events: none; }
 .ecom-remove-image-button { width: 34px; padding: 0; margin-bottom: 1px; border-color: #fecdd3; color: #be123c; }
 .ecom-product-images-hint { margin-top: -3px; line-height: 1.45; }
+.ecom-product-documents { display: grid; justify-items: start; gap: 10px; margin: 2px 0 4px; padding: 16px; border: 1px solid #dbe4ee; border-radius: 10px; background: #f8fafc; }
+.ecom-product-documents-title { display: grid; gap: 3px; color: #334155; font-size: 12px; font-weight: 700; }
+.ecom-product-documents-title small,.ecom-product-documents > small { color: #94a3b8; font-size: 10px; font-weight: 500; line-height: 1.45; }
+.ecom-product-document { display: flex; width: 100%; align-items: center; gap: 8px; color: #475569; font-size: 12px; }
+.ecom-product-document > span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ecom-product-document > svg { flex: 0 0 auto; color: #047857; }
+.ecom-product-document-status { display: inline-flex; flex: 0 0 auto !important; align-items: center; gap: 3px; color: #047857; font-size: 10px; font-weight: 700; }
+.ecom-product-document-status svg { flex: 0 0 auto; }
+.ecom-product-document-pending { padding: 8px 10px; border: 1px solid #dbe4ee; border-radius: 8px; background: #fff; }
+.ecom-product-document-pending .ecom-product-document-status { max-width: 45%; overflow: hidden; color: #64748b; text-overflow: ellipsis; white-space: nowrap; }
+.ecom-product-document-pending.has-error { border-color: #fecaca; background: #fffafa; }
+.ecom-product-document-pending.has-error .ecom-product-document-status { color: #b91c1c; }
+.ecom-product-document .ecom-remove-image-button { flex: 0 0 auto; }
 .ecommerce-page .trade-history-footer { padding: 12px 20px; border-top: 1px solid #e2e8f0; }
 .ecommerce-page .btn-page { width: auto; min-width: 82px; padding: 0 10px; }
 .ecommerce-page .btn-page:disabled { opacity: 0.45; cursor: not-allowed; }

@@ -1,0 +1,35 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build Digital Asset Hub",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"--prefix",
+				"./digital-asset-hub",
+				"run",
+				"build"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "Start Digital Asset Hub",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"--prefix",
+				"./digital-asset-hub",
+				"run",
+				"dev",
+				"--",
+				"--host",
+				"127.0.0.1"
+			],
+			"isBackground": true,
+			"problemMatcher": []
+		}
+	]
+}

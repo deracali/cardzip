@@ -11,6 +11,7 @@ import {
   createSellerDigitalAssetApi,
   fetchMyDigitalAssetsApi,
   SellerDigitalAssetSubmission,
+  uploadSellerDigitalAssetDocumentApi,
   uploadSellerDigitalAssetImageApi,
   uploadSellerDigitalAssetSourceCodeApi,
 } from '../../../../services/api/storeApi';
@@ -18,11 +19,15 @@ import MarketBottomTab from '../bottomtab/bottomtab';
 
 const MAX_SCREENSHOTS = 20;
 const MAX_IMAGE_SIZE = 8 * 1024 * 1024;
-type ListingType = 'website' | 'app' | 'ios_app';
+const MAX_BUYER_DOCUMENTS = 10;
+const MAX_DOCUMENT_SIZE = 20 * 1024 * 1024;
+type ListingType = 'website' | 'app' | 'ios_app' | 'full_stack' | 'admin';
 const listingTypes: { key: ListingType; label: string }[] = [
   { key: 'website', label: 'Website' },
   { key: 'app', label: 'Android' },
   { key: 'ios_app', label: 'iOS' },
+  { key: 'full_stack', label: 'Full stack' },
+  { key: 'admin', label: 'Admin' },
 ];
 
 const statusLabel: Record<SellerDigitalAssetSubmission['sellerListingStatus'], string> = {
@@ -39,11 +44,14 @@ export default function SellDigitalAssetScreen() {
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
   const [url, setUrl] = useState('');
-  const [websiteUrl, setWebsiteUrl] = useState('');
   const [contact, setContact] = useState('');
-  const [price, setPrice] = useState('');
+  const [usePrice, setUsePrice] = useState('');
+  const [templatePrice, setTemplatePrice] = useState('');
   const [photos, setPhotos] = useState<ImagePicker.ImagePickerAsset[]>([]);
   const [sourceCode, setSourceCode] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
+  const [templateSourceCode, setTemplateSourceCode] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
+  const [documents, setDocuments] = useState<DocumentPicker.DocumentPickerAsset[]>([]);
+  const [templateDocuments, setTemplateDocuments] = useState<DocumentPicker.DocumentPickerAsset[]>([]);
   const [submissions, setSubmissions] = useState<SellerDigitalAssetSubmission[]>([]);
   const [saving, setSaving] = useState(false);
   const [progress, setProgress] = useState('');
@@ -92,7 +100,7 @@ export default function SellDigitalAssetScreen() {
     setError('');
   };
 
-  const selectSourceCode = async () => {
+  const selectSourceCode = async (option: 'use' | 'template') => {
     const result = await DocumentPicker.getDocumentAsync({
       type: ['application/zip', 'application/x-zip-compressed'],
       copyToCacheDirectory: true,
@@ -103,7 +111,30 @@ export default function SellDigitalAssetScreen() {
       setError('Choose a ZIP source-code archive up to 100 MB.');
       return;
     }
-    setSourceCode(selected);
+    if (option === 'use') setSourceCode(selected);
+    else setTemplateSourceCode(selected);
+    setError('');
+  };
+
+  const selectDocuments = async (option: 'use' | 'template') => {
+    const current = option === 'use' ? documents : templateDocuments;
+    const remaining = MAX_BUYER_DOCUMENTS - current.length;
+    if (remaining <= 0) {
+      setError(`You can add up to ${MAX_BUYER_DOCUMENTS} files to this option.`);
+      return;
+    }
+    const result = await DocumentPicker.getDocumentAsync({
+      multiple: true,
+      copyToCacheDirectory: true,
+    });
+    if (result.canceled) return;
+    if (current.length + result.assets.length > MAX_BUYER_DOCUMENTS
+      || result.assets.some((file) => typeof file.size === 'number' && file.size > MAX_DOCUMENT_SIZE)) {
+      setError('Add no more than 10 buyer/legal documents, up to 20 MB each.');
+      return;
+    }
+    if (option === 'use') setDocuments((items) => [...items, ...result.assets]);
+    else setTemplateDocuments((items) => [...items, ...result.assets]);
     setError('');
   };
 
@@ -115,20 +146,27 @@ export default function SellDigitalAssetScreen() {
       ]);
       return;
     }
-    if (!name.trim() || !description.trim() || !url.trim() || !contact.trim() || !price.trim()) {
-      setError('Complete the listing details, URL, contact, and price.');
+    if (!name.trim() || !description.trim() || !url.trim() || !contact.trim()) {
+      setError('Complete the listing details, URL, and contact.');
       return;
     }
-    if (Number(price) < 100 || Number(price) > 5000000 || !Number.isSafeInteger(Number(price))) {
-      setError('Enter a whole-naira price between ₦100 and ₦5,000,000.');
+    const prices = [usePrice, templatePrice].map((value) => Number(value || 0));
+    if (prices.some((value) => !Number.isSafeInteger(value) || value < 0 || value > 5000000)
+      || prices.some((value) => value > 0 && value < 100)
+      || prices.every((value) => value === 0)) {
+      setError('Set at least one whole-naira rental or full-template price between ₦100 and ₦5,000,000.');
       return;
     }
     if (photos.length < 10) {
       setError('Add at least 10 screenshots before submitting your listing.');
       return;
     }
-    if (!sourceCode) {
-      setError('Choose the website or app source-code ZIP before submitting.');
+    if (prices[0] > 0 && !sourceCode) {
+      setError('Choose a rental/use source-code ZIP for the use option.');
+      return;
+    }
+    if (prices[1] > 0 && !templateSourceCode) {
+      setError('Choose a full-template source-code ZIP for the template option.');
       return;
     }
     setSaving(true);
@@ -143,36 +181,70 @@ export default function SellDigitalAssetScreen() {
           mimeType: photos[index].mimeType,
         }));
       }
-      setProgress('Uploading source-code ZIP…');
-      const sourceCodeUrl = await uploadSellerDigitalAssetSourceCodeApi(token, {
-        uri: sourceCode.uri,
-        name: sourceCode.name,
-        mimeType: sourceCode.mimeType,
-      });
+      const uploadArchive = async (
+        file: DocumentPicker.DocumentPickerAsset | null,
+        label: string,
+      ): Promise<{ sourceCodeUrl: string; sourceCodeCloudinaryUrl?: string } | null> => {
+        if (!file) return null;
+        setProgress(`Uploading ${label} source-code ZIP…`);
+        return uploadSellerDigitalAssetSourceCodeApi(token, {
+          uri: file.uri,
+          name: file.name,
+          mimeType: file.mimeType,
+        });
+      };
+      const rentalArchive = await uploadArchive(sourceCode, 'rental');
+      const fullTemplateArchive = await uploadArchive(templateSourceCode, 'full-template');
+      const uploadDocuments = async (files: DocumentPicker.DocumentPickerAsset[], label: string) => {
+        const uploaded = [];
+        for (const [index, file] of files.entries()) {
+          setProgress(`Uploading ${label} document ${index + 1} of ${files.length}…`);
+          uploaded.push(await uploadSellerDigitalAssetDocumentApi(token, {
+            uri: file.uri,
+            name: file.name,
+            mimeType: file.mimeType,
+          }));
+        }
+        return uploaded;
+      };
+      const uploadedDocuments = await uploadDocuments(documents, 'buyer');
+      const uploadedTemplateDocuments = await uploadDocuments(templateDocuments, 'full-template legal');
       setProgress('Submitting your listing…');
       const submission = await createSellerDigitalAssetApi(token, {
         name: name.trim(),
         productType: type,
         category: category.trim(),
         description: description.trim(),
-        price: Number(price),
+        price: prices[0] || prices[1],
+        usePrice: prices[0],
+        templatePrice: prices[1],
         sellerContact: contact.trim(),
-        sourceCodeUrl,
-        ...(type === 'website' ? { websiteUrl: url.trim() } : {
-          ...(websiteUrl.trim() ? { websiteUrl: websiteUrl.trim() } : {}),
-          ...(type === 'app' ? { apkUrl: url.trim() } : { iosAppUrl: url.trim() }),
-        }),
+        ...(rentalArchive ?? {}),
+        ...(fullTemplateArchive?.sourceCodeUrl ? {
+          templateSourceCodeUrl: fullTemplateArchive.sourceCodeUrl,
+          templateSourceCodeCloudinaryUrl: fullTemplateArchive.sourceCodeCloudinaryUrl,
+        } : {}),
+        documents: uploadedDocuments,
+        templateDocuments: uploadedTemplateDocuments,
+        ...(type === 'website' || type === 'full_stack' || type === 'admin'
+          ? { websiteUrl: url.trim() }
+          : type === 'app'
+            ? { apkUrl: url.trim() }
+            : { iosAppUrl: url.trim() }),
         screenshots,
       });
       setName('');
       setCategory('');
       setDescription('');
       setUrl('');
-      setWebsiteUrl('');
       setContact('');
-      setPrice('');
+      setUsePrice('');
+      setTemplatePrice('');
       setPhotos([]);
       setSourceCode(null);
+      setTemplateSourceCode(null);
+      setDocuments([]);
+      setTemplateDocuments([]);
       setSubmissions((current) => [submission, ...current]);
       Alert.alert('Submitted for review', 'Admin approval takes 1–3 business days. Your listing will appear in the marketplace after its details and source-code ZIP are reviewed and approved.');
     } catch (requestError) {
@@ -183,7 +255,7 @@ export default function SellDigitalAssetScreen() {
     }
   };
 
-  const urlLabel = type === 'website' ? 'Website URL' : type === 'app' ? 'Android APK URL' : 'iOS app URL';
+  const urlLabel = type === 'website' || type === 'full_stack' || type === 'admin' ? 'Website URL' : type === 'app' ? 'Android APK URL' : 'iOS app URL';
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -193,26 +265,30 @@ export default function SellDigitalAssetScreen() {
         <View style={styles.iconButton} />
       </View>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.hero}><Text style={styles.eyebrow}>SELL WITH CARDZIP</Text><Text style={styles.heroTitle}>Reach digital buyers</Text><Text style={styles.heroCopy}>Submit your website or app together with its source-code ZIP. Admin approval takes 1–3 business days. We publish only after reviewing the listing and verifying its source code.</Text></View>
+        <View style={styles.hero}><Text style={styles.eyebrow}>SELL WITH CARDZIP</Text><Text style={styles.heroTitle}>Reach digital buyers</Text><Text style={styles.heroCopy}>Submit a website, app, full-stack project, or admin dashboard with separate rental and full-template options. Admin approval takes 1–3 business days.</Text></View>
         <View style={styles.payoutNote}><Feather name="clock" size={18} color="#087A4C" /><Text style={styles.payoutCopy}><Text style={styles.payoutStrong}>You receive 70% of each successful sale; Cardzip retains 30%.</Text> Your share is credited to your Cardzip wallet for normal withdrawal. Digital-listing withdrawals take 1–2 business days.</Text></View>
         <View style={styles.card}>
           <View style={styles.typePicker}>{listingTypes.map((item) => <TouchableOpacity key={item.key} style={[styles.typeButton, type === item.key && styles.typeButtonActive]} onPress={() => {
             if (type !== item.key) {
               setType(item.key);
               setUrl('');
-              if (item.key === 'website') setWebsiteUrl('');
             }
           }}><Text style={[styles.typeButtonText, type === item.key && styles.typeButtonTextActive]}>{item.label}</Text></TouchableOpacity>)}</View>
           <Text style={styles.fieldLabel}>Listing name</Text><TextInput style={styles.input} value={name} onChangeText={setName} maxLength={160} placeholder="Website or app name" />
           <Text style={styles.fieldLabel}>Category</Text><TextInput style={styles.input} value={category} onChangeText={setCategory} maxLength={80} placeholder="e.g. Education, productivity" />
           <Text style={styles.fieldLabel}>Description</Text><TextInput style={[styles.input, styles.multiline]} value={description} onChangeText={setDescription} maxLength={5000} multiline textAlignVertical="top" placeholder="Describe the app or website and what buyers get." />
           <Text style={styles.fieldLabel}>{urlLabel}</Text><TextInput style={styles.input} value={url} onChangeText={setUrl} autoCapitalize="none" keyboardType="url" placeholder="https://…" />
-          {type !== 'website' ? <><Text style={styles.fieldLabel}>Website URL (optional)</Text><TextInput style={styles.input} value={websiteUrl} onChangeText={setWebsiteUrl} autoCapitalize="none" keyboardType="url" placeholder="https://your-app-website.com" /></> : null}
           <Text style={styles.fieldLabel}>Contact details for Cardzip review</Text><TextInput style={styles.input} value={contact} onChangeText={setContact} maxLength={120} placeholder="Email or phone (not shown to buyers)" /><Text style={styles.helper}>This contact information is kept private and is not displayed to buyers.</Text>
-          <Text style={styles.fieldLabel}>Sale price (NGN)</Text><TextInput style={styles.input} value={price} onChangeText={setPrice} keyboardType="number-pad" placeholder="Minimum ₦100" />
-          <Text style={styles.estimate}>{Number(price) >= 100 ? `Your share after payment: ${formatNaira(Math.floor(Number(price) * 0.7))}` : 'Your seller share is 70% of the sale price.'}</Text>
-          <TouchableOpacity style={styles.uploadButton} disabled={saving} onPress={() => void selectSourceCode()}><Feather name="archive" size={16} color="#087A4C" /><Text style={styles.uploadText}>{sourceCode ? sourceCode.name : 'Choose source-code ZIP (required)'}</Text></TouchableOpacity>
-          <Text style={styles.helper}>A source-code ZIP is required for review. ZIP archive up to 100 MB. Buyers can download it only after the listing is approved and payment is complete.</Text>
+          <Text style={styles.fieldLabel}>Rental / use price (NGN)</Text><TextInput style={styles.input} value={usePrice} onChangeText={setUsePrice} keyboardType="number-pad" placeholder="Optional · minimum ₦100" />
+          <Text style={styles.estimate}>{Number(usePrice) >= 100 ? `Your share: ${formatNaira(Math.floor(Number(usePrice) * 0.7))} per purchase.` : 'Optional; your seller share is 70%.'}</Text>
+          <Text style={styles.fieldLabel}>Full-template price (NGN)</Text><TextInput style={styles.input} value={templatePrice} onChangeText={setTemplatePrice} keyboardType="number-pad" placeholder="Optional · minimum ₦100" />
+          <Text style={styles.estimate}>{Number(templatePrice) >= 100 ? `Your share: ${formatNaira(Math.floor(Number(templatePrice) * 0.7))} per purchase.` : 'Optional; includes the full project and legal documents.'}</Text>
+          {Number(usePrice) > 0 ? <><TouchableOpacity style={styles.uploadButton} disabled={saving} onPress={() => void selectSourceCode('use')}><Feather name="archive" size={16} color="#087A4C" /><Text style={styles.uploadText}>{sourceCode ? sourceCode.name : 'Choose rental / use ZIP (required)'}</Text></TouchableOpacity><Text style={styles.helper}>Rental/use buyers can download this ZIP after successful payment. Up to 100 MB.</Text></> : null}
+          {Number(templatePrice) > 0 ? <><TouchableOpacity style={styles.uploadButton} disabled={saving} onPress={() => void selectSourceCode('template')}><Feather name="archive" size={16} color="#087A4C" /><Text style={styles.uploadText}>{templateSourceCode ? templateSourceCode.name : 'Choose full-template ZIP (required)'}</Text></TouchableOpacity><Text style={styles.helper}>Full-template buyers can download this ZIP after successful payment. Up to 100 MB.</Text></> : null}
+          <TouchableOpacity style={styles.uploadButton} disabled={saving} onPress={() => void selectDocuments('use')}><Feather name="file-text" size={16} color="#087A4C" /><Text style={styles.uploadText}>Add buyer files ({documents.length}/{MAX_BUYER_DOCUMENTS})</Text></TouchableOpacity>
+          {documents.map((file, index) => <Text style={styles.helper} key={`buyer-${file.name}-${index}`}>{file.name}</Text>)}
+          <TouchableOpacity style={styles.uploadButton} disabled={saving} onPress={() => void selectDocuments('template')}><Feather name="file-text" size={16} color="#087A4C" /><Text style={styles.uploadText}>Add full-template legal documents ({templateDocuments.length}/{MAX_BUYER_DOCUMENTS})</Text></TouchableOpacity>
+          {templateDocuments.map((file, index) => <Text style={styles.helper} key={`legal-${file.name}-${index}`}>{file.name}</Text>)}
           <TouchableOpacity style={styles.uploadButton} disabled={saving} onPress={() => void selectPhotos()}><Feather name="image" size={17} color="#087A4C" /><Text style={styles.uploadText}>Choose screenshots ({photos.length}/20)</Text></TouchableOpacity>
           <Text style={styles.helper}>Add 10–20 screenshots. Buyers can see the gallery only after they pay. Each image must be 8 MB or smaller.</Text>
           <View style={styles.photoGrid}>{photos.map((photo, index) => <Image key={`${photo.uri}-${index}`} source={{ uri: photo.uri }} style={styles.photo} />)}</View>
@@ -220,7 +296,7 @@ export default function SellDigitalAssetScreen() {
           {progress ? <Text style={styles.progress}>{progress}</Text> : null}
           <TouchableOpacity style={[styles.submitButton, saving && styles.disabledButton]} disabled={saving} onPress={() => void submit()}>{saving ? <ActivityIndicator color="#FFFFFF" /> : <><Text style={styles.submitText}>Submit for review</Text><Feather name="arrow-right" size={16} color="#FFFFFF" /></>}</TouchableOpacity>
         </View>
-        <View style={styles.submissions}><Text style={styles.sectionTitle}>Your submissions</Text>{submissions.length === 0 ? <Text style={styles.helper}>Your review status will appear here.</Text> : submissions.map((item) => <View key={item._id} style={styles.submissionRow}><View style={styles.submissionCopy}><Text style={styles.submissionName}>{item.name}</Text><Text style={styles.helper}>{item.productType} · {formatNaira(item.price)}</Text>{item.sellerReviewNote ? <Text style={styles.helper}>{item.sellerReviewNote}</Text> : null}</View><Text style={[styles.status, item.sellerListingStatus === 'approved' && styles.approved, item.sellerListingStatus === 'rejected' && styles.rejected]}>{statusLabel[item.sellerListingStatus]}</Text></View>)}</View>
+        <View style={styles.submissions}><Text style={styles.sectionTitle}>Your submissions</Text>{submissions.length === 0 ? <Text style={styles.helper}>Your review status will appear here.</Text> : submissions.map((item) => <View key={item._id} style={styles.submissionRow}><View style={styles.submissionCopy}><Text style={styles.submissionName}>{item.name}</Text><Text style={styles.helper}>{item.productType} · Use {formatNaira(item.usePrice || item.price)}{Number(item.templatePrice) > 0 ? ` · Full template ${formatNaira(Number(item.templatePrice))}` : ''}</Text>{item.sellerReviewNote ? <Text style={styles.helper}>{item.sellerReviewNote}</Text> : null}</View><Text style={[styles.status, item.sellerListingStatus === 'approved' && styles.approved, item.sellerListingStatus === 'rejected' && styles.rejected]}>{statusLabel[item.sellerListingStatus]}</Text></View>)}</View>
       </ScrollView>
       <MarketBottomTab activeTab="Store" />
     </SafeAreaView>

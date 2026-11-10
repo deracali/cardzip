@@ -139,10 +139,20 @@ export default function AdvertiseScreen() {
         )}
         <View style={styles.campaigns}>
           <Text style={styles.sectionTitle}>Your campaigns</Text>
-          {campaigns.map((campaign) => <View key={campaign._id} style={styles.campaignCard}>
-            {campaign.imageUrl ? <Image source={{ uri: campaign.imageUrl }} style={styles.campaignImage} /> : null}
-            <View style={styles.campaignCopy}><Text style={styles.campaignTitle}>{campaign.title}</Text><Text style={styles.optionHint}>{campaign.placementName} · {campaign.months} month(s)</Text><Text style={styles.status}>{campaign.status.replaceAll('_', ' ')}</Text><Text style={styles.optionHint}>Scheduled {new Date(campaign.startAt).toLocaleDateString()} – {new Date(campaign.endAt).toLocaleDateString()}</Text><Text style={styles.performanceMetrics}>{campaign.impressions ?? 0} unique impressions  ·  {campaign.clicks ?? 0} unique clicks  ·  {campaign.clickThroughRate ?? 0}% CTR</Text></View>
-          </View>)}
+          {campaigns.map((campaign) => {
+            const displayStatus = campaign.displayStatus || campaign.status.replaceAll('_', ' ');
+            return <View key={campaign._id} style={styles.campaignCard}>
+              {campaign.imageUrl ? <Image source={{ uri: campaign.imageUrl }} style={styles.campaignImage} /> : null}
+              <View style={styles.campaignCopy}>
+                <Text style={styles.campaignTitle}>{campaign.title}</Text>
+                <Text style={styles.optionHint}>{campaign.placementName} · {campaign.months} month(s)</Text>
+                <Text style={[styles.status, displayStatus === 'expired' && styles.expiredStatus]}>{displayStatus === 'expired' ? 'Expired' : displayStatus}</Text>
+                <Text style={styles.optionHint}>Scheduled {new Date(campaign.startAt).toLocaleDateString()} – {new Date(campaign.endAt).toLocaleDateString()}</Text>
+                <Text style={styles.analyticsLabel}>ANALYTICS</Text>
+                <Text style={styles.performanceMetrics}>{campaign.impressions ?? 0} unique impressions  ·  {campaign.clicks ?? 0} unique clicks  ·  {campaign.clickThroughRate ?? 0}% CTR</Text>
+              </View>
+            </View>;
+          })}
           {campaigns.length === 0 && (!loading || !token) ? <Text style={styles.optionHint}>Your booked campaigns will appear here.</Text> : null}
         </View>
       </ScrollView>
@@ -189,5 +199,7 @@ const styles = StyleSheet.create({
   campaignCopy: { flex: 1, gap: 3 },
   campaignTitle: { color: '#1D3024', fontSize: 12, fontWeight: '800' },
   performanceMetrics: { marginTop: 5, color: '#087A4C', fontSize: 10, fontWeight: '700' },
+  analyticsLabel: { marginTop: 5, color: '#6D7A71', fontSize: 8, fontWeight: '800', letterSpacing: 0.8 },
   status: { alignSelf: 'flex-start', marginTop: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 20, overflow: 'hidden', backgroundColor: '#FFF6DF', color: '#996C09', fontSize: 9, fontWeight: '800' },
+  expiredStatus: { backgroundColor: '#EEF2EF', color: '#57675D' },
 });

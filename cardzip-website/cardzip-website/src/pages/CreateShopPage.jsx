@@ -50,6 +50,7 @@ export default function CreateShopPage({ onNavigate }) {
     body.append('address', address)
     body.append('contactPhone', contactPhone)
     body.append('description', description)
+    if (existingShop?._id) body.append('applicationId', existingShop._id)
     if (banner) body.append('banner', banner)
     setLoading(true)
     setError('')
@@ -68,6 +69,16 @@ export default function CreateShopPage({ onNavigate }) {
       <div className="shop-market-shell shop-create-shell">
         <button type="button" className="shop-market-back" onClick={() => onNavigate?.('/shops')}><ArrowLeft size={15} /> Back to shops</button>
         <header className="shop-create-heading"><span className="shop-market-eyebrow">{existingShop ? 'UPDATE YOUR CARDZIP APPLICATION' : 'GET STARTED WITH CARDZIP'}</span><h1>{existingShop ? 'Correct your application' : 'Create a store or business'}</h1><p>{existingShop ? 'Your submitted details are prefilled. Correct the items called out by the reviewer, then send the application back for review.' : 'Choose how customers will interact with you. Our team reviews each application before it goes live.'}</p></header>
+        {existingShop && <button type="button" className="shop-market-secondary-button" onClick={() => {
+          setExistingShop(null)
+          setShopType('store')
+          setBusinessName('')
+          setAddress('')
+          setContactPhone('')
+          setDescription('')
+          setBanner(null)
+          setAddressAcknowledged(false)
+        }}>Start a separate profile application</button>}
         {existingShop?.reviewNote && <section className="shop-correction-note" role="note"><AlertCircle size={18} /><div><strong>Changes requested</strong><p>{existingShop.reviewNote}</p><small>Your submitted information is prefilled. Update the requested items and leave the other details unchanged.</small></div></section>}
         <form className="shop-market-form" onSubmit={submitApplication}>
           <div className="shop-form-intro"><span className="shop-form-icon"><Store size={20} /></span><div><strong>Profile application</strong><small>Fields marked required are needed for verification.</small></div></div>

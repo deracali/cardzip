@@ -24,6 +24,7 @@ import MyTasksPage from './pages/MyTasksPage'
 import MyAttendancePage from './pages/MyAttendancePage'
 import ExpensesPage from './pages/ExpensesPage'
 import LetterheadPage from './pages/LetterheadPage'
+import ServiceVisibilityPage from './pages/ServiceVisibilityPage'
 import KycReviewsPage from './pages/KycReviewsPage'
 import WhatsAppInboxPage from './pages/WhatsAppInboxPage'
 import CardzipLoader from './components/CardzipLoader'
@@ -141,6 +142,8 @@ function App() {
         return <ExpensesPage />
       case 'Company Letterhead':
         return <LetterheadPage />
+      case 'Service Visibility':
+        return <ServiceVisibilityPage />
       case 'Profile':
         return <ProfilePage admin={admin} />
       default:

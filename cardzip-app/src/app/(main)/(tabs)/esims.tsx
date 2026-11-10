@@ -21,6 +21,7 @@ import * as ExpoLinking from 'expo-linking';
 import { isDefinitivePaystackFailure, openPaystackCheckout, verifyPaystackUntilSettled } from '../../../services/api/paystackFlow';
 import { useAppDispatch, useAppSelector } from '../../../store';
 import { fetchWalletBalance } from '../../../store/slices/walletSlice';
+import useFeatureSettings from '../../../hooks/useFeatureSettings';
 import {
   cancelRental,
   fetchActiveRentals,
@@ -84,6 +85,24 @@ const isFailedPaymentError = (error: unknown): error is NumberHubApiError =>
   error.data.status === 'failed';
 
 export default function NumberHubScreen() {
+  const { featureSettings, error, loading } = useFeatureSettings();
+
+  if (loading) {
+    return <SafeAreaView style={styles.container}><ActivityIndicator color={COLORS.accentGreen} /></SafeAreaView>;
+  }
+  if (!featureSettings?.esimEnabled) {
+    return (
+      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 24 }]}>
+        <Text style={{ color: COLORS.textDark, fontSize: 18, fontWeight: '700', textAlign: 'center' }}>
+          {error || 'eSIM and virtual-number services are temporarily unavailable.'}
+        </Text>
+      </SafeAreaView>
+    );
+  }
+  return <NumberHubContent />;
+}
+
+function NumberHubContent() {
   const { tab } = useLocalSearchParams<{ tab?: string }>();
   const dispatch = useAppDispatch();
   const token = useAppSelector((state) => state.auth.token);

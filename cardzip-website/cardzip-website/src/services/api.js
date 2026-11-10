@@ -1,6 +1,9 @@
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api').replace(/\/+$/, '')
 export const API_ORIGIN = new URL(API_BASE_URL).origin
-const getPaystackCallbackUrl = () => new URL('/payment/callback', window.location.origin).toString()
+const getPaystackCallbackUrl = () => (
+  import.meta.env.VITE_PAYSTACK_CALLBACK_URL?.trim()
+  || new URL('/payment/callback', window.location.origin).toString()
+)
 const USER_TOKEN_KEY = 'cardzip-user-token'
 const ANALYTICS_VISITOR_ID_KEY = 'cardzip-campaign-analytics-visitor'
 const WALLET_CHANGE_EVENT = 'cardzip-wallet-changed'
@@ -70,7 +73,19 @@ export async function apiRequest(path, { method = 'GET', body, auth = true } = {
   return result
 }
 
+const downloadBlob = (blob, filename) => {
+  const objectUrl = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = objectUrl
+  link.download = filename
+  document.body.append(link)
+  link.click()
+  link.remove()
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
+}
+
 export const userApi = {
+  featureSettings: () => apiRequest('/users/features', { auth: false }),
   login: (body) => apiRequest('/users/login', { method: 'POST', body, auth: false }),
   googleSignIn: (body) => apiRequest('/users/google', { method: 'POST', body, auth: false }),
   signup: (body) => apiRequest('/users/signup', { method: 'POST', body, auth: false }),
@@ -99,15 +114,44 @@ export const userApi = {
     body.append('sourceCode', file)
     return apiRequest('/store/digital-assets/source-code', { method: 'POST', body })
   },
+  uploadSellerDigitalAssetDocument: (file) => {
+    const body = new FormData()
+    body.append('document', file)
+    return apiRequest('/store/digital-assets/documents', { method: 'POST', body })
+  },
   createSellerDigitalAsset: (body) => apiRequest('/store/digital-assets', { method: 'POST', body }),
   myDigitalAssets: () => apiRequest('/store/digital-assets/mine'),
+  myDigitalProductPayments: (productId) => apiRequest(`/payments/digital-products/${encodeURIComponent(productId)}`),
+  downloadDigitalProductFile: async (productId, fileType, documentIndex, filename, reference) => {
+    if (!reference) throw new Error('The verified payment reference is missing. Return to the product page and check your purchase.')
+    const token = getUserToken()
+    const path = `/payments/digital-products/${encodeURIComponent(productId)}/download/${encodeURIComponent(fileType)}/${encodeURIComponent(documentIndex ?? 0)}`
+    let response
+    try {
+      response = await fetch(`${API_BASE_URL}${path}`, {
+        method: 'POST',
+        body: new Blob([JSON.stringify({ reference })], { type: 'application/json' }),
+        headers: {
+          Accept: 'application/octet-stream',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      })
+    } catch (error) {
+      throw new Error(`Could not connect to Cardzip API at ${API_BASE_URL}: ${error.message}`, { cause: error })
+    }
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}))
+      throw new Error(result.message || `Could not download this file (${response.status}).`)
+    }
+    downloadBlob(await response.blob(), filename)
+  },
   initializeDigitalProductPayment: (productId, purchaseType) => apiRequest('/payments/paystack/initialize', {
     method: 'POST',
     body: { purpose: 'digital_product', productId, purchaseType, callbackUrl: getPaystackCallbackUrl() },
   }),
-  initializeSellerDigitalAssetPayment: (productId) => apiRequest('/payments/paystack/initialize', {
+  initializeSellerDigitalAssetPayment: (productId, purchaseType = 'use') => apiRequest('/payments/paystack/initialize', {
     method: 'POST',
-    body: { purpose: 'seller_digital_asset', productId, callbackUrl: getPaystackCallbackUrl() },
+    body: { purpose: 'seller_digital_asset', productId, purchaseType, callbackUrl: getPaystackCallbackUrl() },
   }),
   shops: (query = '') => apiRequest(`/store/shops${query}`, { auth: false }),
   shop: (slug) => apiRequest(`/store/shops/${encodeURIComponent(slug)}`, { auth: false }),
@@ -143,6 +187,8 @@ export const userApi = {
     return apiRequest('/store/my-shop/products/image', { method: 'POST', body })
   },
   createShopProduct: (body) => apiRequest('/store/my-shop/products', { method: 'POST', body }),
+  deleteShopProduct: (productId) => apiRequest(`/store/my-shop/products/${encodeURIComponent(productId)}`, { method: 'DELETE' }),
+  shopProduct: (shopSlug, productSlug) => apiRequest(`/store/shops/${encodeURIComponent(shopSlug)}/products/${encodeURIComponent(productSlug)}`, { auth: false }),
   communityListings: (query = '') => apiRequest(`/community-market/listings${query}`, { auth: false }),
   createCommunityListing: (body) => apiRequest('/community-market/listings', { method: 'POST', body }),
   updateCommunityListing: (id, body) => apiRequest(`/community-market/listings/${encodeURIComponent(id)}`, { method: 'PATCH', body }),
@@ -150,8 +196,13 @@ export const userApi = {
   updateCommunityListingSold: (id, isSold) => apiRequest(`/community-market/listings/${encodeURIComponent(id)}/status`, { method: 'PATCH', body: { isSold } }),
   communityListing: (id) => apiRequest(`/community-market/listings/${encodeURIComponent(id)}`, { auth: false }),
   relatedCommunityListings: (id) => apiRequest(`/community-market/listings/${encodeURIComponent(id)}/related`, { auth: false }),
+  communityListingReviews: (id) => apiRequest(`/community-market/listings/${encodeURIComponent(id)}/reviews`, { auth: false }),
+  myCommunityListingReview: (id) => apiRequest(`/community-market/listings/${encodeURIComponent(id)}/reviews/mine`),
+  saveCommunityListingReview: (id, body) => apiRequest(`/community-market/listings/${encodeURIComponent(id)}/reviews`, { method: 'POST', body }),
   startCommunityConversation: (listingId) => apiRequest('/community-market/conversations', { method: 'POST', body: { listingId } }),
+  myCommunityConversations: () => apiRequest('/community-market/conversations'),
   communityConversationMessages: (conversationId) => apiRequest(`/community-market/conversations/${encodeURIComponent(conversationId)}/messages`),
+  markCommunityConversationRead: (conversationId) => apiRequest(`/community-market/conversations/${encodeURIComponent(conversationId)}/read`, { method: 'POST' }),
   sendCommunityMessage: (conversationId, body) => apiRequest(`/community-market/conversations/${encodeURIComponent(conversationId)}/messages`, { method: 'POST', body: { body } }),
   communityPromotionPricing: () => apiRequest('/community-market/promotions/pricing', { auth: false }),
   initializeCommunityPromotionPayment: (listingId, duration) => apiRequest('/payments/paystack/initialize', {

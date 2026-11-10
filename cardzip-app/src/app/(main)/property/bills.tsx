@@ -20,6 +20,7 @@ import * as Linking from 'expo-linking';
 import { isDefinitivePaystackFailure, openPaystackCheckout } from '../../../services/api/paystackFlow';
 import { useAppDispatch, useAppSelector } from '../../../store';
 import { fetchWalletBalance } from '../../../store/slices/walletSlice';
+import useFeatureSettings from '../../../hooks/useFeatureSettings';
 
 const API_BASE_URL = `${API_ROOT_URL}/api`;
 const configuredPaymentCallbackUrl = process.env.EXPO_PUBLIC_PAYSTACK_CALLBACK_URL?.trim();
@@ -118,6 +119,24 @@ const AMOUNT_PRESETS = [
 ];
 
 export default function BillsScreen() {
+  const { featureSettings, error, loading } = useFeatureSettings();
+
+  if (loading) {
+    return <SafeAreaView style={[styles.safeArea, styles.container]}><ActivityIndicator color="#16A34A" /></SafeAreaView>;
+  }
+  if (!featureSettings?.vtpassBillsEnabled) {
+    return (
+      <SafeAreaView style={[styles.safeArea, styles.container, { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }]}>
+        <Text style={{ color: '#0D1527', fontSize: 18, fontWeight: '700', textAlign: 'center' }}>
+          {error || 'VTPass bill payments are temporarily unavailable.'}
+        </Text>
+      </SafeAreaView>
+    );
+  }
+  return <BillsScreenContent />;
+}
+
+function BillsScreenContent() {
   const { width, height } = useWindowDimensions();
   const dispatch = useAppDispatch();
   const token = useAppSelector((state) => state.auth.token);

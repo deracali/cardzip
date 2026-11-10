@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { AlertCircle, Check, ChevronDown, ImagePlus, MapPin, Package, Pencil, Plus, Search, ShoppingBag, Sparkles, Trash2, X } from 'lucide-react'
+import { AlertCircle, Check, ChevronDown, FileText, ImagePlus, MapPin, Package, Pencil, Plus, Search, ShoppingBag, Sparkles, Trash2, Upload, X } from 'lucide-react'
 import { adminApi } from '../services/api'
 import CustomSelect from '../components/CustomSelect'
 
@@ -16,6 +16,11 @@ const emptyProduct = {
   price: '',
   discountPercent: '',
   sourceCodeUrl: '',
+  sourceCodeCloudinaryUrl: '',
+  templateSourceCodeUrl: '',
+  templateSourceCodeCloudinaryUrl: '',
+  documents: [],
+  templateDocuments: [],
   websiteUrl: '',
   apkUrl: '',
   iosAppUrl: '',
@@ -33,9 +38,11 @@ const emptyProduct = {
 
 const productTypeOptions = [
   { value: 'product', label: 'Physical product', description: 'A shippable item in the store.' },
-  { value: 'website', label: 'Website', description: 'A live website with use and template options.' },
+  { value: 'website', label: 'Web', description: 'A live website with use and template options.' },
   { value: 'app', label: 'Android app', description: 'An Android app with a hosted APK.' },
   { value: 'ios_app', label: 'iOS app', description: 'An iOS app with a hosted access link.' },
+  { value: 'full_stack', label: 'Full stack', description: 'A full-stack web application with backend and setup options.' },
+  { value: 'admin', label: 'Admin', description: 'An admin dashboard with hosted access and setup options.' },
 ]
 
 const formatNaira = (amount) => new Intl.NumberFormat('en-NG', {
@@ -99,10 +106,15 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
   const [savingProduct, setSavingProduct] = useState(false)
   const [uploadingImageIndex, setUploadingImageIndex] = useState(null)
   const [uploadingSourceCode, setUploadingSourceCode] = useState(false)
+  const [uploadingTemplateSourceCode, setUploadingTemplateSourceCode] = useState(false)
+  const [uploadingDocuments, setUploadingDocuments] = useState(false)
+  const [documentUploadFeedback, setDocumentUploadFeedback] = useState([])
   const [productError, setProductError] = useState('')
   const [notice, setNotice] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
   const [products, setProducts] = useState([])
+  const [productCategories, setProductCategories] = useState([])
+  const [addingProductCategory, setAddingProductCategory] = useState(false)
   const [productPagination, setProductPagination] = useState({ page: 1, totalPages: 1, totalItems: 0 })
   const [productPage, setProductPage] = useState(1)
   const [productSearch, setProductSearch] = useState('')
@@ -144,9 +156,9 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
   const [adCampaignPagination, setAdCampaignPagination] = useState({ page: 1, totalPages: 0, totalItems: 0 })
   const [adCampaignPage, setAdCampaignPage] = useState(1)
   const [communityPromotionPrices, setCommunityPromotionPrices] = useState([
-    { key: 'day', label: '1 day', days: 1, price: 0 },
-    { key: 'week', label: '1 week', days: 7, price: 0 },
-    { key: 'month', label: '1 month', days: 30, price: 0 },
+    { key: 'day', label: '1 day', days: 1, price: '' },
+    { key: 'week', label: '1 week', days: 7, price: '' },
+    { key: 'month', label: '1 month', days: 30, price: '' },
   ])
   const [communityPromotions, setCommunityPromotions] = useState([])
   const [communityPromotionPagination, setCommunityPromotionPagination] = useState({ page: 1, totalPages: 0, totalItems: 0 })
@@ -201,6 +213,7 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
           if (!active) return
           const nextPagination = result.pagination || { page: productPage, totalPages: 1, totalItems: 0 }
           setProducts(result.data || [])
+          setProductCategories(Array.isArray(result.categories) ? result.categories : [])
           setProductPagination(nextPagination)
           if (productPage > nextPagination.totalPages) setProductPage(nextPagination.totalPages)
         })
@@ -279,7 +292,10 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
         if (!active || !results) return
         if (activeSection === 'promotions') {
           const [pricingResult, promotionResult] = results
-          setCommunityPromotionPrices(pricingResult.data || [])
+          setCommunityPromotionPrices((pricingResult.data || []).map((item) => ({
+            ...item,
+            price: Number(item.price) > 0 ? String(item.price) : '',
+          })))
           setCommunityPromotions(promotionResult.data || [])
           setCommunityPromotionPagination(promotionResult.pagination || { page: communityPromotionPage, totalPages: 0, totalItems: 0 })
           if (promotionResult.pagination && communityPromotionPage > promotionResult.pagination.totalPages) {
@@ -287,7 +303,13 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
           }
         } else {
           const [placementResult, campaignResult] = results
-          setAdPlacements(placementResult.data || [])
+          setAdPlacements((placementResult.data || []).map((placement) => ({
+            ...placement,
+            durationPrices: (placement.durationPrices || []).map((item) => ({
+              ...item,
+              price: Number(item.price) > 0 ? String(item.price) : '',
+            })),
+          })))
           setAdCampaigns(campaignResult.data || [])
           setAdCampaignPagination(campaignResult.pagination || { page: adCampaignPage, totalPages: 0, totalItems: 0 })
           if (campaignResult.pagination && adCampaignPage > campaignResult.pagination.totalPages) {
@@ -367,7 +389,7 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
   }
 
   useEffect(() => {
-    if (!modalOpen || !generateOnNameChange.current) return undefined
+    if (!modalOpen || product.productType !== 'product' || !generateOnNameChange.current) return undefined
     const productName = product.name.trim()
     if (!productName) {
       generateOnNameChange.current = false
@@ -422,7 +444,7 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
       active = false
       window.clearTimeout(timeout)
     }
-  }, [modalOpen, product.name])
+  }, [modalOpen, product.name, product.productType])
 
   const uploadProductImage = async (index, file) => {
     setUploadingImageIndex(index)
@@ -441,20 +463,78 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
     }
   }
 
-  const uploadProductSourceCode = async (file) => {
-    setUploadingSourceCode(true)
+  const uploadProductSourceCode = async (file, fieldName) => {
+    const setUploading = fieldName === 'templateSourceCodeUrl' ? setUploadingTemplateSourceCode : setUploadingSourceCode
+    setUploading(true)
     setProductError('')
     setNotice('')
     try {
-      const result = await adminApi.uploadDigitalAssetSourceCode(file)
+      const result = await adminApi.uploadStoreProductSourceCode(file)
       const sourceCodeUrl = result.data?.sourceCodeUrl
       if (!sourceCodeUrl) throw new Error('The source-code upload did not return a saved URL.')
-      setProduct((current) => ({ ...current, sourceCodeUrl }))
-      setNotice('Source-code ZIP uploaded. Save the product to publish it.')
+      const backupFieldName = fieldName === 'templateSourceCodeUrl'
+        ? 'templateSourceCodeCloudinaryUrl'
+        : 'sourceCodeCloudinaryUrl'
+      setProduct((current) => ({
+        ...current,
+        [fieldName]: sourceCodeUrl,
+        [backupFieldName]: result.data?.sourceCodeCloudinaryUrl || '',
+      }))
+      setNotice(`${fieldName === 'templateSourceCodeUrl' ? 'Full-template' : 'Rental'} source-code ZIP uploaded. Save the product to publish it.`)
     } catch (uploadError) {
       setProductError(uploadError.message || 'Could not upload the source-code ZIP.')
     } finally {
-      setUploadingSourceCode(false)
+      setUploading(false)
+    }
+  }
+
+  const uploadProductDocuments = async (files, fieldName = 'documents') => {
+    const selectedFiles = Array.from(files)
+    if (!selectedFiles.length) return
+    if (product[fieldName].length + selectedFiles.length > 10) {
+      setProductError('Upload no more than 10 documents for a product.')
+      return
+    }
+    const invalidFile = selectedFiles.find((file) => file.size > 20 * 1024 * 1024)
+    if (invalidFile) {
+      setProductError('Choose files up to 20 MB each.')
+      return
+    }
+    setUploadingDocuments(true)
+    setProductError('')
+    setNotice('')
+    const uploads = selectedFiles.map((file, index) => ({
+      id: `${Date.now()}-${index}`,
+      fieldName,
+      name: file.name,
+      status: 'uploading',
+      error: '',
+    }))
+    setDocumentUploadFeedback(uploads)
+    const uploadErrors = []
+    try {
+      for (const [index, file] of selectedFiles.entries()) {
+        const upload = uploads[index]
+        try {
+          const result = await adminApi.uploadStoreProductDocument(file)
+          const document = result.data?.document
+          if (!document?.url || !document.name || !document.mimeType) {
+            throw new Error('The document upload did not return a saved file.')
+          }
+          setProduct((current) => ({ ...current, [fieldName]: [...current[fieldName], document] }))
+          setDocumentUploadFeedback((current) => current.filter((entry) => entry.id !== upload.id))
+        } catch (uploadError) {
+          const message = uploadError.message || `Could not upload ${file.name}.`
+          uploadErrors.push(message)
+          setDocumentUploadFeedback((current) => current.map((entry) => (
+            entry.id === upload.id ? { ...entry, status: 'failed', error: message } : entry
+          )))
+        }
+      }
+      if (uploadErrors.length) setProductError(uploadErrors.join(' '))
+      else setNotice('Documents uploaded. Save the product to make them available to buyers.')
+    } finally {
+      setUploadingDocuments(false)
     }
   }
 
@@ -504,6 +584,7 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
   const openProductModal = (selectedProduct = null) => {
     setProductError('')
     setProductTypeOpen(false)
+    setAddingProductCategory(false)
     setEditingProductId(selectedProduct?._id || null)
     setProduct(selectedProduct ? {
       name: selectedProduct.name || '',
@@ -540,6 +621,12 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
       stock: String(selectedProduct.stock ?? 0),
       tags: Array.isArray(selectedProduct.tags) ? selectedProduct.tags.join(', ') : '',
       sourceCodeUrl: selectedProduct.sourceCodeUrl || '',
+      sourceCodeCloudinaryUrl: selectedProduct.sourceCodeCloudinaryUrl || '',
+      templateSourceCodeUrl: selectedProduct.templateSourceCodeUrl
+        || (Number(selectedProduct.sourceArchiveVersion) < 2 ? selectedProduct.sourceCodeUrl || '' : ''),
+      templateSourceCodeCloudinaryUrl: selectedProduct.templateSourceCodeCloudinaryUrl || '',
+      documents: Array.isArray(selectedProduct.documents) ? selectedProduct.documents : [],
+      templateDocuments: Array.isArray(selectedProduct.templateDocuments) ? selectedProduct.templateDocuments : [],
       isActive: selectedProduct.isActive !== false,
     } : emptyProduct)
     generateOnNameChange.current = false
@@ -639,9 +726,15 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
         name: placement.name,
         description: placement.description,
         active: placement.active,
-        durationPrices: placement.durationPrices,
+        durationPrices: placement.durationPrices.map((item) => ({ ...item, price: Number(item.price) || 0 })),
       })
-      setAdPlacements((current) => current.map((item) => item.key === placement.key ? result.data : item))
+      setAdPlacements((current) => current.map((item) => item.key === placement.key ? {
+        ...result.data,
+        durationPrices: (result.data.durationPrices || []).map((duration) => ({
+          ...duration,
+          price: Number(duration.price) > 0 ? String(duration.price) : '',
+        })),
+      } : item))
       setNotice(`${placement.name} settings saved.`)
     } catch (requestError) {
       setAdSettingsError(requestError.message)
@@ -673,8 +766,13 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
     setSavingCommunityPrices(true)
     setAdSettingsError('')
     try {
-      const result = await adminApi.updateCommunityPromotionPricing({ durations: communityPromotionPrices })
-      setCommunityPromotionPrices(result.data || [])
+      const result = await adminApi.updateCommunityPromotionPricing({
+        durations: communityPromotionPrices.map((item) => ({ ...item, price: Number(item.price) || 0 })),
+      })
+      setCommunityPromotionPrices((result.data || []).map((item) => ({
+        ...item,
+        price: Number(item.price) > 0 ? String(item.price) : '',
+      })))
       setNotice('Community promotion prices saved.')
     } catch (requestError) {
       setAdSettingsError(requestError.message)
@@ -930,7 +1028,7 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
                           {productImages(item)[0] ? <img src={productImages(item)[0]} alt="" loading="lazy" /> : <span className="ecom-product-placeholder"><Package size={17} /></span>}
                           <span className="ecom-product-copy">
                             <strong>{truncateProductText(item.name, 36)}</strong>
-                            {item.productType && item.productType !== 'product' && <small>{item.productType === 'app' ? 'Android app' : item.productType === 'ios_app' ? 'iOS app' : 'Website'}</small>}
+                            {item.productType && item.productType !== 'product' && <small>{item.productType === 'app' ? 'Android app' : item.productType === 'ios_app' ? 'iOS app' : item.productType === 'full_stack' ? 'Full stack' : item.productType === 'admin' ? 'Admin' : 'Web'}</small>}
                             <small>{item.slug}</small>
                             <span className="ecom-product-description">
                               {truncateProductText(item.description || 'No description added.', 50)}
@@ -940,7 +1038,7 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
                       </td>
                       <td>{item.category || 'General'}</td>
                       <td className="font-bold">
-                        {item.productType === 'website' || item.productType === 'app' || item.productType === 'ios_app' ? (
+                        {item.productType && item.productType !== 'product' ? (
                           <span style={{ display: 'grid', gap: 4, fontWeight: 600 }}>
                             {Number(item.usePrice) > 0 && <small>Use: {formatNaira(item.usePrice)}</small>}
                             {Number(item.templatePrice) > 0 && <small>Template: {formatNaira(item.templatePrice)}</small>}
@@ -1073,7 +1171,7 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
                         inputMode="numeric"
                         value={duration.price}
                         onChange={(event) => setCommunityPromotionPrices((current) => current.map((item) => (
-                          item.key === duration.key ? { ...item, price: Number(event.target.value) } : item
+                          item.key === duration.key ? { ...item, price: event.target.value } : item
                         )))}
                       />
                     </label>
@@ -1142,7 +1240,7 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
                     <div className="ecom-ad-price-fields">
                       {[1, 12].map((months) => (
                         <label className="ecom-ad-price-field" key={months}><span>{months} {months === 1 ? 'month' : 'months'} <small>NGN</small></span>
-                          <input aria-label={`${placement.name}, ${months} month price in naira`} type="number" min="0" step="1" inputMode="numeric" value={placement.durationPrices?.find((item) => Number(item.months) === months)?.price ?? 0} onChange={(event) => setAdPlacements((current) => current.map((item) => item.key === placement.key ? { ...item, durationPrices: [1, 12].map((duration) => ({ months: duration, price: Number(duration === months ? event.target.value : item.durationPrices?.find((entry) => Number(entry.months) === duration)?.price || 0) })) } : item))} />
+                          <input aria-label={`${placement.name}, ${months} month price in naira`} type="number" min="0" step="1" inputMode="numeric" value={placement.durationPrices?.find((item) => Number(item.months) === months)?.price ?? ''} onChange={(event) => setAdPlacements((current) => current.map((item) => item.key === placement.key ? { ...item, durationPrices: [1, 12].map((duration) => { const existingPrice = item.durationPrices?.find((entry) => Number(entry.months) === duration)?.price ?? ''; return { months: duration, price: duration === months ? event.target.value : existingPrice }; }) } : item))} />
                         </label>
                       ))}
                     </div>
@@ -1171,7 +1269,7 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
                         <td className="text-right">{campaign.status === 'pending_review' ? <div className="ecom-product-actions">
                           <button type="button" className="btn-table-action" disabled={reviewingCampaignId === campaign._id} onClick={() => void reviewAdvertisement(campaign, 'approved')}><Check size={14} /> Approve</button>
                           <button type="button" className="ecom-delete-product" disabled={reviewingCampaignId === campaign._id} onClick={() => void reviewAdvertisement(campaign, 'rejected')}>Request changes</button>
-                        </div> : <span className={`ecom-product-visibility ${campaign.status === 'approved' ? 'active' : 'inactive'}`}>{formatStatus(campaign.status)}</span>}</td>
+                        </div> : <span className={`ecom-product-visibility ${(campaign.displayStatus || campaign.status) === 'approved' ? 'active' : 'inactive'}`}>{formatStatus(campaign.displayStatus || campaign.status)}</span>}</td>
                       </tr>
                     ))}
                     {!adSettingsLoading && adCampaigns.length === 0 && <tr><td colSpan="6" className="ecom-orders-empty"><ShoppingBag size={18} />No {adCampaignStatus.replaceAll('_', ' ')} ad campaigns.</td></tr>}
@@ -1201,10 +1299,10 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
             <button className="btn-close" type="button" aria-label="Close" onClick={() => { setModalOpen(false); setEditingProductId(null); setProductTypeOpen(false) }}><X size={18} /></button>
             </header>
             <form className="modal-body ecom-product-form" onSubmit={submitProduct}>
-              <section className="ecom-gemini-setup">
+              {product.productType === 'product' && <section className="ecom-gemini-setup">
                 <small>Product descriptions, highlights, specifications, packaging, category, and tags are generated from the product name using the Gemini key configured on the backend. Prices, stock, and images stay manual.</small>
                 {aiStatus && <span className={`ecom-gemini-status${generatingProductDetails ? ' is-generating' : ''}`} role="status"><Sparkles size={14} />{aiStatus}</span>}
-              </section>
+              </section>}
               <label className="form-group">Product name<input name="name" value={product.name} onChange={updateProduct} required maxLength={160} /></label>
               <div className="form-group ecom-listing-type-field">
                 <span>Listing type</span>
@@ -1231,7 +1329,22 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
                         aria-selected={product.productType === option.value}
                         className={`ecom-listing-type-option${product.productType === option.value ? ' selected' : ''}`}
                         onClick={() => {
-                          setProduct((current) => ({ ...current, productType: option.value }))
+                          setProduct((current) => option.value === 'product'
+                            ? { ...current, productType: option.value }
+                            : {
+                              ...current,
+                              productType: option.value,
+                              expectedDelivery: '',
+                              keyHighlights: [''],
+                              specifications: [{ label: '', value: '' }],
+                              colors: [],
+                              packagingDetails: '',
+                              price: '',
+                              discountPercent: '',
+                              condition: 'brand_new',
+                              isSold: false,
+                              stock: '0',
+                            })
                           setProductTypeOpen(false)
                         }}
                       >
@@ -1242,12 +1355,39 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
                   </div>}
                 </div>
               </div>
-              <div className="ecom-product-form-row">
-                <label className="form-group">Category<input name="category" value={product.category} onChange={updateProduct} placeholder="Filled by Gemini; editable" maxLength={80} /></label>
-                <label className="form-group">Stock<input name="stock" type="number" min="0" step="1" value={product.stock} onChange={updateProduct} required /></label>
-              </div>
+              <label className="form-group">Category
+                {addingProductCategory ? (
+                  <>
+                    <input name="category" value={product.category} onChange={updateProduct} placeholder="Enter a new category" maxLength={80} autoFocus />
+                    <button className="btn-secondary" type="button" onClick={() => setAddingProductCategory(false)}>Choose an existing category</button>
+                  </>
+                ) : (
+                  <CustomSelect
+                    ariaLabel="Product category"
+                    value={product.category}
+                    options={[
+                      { value: '', label: 'Select a category' },
+                      ...[...new Set([...productCategories, product.category].filter((category) => typeof category === 'string' && category.trim()))]
+                        .sort((left, right) => left.localeCompare(right))
+                        .map((category) => ({ value: category, label: category })),
+                      { value: '__add_category__', label: 'Add a new category…' },
+                    ]}
+                    onChange={(category) => {
+                      productContentRevision.current += 1
+                      setProductError('')
+                      if (category === '__add_category__') {
+                        setProduct((current) => ({ ...current, category: '' }))
+                        setAddingProductCategory(true)
+                      } else {
+                        setProduct((current) => ({ ...current, category }))
+                      }
+                    }}
+                  />
+                )}
+              </label>
               {product.productType === 'product' ? (
                 <>
+                  <label className="form-group">Stock<input name="stock" type="number" min="0" step="1" value={product.stock} onChange={updateProduct} required /></label>
                   <div className="ecom-product-form-row">
                     <label className="form-group">Selling price (NGN)<input name="price" type="number" min="1" step="0.01" value={product.price} onChange={updateProduct} required /></label>
                     <label className="form-group">Discount (%) (optional)<input name="discountPercent" type="number" min="0" max="99.99" step="0.01" value={product.discountPercent} onChange={updateProduct} placeholder="e.g. 10" /></label>
@@ -1262,7 +1402,6 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
                 </>
               ) : (
                 <section className="ecom-digital-product-fields">
-                  <p>Outright purchase is handled through the support contact button. Use/rental and full-template prices are configured here and paid by Paystack.</p>
                   {product.productType === 'website' ? (
                     <label className="form-group">Live website URL<input name="websiteUrl" type="url" value={product.websiteUrl} onChange={updateProduct} required placeholder="https://example.com" /></label>
                   ) : product.productType === 'app' ? (
@@ -1270,21 +1409,70 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
                       <label className="form-group">Hosted Android APK URL<input name="apkUrl" type="url" value={product.apkUrl} onChange={updateProduct} required placeholder="https://downloads.example.com/app.apk" /></label>
                       <label className="form-group">Website URL (optional)<input name="websiteUrl" type="url" value={product.websiteUrl} onChange={updateProduct} placeholder="https://example.com" /></label>
                     </>
-                  ) : (
+                  ) : product.productType === 'ios_app' ? (
                     <>
                       <label className="form-group">Hosted iOS app URL<input name="iosAppUrl" type="url" value={product.iosAppUrl} onChange={updateProduct} required placeholder="https://apps.example.com/ios-app" /></label>
                       <label className="form-group">Website URL (optional)<input name="websiteUrl" type="url" value={product.websiteUrl} onChange={updateProduct} placeholder="https://example.com" /></label>
                     </>
+                  ) : (
+                    <label className="form-group">{product.productType === 'admin' ? 'Admin dashboard URL' : 'Live full-stack application URL'}<input name="websiteUrl" type="url" value={product.websiteUrl} onChange={updateProduct} required placeholder="https://example.com" /></label>
                   )}
                   <div className="ecom-product-form-row">
                     <label className="form-group">Use / rental price (NGN)<input name="usePrice" type="number" min="0" step="1" value={product.usePrice} onChange={updateProduct} placeholder="0 to disable" /></label>
                     <label className="form-group">Full template price (NGN)<input name="templatePrice" type="number" min="0" step="1" value={product.templatePrice} onChange={updateProduct} placeholder="Includes backend + 2-week setup" /></label>
                   </div>
-                  <label className="form-group">Template source-code archive (ZIP){Number(product.templatePrice) > 0 && <span className="required-label">Required for full-template sales</span>}<input type="file" accept=".zip,application/zip,application/x-zip-compressed" disabled={uploadingSourceCode || savingProduct} onChange={(event) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ''; if (!file) return; if (!file.name.toLowerCase().endsWith('.zip') || file.size > 100 * 1024 * 1024) { setProductError('Choose a ZIP source-code archive up to 100 MB.'); return } void uploadProductSourceCode(file) }} /><small>{uploadingSourceCode ? 'Uploading source-code archive…' : product.sourceCodeUrl ? 'Archive uploaded. Buyers receive the download only after payment.' : 'Upload the source code before enabling the template price.'}</small></label>
+                  <div className="form-group">Rental source-code archive (ZIP), optional<label className={`ecom-upload-image-button${uploadingSourceCode || savingProduct ? ' is-disabled' : ''}`}><Upload size={14} /><span>{uploadingSourceCode ? 'Uploading ZIP…' : product.sourceCodeUrl ? 'Replace rental ZIP' : 'Choose rental ZIP'}</span><input aria-label="Choose rental source-code ZIP" type="file" accept=".zip,application/zip,application/x-zip-compressed" disabled={uploadingSourceCode || savingProduct} onChange={(event) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ''; if (!file) return; if (!file.name.toLowerCase().endsWith('.zip') || file.size > 100 * 1024 * 1024) { setProductError('Choose a ZIP source-code archive up to 100 MB.'); return } void uploadProductSourceCode(file, 'sourceCodeUrl') }} /></label><small>{uploadingSourceCode ? 'Uploading rental archive…' : product.sourceCodeUrl ? 'Rental archive uploaded. Buyers who paid for Use / rental can download it.' : 'Optional ZIP made available to buyers who pay for Use / rental.'}</small></div>
+                  <div className="form-group">Full-template source-code archive (ZIP), optional<label className={`ecom-upload-image-button${uploadingTemplateSourceCode || savingProduct ? ' is-disabled' : ''}`}><Upload size={14} /><span>{uploadingTemplateSourceCode ? 'Uploading ZIP…' : product.templateSourceCodeUrl ? 'Replace full-template ZIP' : 'Choose full-template ZIP'}</span><input aria-label="Choose full-template source-code ZIP" type="file" accept=".zip,application/zip,application/x-zip-compressed" disabled={uploadingTemplateSourceCode || savingProduct} onChange={(event) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ''; if (!file) return; if (!file.name.toLowerCase().endsWith('.zip') || file.size > 100 * 1024 * 1024) { setProductError('Choose a ZIP source-code archive up to 100 MB.'); return } void uploadProductSourceCode(file, 'templateSourceCodeUrl') }} /></label><small>{uploadingTemplateSourceCode ? 'Uploading full-template archive…' : product.templateSourceCodeUrl ? 'Full-template archive uploaded. Buyers who purchase the full template can download it.' : 'Optional separate ZIP for buyers who purchase the full template.'}</small></div>
+                  <div className="ecom-product-documents">
+                    <span className="ecom-product-documents-title">Buyer files <small>Any file type is supported. Buyers can download files after payment.</small></span>
+                    <label className={`ecom-upload-image-button${uploadingDocuments || savingProduct || product.documents.length >= 10 ? ' is-disabled' : ''}`}>
+                      <FileText size={14} />
+                      <span>{uploadingDocuments ? 'Uploading files…' : product.documents.length ? 'Add more files' : 'Choose files'}</span>
+                      <input aria-label="Upload buyer files" type="file" multiple disabled={uploadingDocuments || savingProduct || product.documents.length >= 10} onChange={(event) => { const files = Array.from(event.currentTarget.files || []); event.currentTarget.value = ''; if (files.length) void uploadProductDocuments(files) }} />
+                    </label>
+                    {product.documents.map((document, index) => (
+                      <div className="ecom-product-document" key={document.url}>
+                        <FileText size={14} /><span>{document.name}</span>
+                        <span className="ecom-product-document-status"><Check size={12} /> Uploaded</span>
+                        <button type="button" className="ecom-remove-image-button" aria-label={`Remove ${document.name}`} disabled={uploadingDocuments || savingProduct} onClick={() => setProduct((current) => ({ ...current, documents: current.documents.filter((_, documentIndex) => documentIndex !== index) }))}><X size={14} /></button>
+                      </div>
+                    ))}
+                    {documentUploadFeedback.filter((upload) => upload.fieldName === 'documents').map((upload) => (
+                      <div className={`ecom-product-document ecom-product-document-pending ${upload.status === 'failed' ? 'has-error' : ''}`} key={upload.id} role={upload.status === 'failed' ? 'alert' : 'status'}>
+                        <FileText size={14} /><span>{upload.name}</span>
+                        <span className="ecom-product-document-status">{upload.status === 'uploading' ? 'Uploading…' : upload.error || 'Upload failed'}</span>
+                        {upload.status === 'failed' && <button type="button" className="ecom-remove-image-button" aria-label={`Dismiss ${upload.name} upload error`} onClick={() => setDocumentUploadFeedback((current) => current.filter((entry) => entry.id !== upload.id))}><X size={14} /></button>}
+                      </div>
+                    ))}
+                    <small aria-live="polite">{product.documents.length ? `${product.documents.length} of 10 files uploaded` : 'No files uploaded'} · Any file type, 20 MB maximum per file.</small>
+                  </div>
+                  <div className="ecom-product-documents">
+                    <span className="ecom-product-documents-title">Full-template legal documents <small>Only buyers who purchase the full template can download these files.</small></span>
+                    <label className={`ecom-upload-image-button${uploadingDocuments || savingProduct || product.templateDocuments.length >= 10 ? ' is-disabled' : ''}`}>
+                      <FileText size={14} />
+                      <span>{uploadingDocuments ? 'Uploading files…' : product.templateDocuments.length ? 'Add more legal documents' : 'Choose legal documents'}</span>
+                      <input aria-label="Upload full-template legal documents" type="file" multiple disabled={uploadingDocuments || savingProduct || product.templateDocuments.length >= 10} onChange={(event) => { const files = Array.from(event.currentTarget.files || []); event.currentTarget.value = ''; if (files.length) void uploadProductDocuments(files, 'templateDocuments') }} />
+                    </label>
+                    {product.templateDocuments.map((document, index) => (
+                      <div className="ecom-product-document" key={document.url}>
+                        <FileText size={14} /><span>{document.name}</span>
+                        <span className="ecom-product-document-status"><Check size={12} /> Uploaded</span>
+                        <button type="button" className="ecom-remove-image-button" aria-label={`Remove ${document.name}`} disabled={uploadingDocuments || savingProduct} onClick={() => setProduct((current) => ({ ...current, templateDocuments: current.templateDocuments.filter((_, documentIndex) => documentIndex !== index) }))}><X size={14} /></button>
+                      </div>
+                    ))}
+                    {documentUploadFeedback.filter((upload) => upload.fieldName === 'templateDocuments').map((upload) => (
+                      <div className={`ecom-product-document ecom-product-document-pending ${upload.status === 'failed' ? 'has-error' : ''}`} key={upload.id} role={upload.status === 'failed' ? 'alert' : 'status'}>
+                        <FileText size={14} /><span>{upload.name}</span>
+                        <span className="ecom-product-document-status">{upload.status === 'uploading' ? 'Uploading…' : upload.error || 'Upload failed'}</span>
+                        {upload.status === 'failed' && <button type="button" className="ecom-remove-image-button" aria-label={`Dismiss ${upload.name} upload error`} onClick={() => setDocumentUploadFeedback((current) => current.filter((entry) => entry.id !== upload.id))}><X size={14} /></button>}
+                      </div>
+                    ))}
+                    <small aria-live="polite">{product.templateDocuments.length ? `${product.templateDocuments.length} of 10 legal documents uploaded` : 'No legal documents uploaded'} · Any file type, 20 MB maximum per file.</small>
+                  </div>
                   <label className="form-group">Usage and setup instructions<textarea name="usageInstructions" rows="5" value={product.usageInstructions} onChange={updateProduct} maxLength={5000} required placeholder="Explain how buyers can use this item and what setup/support is included." /></label>
                 </section>
               )}
-              <div className="ecom-product-images">
+              {product.productType === 'product' && <div className="ecom-product-images">
                 <div className="ecom-product-images-heading">
                   <span>Available colors <small>Customers must choose one before adding this product to their cart.</small></span>
                   <button
@@ -1302,7 +1490,7 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
                     )}
                   </div>
                 ))}
-              </div>
+              </div>}
               <div className="ecom-product-images">
                 <div className="ecom-product-images-heading">
                   <span>Product images <small>The first image is the main product photo.</small></span>
@@ -1348,7 +1536,7 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
                 <small className="ecom-product-images-hint">Add up to 8 product views. Shoppers can switch between them on the product page.</small>
               </div>
               <label className="form-group">Product description<textarea name="description" rows="3" value={product.description} onChange={updateProduct} maxLength={5000} placeholder="Describe the product and its main purpose." /></label>
-              <div className="ecom-product-images">
+              {product.productType === 'product' && <div className="ecom-product-images">
                 <div className="ecom-product-images-heading">
                   <span>Key highlights <small>Shown as individual highlights on app and website product pages.</small></span>
                   <button
@@ -1366,8 +1554,8 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
                     )}
                   </div>
                 ))}
-              </div>
-              <div className="ecom-product-images">
+              </div>}
+              {product.productType === 'product' && <div className="ecom-product-images">
                 <div className="ecom-product-images-heading">
                   <span>Specifications <small>These are displayed in a two-column table.</small></span>
                   <button
@@ -1386,8 +1574,8 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
                     )}
                   </div>
                 ))}
-              </div>
-              <label className="form-group">Packaging details<textarea name="packagingDetails" rows="4" value={product.packagingDetails} onChange={updateProduct} maxLength={5000} placeholder="Describe the retail packaging and list the items included." /></label>
+              </div>}
+              {product.productType === 'product' && <label className="form-group">Packaging details<textarea name="packagingDetails" rows="4" value={product.packagingDetails} onChange={updateProduct} maxLength={5000} placeholder="Describe the retail packaging and list the items included." /></label>}
               <label className="form-group">Search tags<input name="tags" value={product.tags} onChange={updateProduct} placeholder="Separate tags with commas" /></label>
               <label className="ecom-product-active-toggle">
                 <input type="checkbox" checked={product.isActive} onChange={(event) => setProduct((current) => ({ ...current, isActive: event.target.checked }))} />
@@ -1396,7 +1584,7 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
               {productError && <p className="wallet-notice error" role="alert"><AlertCircle size={15} />{productError}</p>}
               <div className="modal-actions">
                 <button className="btn-secondary" type="button" disabled={savingProduct} onClick={() => setModalOpen(false)}>Cancel</button>
-                <button className="btn-primary" type="submit" disabled={savingProduct}>{savingProduct ? (editingProductId ? 'Saving changes…' : 'Adding product…') : (editingProductId ? 'Save changes' : 'Add product')}</button>
+                <button className="btn-primary" type="submit" disabled={savingProduct || uploadingSourceCode || uploadingTemplateSourceCode || uploadingDocuments}>{savingProduct ? (editingProductId ? 'Saving changes…' : 'Adding product…') : (editingProductId ? 'Save changes' : 'Add product')}</button>
               </div>
             </form>
           </section>

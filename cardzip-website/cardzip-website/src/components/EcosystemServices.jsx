@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { CreditCard, Globe, Banknote, ShoppingBag, ArrowUpRight, ArrowRight, Store, Code2, UsersRound, Megaphone, Wallet } from 'lucide-react'
 
 
-export default function EcosystemServices({ onNavigate }) {
+export default function EcosystemServices({ onNavigate, featureSettings }) {
   const [activeStep, setActiveStep] = useState(0)
   const cards = [
     {
@@ -77,7 +77,10 @@ export default function EcosystemServices({ onNavigate }) {
       linkText: 'View advertising',
       linkUrl: '/advertise',
     },
-  ]
+  ].filter((card) => (
+    (card.id !== 'bills' || featureSettings?.vtpassBillsEnabled !== false)
+    && (card.id !== 'virtual-numbers' || featureSettings?.esimEnabled !== false)
+  ))
 
   const steps = [
     {

@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   Clock3,
   CircleDollarSign,
+  SlidersHorizontal,
   Menu,
   LogOut,
   X,
@@ -61,6 +62,7 @@ const navSections = [
       { name: 'Expenses', tab: 'Expenses', icon: CircleDollarSign },
       { name: 'Company Letterhead', tab: 'Company Letterhead', icon: FileText, administratorOnly: true },
       { name: 'WhatsApp Inbox', tab: 'WhatsApp Inbox', icon: MessageSquare, administratorOnly: true },
+      { name: 'Service Visibility', tab: 'Service Visibility', icon: SlidersHorizontal, administratorOnly: true },
     ],
   },
   {

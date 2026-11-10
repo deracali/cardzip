@@ -1,0 +1,25 @@
+.advertisement-banner { overflow: hidden; margin: 18px 0; border: 1px solid #dce8e0; border-radius: 16px; background: #fff; box-shadow: 0 8px 24px rgba(16,40,26,.06); }
+.advertisement-banner > a,.advertisement-banner > div { display: flex; min-height: 124px; align-items: center; gap: 22px; color: inherit; text-decoration: none; }
+.advertisement-banner img { width: 46%; height: 178px; object-fit: cover; background: #edf4ef; }
+.advertisement-copy { display: grid; align-content: center; gap: 8px; padding: 17px 20px 17px 0; }
+.advertisement-copy small { color: #07804e; font-size: 9px; font-weight: 850; letter-spacing: 1.1px; }
+.advertisement-copy strong { color: #15271d; font-size: clamp(17px,2vw,24px); line-height: 1.2; }
+.advertisement-copy > span { color: #627168; font-size: 12px; line-height: 1.55; }
+.advertisement-copy b { color: #087a4c; font-size: 11px; }
+.advertisement-banner-side { margin: 0; }
+.advertisement-banner-side > a,.advertisement-banner-side > div { align-items: stretch; flex-direction: column; gap: 0; }
+.advertisement-banner-side img { width: 100%; height: 170px; }
+.advertisement-banner-side .advertisement-copy { padding: 14px; }
+.advertisement-placeholder > div { min-height: 154px; padding: 22px 28px; background: radial-gradient(ellipse at 90% 10%,rgba(16,185,129,.14),transparent 42%),linear-gradient(115deg,#f2faf5,#fff); }
+.advertisement-placeholder-mark { display: grid; width: 43px; height: 43px; flex: 0 0 auto; place-items: center; border: 1px solid #cfe8d7; border-radius: 13px; background: #fff; color: #087a4c; font-size: 21px; font-weight: 900; }
+.advertisement-placeholder .advertisement-copy { padding: 0; }
+.advertisement-placeholder .advertisement-copy a { width: fit-content; color: #087a4c; font-size: 11px; font-weight: 850; text-decoration: none; }
+.advertisement-placeholder .advertisement-copy a:hover { text-decoration: underline; }
+.advertisement-placeholder.advertisement-banner-side > div { min-height: 260px; align-items: flex-start; padding: 16px; }
+.advertisement-placeholder.advertisement-banner-side .advertisement-copy { padding: 0; }
+.advertisement-banner-side .advertisement-copy strong { font-size: 15px; }
+@media (max-width: 600px) {
+  .advertisement-banner > a,.advertisement-banner > div { align-items: stretch; flex-direction: column; gap: 0; }
+  .advertisement-banner img { width: 100%; height: 160px; }
+  .advertisement-copy { padding: 14px; }
+}

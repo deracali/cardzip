@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, useWindowDimensions, Platform } from 'react-native';
 import { Tabs, usePathname } from 'expo-router';
 import { Octicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import useFeatureSettings from '../../../hooks/useFeatureSettings';
 
 type CustomTabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>>[0];
 
@@ -16,7 +17,7 @@ const Colors = {
 /**
  * Custom TabBar Component that replaces Expo Router's default bar
  */
-function CustomTabBar({ state, descriptors, navigation }: CustomTabBarProps) {
+function CustomTabBar({ state, descriptors, navigation, esimEnabled }: CustomTabBarProps & { esimEnabled: boolean }) {
   const { width } = useWindowDimensions();
   const pathname = usePathname();
 
@@ -84,8 +85,8 @@ function CustomTabBar({ state, descriptors, navigation }: CustomTabBarProps) {
         },
       ]}
     >
-      {state.routes.map((route, index) => {
-        const focused = state.index === index;
+      {state.routes.filter((route) => route.name !== 'esims' || esimEnabled).map((route) => {
+        const focused = state.routes[state.index]?.key === route.key;
         const config = tabConfig[route.name] || {
           label: route.name,
           icon: () => null,
@@ -132,15 +133,16 @@ function CustomTabBar({ state, descriptors, navigation }: CustomTabBarProps) {
 }
 
 export default function TabsLayout() {
+  const { featureSettings } = useFeatureSettings();
   return (
     <Tabs
-      tabBar={(props) => <CustomTabBar {...props} />}
+      tabBar={(props) => <CustomTabBar {...props} esimEnabled={featureSettings?.esimEnabled === true} />}
       screenOptions={{
         headerShown: false,
       }}
     >
       <Tabs.Screen name="home" />
-      <Tabs.Screen name="esims" />
+      <Tabs.Screen name="esims" options={{ href: featureSettings?.esimEnabled === true ? undefined : null }} />
       <Tabs.Screen name="store" />
       <Tabs.Screen name="profile" />
     </Tabs>

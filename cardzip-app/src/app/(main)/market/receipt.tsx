@@ -30,6 +30,7 @@ const escapeHtml = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, (
   '"': '&quot;',
   "'": '&#39;',
 }[character] || character));
+const publicWebsiteUrl = (process.env.EXPO_PUBLIC_WEBSITE_URL || 'https://cardzip.com.ng').replace(/\/$/, '');
 
 const makeReceiptHtml = (order: StoreOrder) => {
   const itemRows = order.items.map((item) => `
@@ -37,9 +38,9 @@ const makeReceiptHtml = (order: StoreOrder) => {
   `).join('');
   const address = order.shippingAddress;
   return `<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><style>
-    *{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#0f172a;margin:36px}header{display:flex;justify-content:space-between;border-bottom:1px solid #e2e8f0;padding-bottom:18px}h1{font-size:22px;margin:0;color:#047857}h2{font-size:15px;margin:28px 0 10px}.eyebrow{font-size:9px;letter-spacing:1.5px;color:#64748b;margin-top:5px}.status{text-align:right;color:#047857;font-weight:bold}p{color:#475569;font-size:12px;line-height:1.6}.meta{display:flex;justify-content:space-between;margin:18px 0;color:#64748b;font-size:11px}table{width:100%;border-collapse:collapse;margin-top:14px}td{padding:12px 4px;border-bottom:1px solid #e2e8f0;font-size:12px}td:last-child{text-align:right;white-space:nowrap}small{display:block;color:#64748b;margin-top:4px}.totals{margin:18px 0 0 auto;width:250px}.totals div{display:flex;justify-content:space-between;padding:7px 0;font-size:12px}.total{border-top:1px solid #cbd5e1;font-weight:bold;font-size:15px!important;color:#047857}.address{background:#f8fafc;padding:14px;border-radius:8px}footer{margin-top:32px;padding-top:12px;border-top:1px solid #e2e8f0;text-align:center;font-size:10px;color:#64748b}
+    *{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#0f172a;margin:36px}header{display:flex;justify-content:space-between;border-bottom:1px solid #e2e8f0;padding-bottom:18px}.brand{display:flex;align-items:center;gap:12px}.brand img{width:48px;height:48px;border-radius:10px;object-fit:cover}h1{font-size:22px;margin:0;color:#047857}h2{font-size:15px;margin:28px 0 10px}.eyebrow{font-size:9px;letter-spacing:1.5px;color:#64748b;margin-top:5px}.status{text-align:right;color:#047857;font-weight:bold}p{color:#475569;font-size:12px;line-height:1.6}.meta{display:flex;justify-content:space-between;margin:18px 0;color:#64748b;font-size:11px}table{width:100%;border-collapse:collapse;margin-top:14px}td{padding:12px 4px;border-bottom:1px solid #e2e8f0;font-size:12px}td:last-child{text-align:right;white-space:nowrap}small{display:block;color:#64748b;margin-top:4px}.totals{margin:18px 0 0 auto;width:250px}.totals div{display:flex;justify-content:space-between;padding:7px 0;font-size:12px}.total{border-top:1px solid #cbd5e1;font-weight:bold;font-size:15px!important;color:#047857}.address{background:#f8fafc;padding:14px;border-radius:8px}footer{margin-top:32px;padding-top:12px;border-top:1px solid #e2e8f0;text-align:center;font-size:10px;color:#64748b}
   </style></head><body>
-    <header><div><h1>Cardzip</h1><div class="eyebrow">E-COMMERCE RECEIPT</div></div><div class="status">PAYMENT ${escapeHtml(order.paymentStatus.toUpperCase())}</div></header>
+    <header><div class="brand"><img src="${publicWebsiteUrl}/cardzip-logo.jpg" alt="Cardzip logo"><div><h1>Cardzip</h1><div class="eyebrow">E-COMMERCE RECEIPT</div></div></div><div class="status">PAYMENT ${escapeHtml(order.paymentStatus.toUpperCase())}</div></header>
     <div class="meta"><span>Order ${escapeHtml(order.orderNumber)}</span><span>Placed ${escapeHtml(formatDate(order.createdAt))}</span></div>
     <p>Order status: <strong>${escapeHtml(statusLabel(order.status))}</strong></p>
     <h2>Items</h2><table>${itemRows}</table>
