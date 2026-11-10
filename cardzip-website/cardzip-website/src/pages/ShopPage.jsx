@@ -5,6 +5,7 @@ import { addToCart, getCart } from '../services/cart'
 import { getStorefrontPreferences, recordProductInteraction, recordStoreCategoryInterest, recordStoreSearch } from '../services/storePreferences'
 import { formatNaira } from '../utils/currency'
 import AdvertisementBanner from '../components/AdvertisementBanner'
+import CardzipLoader from '../components/CardzipLoader'
 import './ShopMarketplace.css'
 
 const getProductImages = (product) => [...new Set([
@@ -164,7 +165,7 @@ export default function ShopPage({ onNavigate, cartBackground = false, user }) {
               <span>{item}</span>
             </label>)}
             {!loading && !error && categories.length === 0 && <span className="filter-empty">Categories appear when products are available.</span>}
-            {loading && <span className="filter-empty">Loading categories…</span>}
+            {loading && <span className="filter-empty"><CardzipLoader compact label="Loading categories" /></span>}
           </div>
           <div className="filter-group">
             <span className="filter-title">PRICE</span>
@@ -192,7 +193,7 @@ export default function ShopPage({ onNavigate, cartBackground = false, user }) {
           </div>
           <AdvertisementBanner placementKey="web-shop-sidebar" onNavigate={onNavigate} />
         </aside>
-        <main className="product-grid-section"><div className="showing-info"><span>{loading ? 'Loading products…' : `Showing ${visibleProducts.length} products`}</span><span className="green-txt">{category === 'all' ? 'All products' : category}</span></div>
+        <main className="product-grid-section"><div className="showing-info"><span>{loading ? <CardzipLoader compact label="Loading products" /> : `Showing ${visibleProducts.length} products`}</span><span className="green-txt">{category === 'all' ? 'All products' : category}</span></div>
           {error && <p className="wallet-notice error" role="alert">{error}</p>}
           {!loading && !error && visibleProducts.length === 0 && <div className="shop-no-products">
             <p>{search.trim() || category !== 'all' || maxPrice !== null || inStockOnly

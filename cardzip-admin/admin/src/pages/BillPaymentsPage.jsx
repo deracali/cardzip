@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AlertTriangle, CheckCircle2, Clock3, Search } from 'lucide-react'
 import { adminApi } from '../services/api'
+import CardzipLoader from '../components/CardzipLoader'
 
 const formatNaira = (amount, currency = 'NGN') => new Intl.NumberFormat('en-NG', {
   style: 'currency',
@@ -109,7 +110,7 @@ export default function BillPaymentsPage() {
         </div>
 
         {error && <p className="wallet-notice error" role="alert">{error}</p>}
-        {loading && <p className="bills-history-message" role="status">Loading bill payment history…</p>}
+        {loading && <p className="bills-history-message"><CardzipLoader compact label="Loading bill payment history" /></p>}
 
         <div className="table-responsive">
           <table className="bills-table">

@@ -16,6 +16,7 @@ import {
 import { userApi } from '../services/api'
 import { formatNaira } from '../utils/currency'
 import { addCardzipLogo } from '../utils/receiptPdf'
+import CardzipLoader from '../components/CardzipLoader'
 
 const formatDate = (value) => value ? new Date(value).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' }) : '—'
 const statusText = (status) => ({
@@ -141,7 +142,7 @@ export default function TrackReceiptPage({ orderId, onNavigate }) {
   }
 
   if (loading) {
-    return <main className="page-wrapper"><div className="page-container product-details-loading" role="status"><span className="session-spinner" aria-hidden="true" />Loading order…</div></main>
+    return <main className="page-wrapper"><div className="page-container product-details-loading"><CardzipLoader compact label="Loading order" /></div></main>
   }
 
   if (error || !order) {

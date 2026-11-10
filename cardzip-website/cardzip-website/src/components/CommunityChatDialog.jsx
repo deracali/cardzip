@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowUp, LoaderCircle, X } from 'lucide-react'
+import { ArrowUp, X } from 'lucide-react'
 import { userApi } from '../services/api'
+import CardzipLoader from './CardzipLoader'
 import './CommunityChatDialog.css'
 
 export default function CommunityChatDialog({ conversationId, listingTitle, user, title = 'Chat with seller', onClose }) {
@@ -69,7 +70,7 @@ export default function CommunityChatDialog({ conversationId, listingTitle, user
           <button type="button" aria-label="Close chat" onClick={onClose}><X size={19} /></button>
         </header>
         <div className="community-chat-messages" ref={messageListRef} aria-live="polite">
-          {loading ? <p className="community-chat-state"><LoaderCircle size={16} className="community-chat-spinner" /> Loading messages…</p>
+          {loading ? <p className="community-chat-state"><CardzipLoader compact label="Loading messages" /></p>
             : messages.length === 0 ? <p className="community-chat-state">Say hello and ask about this listing.</p>
               : messages.map((message) => {
                 const mine = String(message.sender?._id || message.sender) === userId
@@ -81,7 +82,7 @@ export default function CommunityChatDialog({ conversationId, listingTitle, user
         {error && <p className="community-chat-error" role="alert">{error}</p>}
         <form className="community-chat-composer" onSubmit={(event) => void sendMessage(event)}>
           <textarea value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={2000} rows={1} placeholder="Write a message…" aria-label="Write a message" />
-          <button type="submit" disabled={!draft.trim() || sending} aria-label="Send message">{sending ? <LoaderCircle size={17} className="community-chat-spinner" /> : <ArrowUp size={18} />}</button>
+          <button type="submit" disabled={!draft.trim() || sending} aria-label="Send message">{sending ? <CardzipLoader compact label="Sending message" /> : <ArrowUp size={18} />}</button>
         </form>
       </section>
     </div>,

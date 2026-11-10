@@ -1,4 +1,5 @@
 import { ArrowDownLeft, ArrowRight, ArrowUpRight } from 'lucide-react'
+import CardzipLoader from './CardzipLoader'
 
 const formatNaira = (value) => `₦${Number(value || 0).toLocaleString('en-NG', { maximumFractionDigits: 0 })}`
 
@@ -23,7 +24,7 @@ export default function TransactionLogsFeed({ transactions = [], loading = false
           )
         })}
         {!loading && transactions.length === 0 && <p className="overview-card-empty">No wallet transactions in this period.</p>}
-        {loading && transactions.length === 0 && <p className="overview-card-empty">Loading wallet history…</p>}
+        {loading && transactions.length === 0 && <p className="overview-card-empty"><CardzipLoader compact label="Loading wallet history" /></p>}
       </div>
 
       <div className="tx-footer">Wallet transaction activity fetched from the backend for the selected period.</div>

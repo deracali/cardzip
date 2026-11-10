@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { CheckCircle2, Copy, Eye, X, XCircle } from 'lucide-react'
 import { adminApi } from '../services/api'
 import { subscribeToGiftCardTradeChanges } from '../services/giftCardRealtime'
+import CardzipLoader from '../components/CardzipLoader'
 
 const naira = (amount) => `₦${Number(amount || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
@@ -144,7 +145,7 @@ export default function PendingGiftCardsPage() {
       {error && <p className="wallet-notice error" role="alert">{error}</p>}
       <div className="section-card">
         <div className="card-header flex-between"><h3>Verification Queue ({pagination.totalItems})</h3></div>
-        {loading && <p role="status">Loading pending reviews…</p>}
+        {loading && <p><CardzipLoader compact label="Loading pending reviews" /></p>}
         <div className="table-responsive">
           <table className="pending-gc-table">
             <thead><tr><th>Trade Ref</th><th>Brand & Region</th><th>Face Value</th><th>Payout Value</th><th>Customer</th><th>Submitted</th><th className="text-right">Action</th></tr></thead>

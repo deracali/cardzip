@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { ArrowLeft, Bell, CheckCheck, Menu, Wallet, X } from 'lucide-react'
 import { getUserToken, userApi } from '../services/api'
 import CommunitySellerInbox from './CommunitySellerInbox'
+import CardzipLoader from './CardzipLoader'
 
 
 export default function Header({ currentTab = 'home', onSelectTab, onOpenDashboard, onOpenWallet, user, featureSettings }) {
@@ -206,7 +207,7 @@ export default function Header({ currentTab = 'home', onSelectTab, onOpenDashboa
         <button type="button" className="wallet-balance" onClick={onOpenWallet} aria-label="Open wallet" title={walletError || undefined}>
           <Wallet size={16} className="wallet-icon" />
           <span className="balance-amount">
-            {walletBalance === null ? (walletError ? 'Unavailable' : getUserToken() ? 'Loading…' : 'Sign in') : `₦${walletBalance.toLocaleString('en-NG')}`}
+            {walletBalance === null ? (walletError ? 'Unavailable' : getUserToken() ? <CardzipLoader compact label="Loading wallet balance" /> : 'Sign in') : `₦${walletBalance.toLocaleString('en-NG')}`}
           </span>
         </button>
 
@@ -250,7 +251,7 @@ export default function Header({ currentTab = 'home', onSelectTab, onOpenDashboa
               <time dateTime={notification.occurredAt}>{new Date(notification.occurredAt).toLocaleString()}</time>
             </article>
           })()
-            : notificationsLoading && notifications.length === 0 ? <p className="site-notification-empty">Loading notifications…</p>
+            : notificationsLoading && notifications.length === 0 ? <p className="site-notification-empty"><CardzipLoader compact label="Loading notifications" /></p>
             : notifications.length === 0 ? <p className="site-notification-empty">No notifications yet.</p>
               : <div className="site-notification-list">{notifications.map((notification) => (
                 <button

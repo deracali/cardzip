@@ -3,6 +3,7 @@ import { billServices } from '../data/serviceCatalog'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { billApi, userApi } from '../services/api'
 import BillReceiptDialog from '../components/BillReceiptDialog'
+import CardzipLoader from '../components/CardzipLoader'
 
 const providersByService = {
   Airtime: [
@@ -412,7 +413,7 @@ export default function BillsPaymentPage({ onNavigate }) {
                       <strong>₦{getVariationAmount(variation).toLocaleString('en-NG')}</strong>
                     </button>
                   })}
-                  {loadingVariations && <p className="field-hint">Loading data deals…</p>}
+                  {loadingVariations && <p className="field-hint"><CardzipLoader compact label="Loading data deals" /></p>}
                   {!loadingVariations && variations.length === 0 && <p className="field-hint">No data deals are available for this provider.</p>}
                 </div>
               </div>}
@@ -422,7 +423,7 @@ export default function BillsPaymentPage({ onNavigate }) {
                   className="bills-select-wrap"
                   value={selectedVariation}
                   disabled={loadingVariations || variations.length === 0}
-                  placeholder={loadingVariations ? 'Loading packages…' : 'No packages available'}
+                  placeholder="Select a package"
                   options={variations.map((variation, index) => ({
                     value: getVariationCode(variation),
                     label: `${getVariationLabel(variation)} · ₦${getVariationAmount(variation).toLocaleString('en-NG')}`,
@@ -430,7 +431,7 @@ export default function BillsPaymentPage({ onNavigate }) {
                   }))}
                   onChange={setSelectedVariation}
                 />
-                {loadingVariations && <span className="field-hint">Loading current packages…</span>}
+                {loadingVariations && <span className="field-hint"><CardzipLoader compact label="Loading current packages" /></span>}
               </div>}
             </div>
 
@@ -473,7 +474,7 @@ export default function BillsPaymentPage({ onNavigate }) {
             <div className="form-two-col">
               <div className="form-field">
                 <label className="field-label">Amount (NGN)</label>
-                <input type="number" min={activeService === 'Electricity' ? 1000 : 50} className="text-input" value={isFixedPrice ? (variationAmount || '') : amount} readOnly={isFixedPrice} onChange={(event) => setAmount(event.target.value)} placeholder={isFixedPrice ? (loadingVariations ? 'Loading package price…' : 'Select a package') : 'Enter amount'} />
+                <input type="number" min={activeService === 'Electricity' ? 1000 : 50} className="text-input" value={isFixedPrice ? (variationAmount || '') : amount} readOnly={isFixedPrice} onChange={(event) => setAmount(event.target.value)} placeholder={isFixedPrice ? 'Select a package' : 'Enter amount'} />
                 <span className="field-hint">{isFixedPrice ? 'Price set by the selected package.' : activeService === 'Electricity' ? 'Minimum payment: ₦1,000' : 'Enter the amount to top up.'}</span>
               </div>
               <div className="form-field">
@@ -532,11 +533,11 @@ export default function BillsPaymentPage({ onNavigate }) {
                   {paymentMethod === 'wallet' ? <div className="wallet-balance-breakdown">
                     <div className="wallet-balance-item">
                       <span>Available balance</span>
-                      <strong>{walletBalance ? formatNaira(walletBalance.balance) : 'Loading…'}</strong>
+                      <strong>{walletBalance ? formatNaira(walletBalance.balance) : <CardzipLoader compact label="Loading wallet balance" />}</strong>
                     </div>
                     <div className="wallet-balance-item after-payment">
                       <span>After this payment</span>
-                      <strong>{walletBalance ? formatNaira(Math.max(0, Number(walletBalance.balance) - Number(paymentAmount || 0))) : 'Loading…'}</strong>
+                      <strong>{walletBalance ? formatNaira(Math.max(0, Number(walletBalance.balance) - Number(paymentAmount || 0))) : <CardzipLoader compact label="Loading remaining balance" />}</strong>
                     </div>
                   </div> : <span className="w-sub">Secure card, bank, or transfer checkout</span>}
                 </div>
@@ -582,7 +583,7 @@ export default function BillsPaymentPage({ onNavigate }) {
           <div className="payment-options">
             <button type="button" className={`pay-option ${paymentMethod === 'wallet' ? 'selected' : ''}`} aria-pressed={paymentMethod === 'wallet'} onClick={() => setPaymentMethod('wallet')}>
               <span className="pay-top"><span>Cardzip wallet</span><span className={`radio-dot ${paymentMethod === 'wallet' ? 'active' : ''}`} /></span>
-              <span className="pay-sub">Available: {walletBalance ? formatNaira(walletBalance.balance) : 'Loading balance…'}</span>
+              <span className="pay-sub">Available: {walletBalance ? formatNaira(walletBalance.balance) : <CardzipLoader compact label="Loading wallet balance" />}</span>
             </button>
             <button type="button" className={`pay-option ${paymentMethod === 'paystack' ? 'selected' : ''}`} aria-pressed={paymentMethod === 'paystack'} onClick={() => setPaymentMethod('paystack')}>
               <span className="pay-top"><span>Paystack</span><span className={`radio-dot ${paymentMethod === 'paystack' ? 'active' : ''}`} /></span>

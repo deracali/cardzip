@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, BadgeAlert, Camera, MessageCircle, Megaphone, Ph
 import { getUserToken, userApi } from '../services/api'
 import { getStorefrontPreferences, recordProductInteraction } from '../services/storePreferences'
 import { formatNaira } from '../utils/currency'
+import CardzipLoader from '../components/CardzipLoader'
 import CommunityChatDialog from '../components/CommunityChatDialog'
 import CommunitySellerInbox from '../components/CommunitySellerInbox'
 import './CommunityMarketPage.css'
@@ -303,7 +304,7 @@ export default function CommunityMarketPage({ onNavigate, user }) {
 
         <section className="community-listings-section">
           <div className="community-listings-title"><div><span>DIRECT FROM SELLERS</span><h2>Community listings</h2></div><span>{listings.length} items</span></div>
-          {loading ? <p className="community-state">Loading listings…</p> : loadError ? <p className="community-form-error" role="alert">{loadError}</p> : listings.length === 0 ? <div className="community-empty"><Camera size={22} /><strong>No listings yet</strong><span>Be the first to post an item for your community.</span></div> : (
+          {loading ? <p className="community-state"><CardzipLoader compact label="Loading listings" /></p> : loadError ? <p className="community-form-error" role="alert">{loadError}</p> : listings.length === 0 ? <div className="community-empty"><Camera size={22} /><strong>No listings yet</strong><span>Be the first to post an item for your community.</span></div> : (
             <div className="community-listing-grid">
               {listings.map((listing) => {
                 const listingImages = getListingImages(listing)

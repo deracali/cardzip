@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ArrowLeft, ArrowRight, CalendarDays, Camera, Copy, PackagePlus, Store, Trash2, X } from 'lucide-react'
 import { getUserToken, userApi } from '../services/api'
 import { formatNaira } from '../utils/currency'
+import CardzipLoader from '../components/CardzipLoader'
 import './ShopMarketplace.css'
 
 const emptyProduct = { name: '', category: '', description: '', price: '', images: [], condition: 'brand_new', stock: '1' }
@@ -196,7 +197,7 @@ export default function MyShopPage({ onNavigate }) {
     }
   }
 
-  if (loading) return <main className="shop-market-page"><div className="shop-market-shell"><p className="shop-market-state" role="status">Loading your shop…</p></div></main>
+  if (loading) return <main className="shop-market-page"><div className="shop-market-shell"><p className="shop-market-state" role="status"><CardzipLoader compact label="Loading your shop" /></p></div></main>
 
   return (
     <main className="shop-market-page">

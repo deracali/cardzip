@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AlertCircle, Check, ChevronDown, FileText, ImagePlus, MapPin, Package, Pencil, Plus, Search, ShoppingBag, Sparkles, Trash2, Upload, X } from 'lucide-react'
 import { adminApi } from '../services/api'
 import CustomSelect from '../components/CustomSelect'
+import CardzipLoader from '../components/CardzipLoader'
 
 const emptyProduct = {
   name: '',
@@ -853,7 +854,7 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
       </div>}
 
       <div className="section-card">
-        <div className="card-header ecom-orders-header">
+        <div className={`card-header ecom-orders-header${activeSection === 'products' ? ' ecom-products-header' : ''}`}>
           <div className="ecom-section-heading">
             <strong>{activeSection === 'orders' ? 'Recent orders' : pageTitle}</strong>
             <span className="text-muted">{sectionCount}</span>
@@ -979,7 +980,7 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
         {activeSection === 'orders' ? (
           <>
             {error && <p className="wallet-notice error" role="alert">{error}</p>}
-            {loading && <p className="ecom-orders-loading" role="status">Loading orders…</p>}
+            {loading && <p className="ecom-orders-loading"><CardzipLoader compact label="Loading orders" /></p>}
             <div className="table-responsive">
               <table className="ecom-table">
                 <thead>
@@ -1014,7 +1015,7 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
         ) : activeSection === 'products' ? (
           <>
             {productsError && <p className="wallet-notice error" role="alert">{productsError}</p>}
-            {productsLoading && <p className="ecom-orders-loading" role="status">Loading products…</p>}
+            {productsLoading && <p className="ecom-orders-loading"><CardzipLoader compact label="Loading products" /></p>}
             <div className="table-responsive">
               <table className="ecom-table ecom-products-table">
                 <thead>
@@ -1077,7 +1078,7 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
         ) : activeSection === 'digital-assets' ? (
           <>
             {digitalSubmissionsError && <p className="wallet-notice error" role="alert">{digitalSubmissionsError}</p>}
-            {digitalSubmissionsLoading && <p className="ecom-orders-loading" role="status">Loading digital submissions…</p>}
+            {digitalSubmissionsLoading && <p className="ecom-orders-loading"><CardzipLoader compact label="Loading digital submissions" /></p>}
             <div className="table-responsive">
               <table className="ecom-table ecom-digital-submissions-table">
                 <thead><tr><th>Listing</th><th>Seller</th><th>Type &amp; price</th><th>Preview URL</th><th>Source archive</th><th className="text-right">Review</th></tr></thead>
@@ -1113,7 +1114,7 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
         ) : activeSection === 'shops' ? (
           <>
             {shopApplicationsError && <p className="wallet-notice error" role="alert">{shopApplicationsError}</p>}
-            {shopApplicationsLoading && <p className="ecom-orders-loading" role="status">Loading shop applications…</p>}
+            {shopApplicationsLoading && <p className="ecom-orders-loading"><CardzipLoader compact label="Loading shop applications" /></p>}
             <div className="table-responsive">
               <table className="ecom-table ecom-shops-table">
                 <thead><tr><th>Business</th><th>Owner</th><th>Full public address</th><th>Contact</th><th>Submitted</th><th className="text-right">Review</th></tr></thead>
@@ -1152,7 +1153,7 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
         ) : (
           <div style={{ display: 'grid', gap: 22, padding: 20 }}>
             {adSettingsError && <p className="wallet-notice error" role="alert">{adSettingsError}</p>}
-            {adSettingsLoading && <p className="ecom-orders-loading" role="status">{activeSection === 'promotions' ? 'Loading marketplace promotions…' : 'Loading banner placements and campaigns…'}</p>}
+            {adSettingsLoading && <p className="ecom-orders-loading"><CardzipLoader compact label={activeSection === 'promotions' ? 'Loading marketplace promotions' : 'Loading banner placements and campaigns'} /></p>}
             {activeSection === 'promotions' && <>
             <section>
               <div className="ecom-section-heading" style={{ marginBottom: 12 }}>

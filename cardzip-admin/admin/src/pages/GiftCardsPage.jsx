@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowDownLeft, Check, ChevronDown, Download, Search } from 'lucide-react'
 import { adminApi } from '../services/api'
 import { subscribeToGiftCardTradeChanges } from '../services/giftCardRealtime'
+import CardzipLoader from '../components/CardzipLoader'
 
 const formatNaira = (amount) => new Intl.NumberFormat('en-NG', {
   style: 'currency',
@@ -194,7 +195,7 @@ export default function GiftCardsPage() {
               <span className="rate-tag">{label}</span>
             </div>
             <div className="rate-val">
-              {result ? <>{formatNaira(result.type.rate)} <span className="rate-sub">/ USD</span></> : catalogLoading ? 'Loading rate…' : 'No USD rate available'}
+              {result ? <>{formatNaira(result.type.rate)} <span className="rate-sub">/ USD</span></> : catalogLoading ? <CardzipLoader compact label="Loading exchange rate" /> : 'No USD rate available'}
             </div>
             {catalogError && !result && <small className="text-muted">{catalogError}</small>}
           </div>
@@ -268,7 +269,7 @@ export default function GiftCardsPage() {
         </div>
 
         {error && <p className="wallet-notice error" role="alert">{error}</p>}
-        {loading && <p role="status">Loading gift card trades…</p>}
+        {loading && <p><CardzipLoader compact label="Loading gift card trades" /></p>}
         <div className="table-responsive">
           <table className="gc-table">
             <thead>

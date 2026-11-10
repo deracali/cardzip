@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ArrowLeft, CheckCircle2, Clock3, LifeBuoy, Send } from 'lucide-react'
 import { supportApi } from '../services/api'
+import CardzipLoader from '../components/CardzipLoader'
 
 const formatDate = (value) => value ? new Date(value).toLocaleString('en-NG', { timeZone: 'Africa/Lagos' }) : '—'
 
@@ -134,7 +135,7 @@ export default function SupportRequestsPage({ onNavigate }) {
             <div><h2>Your requests</h2><p>Replies and status updates appear here.</p></div>
             <span>{requests.length}</span>
           </div>
-          {loading ? <p className="support-empty" role="status">Loading support history…</p> : requests.length === 0 ? (
+          {loading ? <p className="support-empty" role="status"><CardzipLoader compact label="Loading support history" /></p> : requests.length === 0 ? (
             <p className="support-empty">You have not sent a support request yet.</p>
           ) : (
             <div className="support-request-list">

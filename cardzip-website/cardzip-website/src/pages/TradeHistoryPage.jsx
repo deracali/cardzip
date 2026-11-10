@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ArrowUpRight, Gift, ShieldCheck, Wallet, X } from 'lucide-react'
 import { userApi } from '../services/api'
 import { subscribeToGiftCardTradeChanges } from '../services/giftCardRealtime'
+import CardzipLoader from '../components/CardzipLoader'
 
 const formatDate = (date) => date ? new Date(date).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' }) : '—'
 const formatNaira = (amount) => amount === null || amount === undefined
@@ -132,7 +133,7 @@ export default function TradeHistoryPage({ onNavigate }) {
           </div>
 
           {error && <p className="wallet-notice error" role="alert">{error}</p>}
-          {loading && <p>Loading trade history…</p>}
+          {loading && <p><CardzipLoader compact label="Loading trade history" /></p>}
           <table className="orders-table">
             <thead>
               <tr>

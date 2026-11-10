@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowDownLeft, Download, Search } from 'lucide-react'
 import { adminApi } from '../services/api'
+import CardzipLoader from '../components/CardzipLoader'
 
 const formatNaira = (amount) => new Intl.NumberFormat('en-NG', {
   style: 'currency',
@@ -126,7 +127,7 @@ export default function TradeHistoryPage() {
         </div>
 
         {error && <p className="wallet-notice error" role="alert">{error}</p>}
-        {loading && <p role="status">Loading gift card trades…</p>}
+        {loading && <p><CardzipLoader compact label="Loading gift card trades" /></p>}
         <div className="table-responsive">
           <table className="trade-history-table">
             <thead><tr><th>Reference</th><th>Customer</th><th>Gift Card</th><th>Card Value</th><th>Payout</th><th>Status</th><th>Date / Time</th></tr></thead>

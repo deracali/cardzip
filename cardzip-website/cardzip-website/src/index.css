@@ -204,6 +204,10 @@
   .cardzip-header {
     padding: 12px 16px;
   }
+
+  .brand-title {
+    display: none;
+  }
   
   .header-nav {
     display: none;

@@ -4,6 +4,7 @@ import jsPDF from 'jspdf'
 import { getUserToken, userApi } from '../services/api'
 import { formatNaira } from '../utils/currency'
 import { addCardzipLogo } from '../utils/receiptPdf'
+import CardzipLoader from '../components/CardzipLoader'
 import './ShopMarketplace.css'
 
 const whatsappNumber = (phone) => {
@@ -164,7 +165,7 @@ export default function ShopProfilePage({ shopSlug, onNavigate }) {
     <main className="shop-market-page">
       <div className="shop-market-shell">
         <button type="button" className="shop-market-back" onClick={() => onNavigate?.('/shops')}><ArrowLeft size={15} /> All shops and businesses</button>
-        {loading ? <p className="shop-market-state" role="status">Loading business page…</p>
+        {loading ? <p className="shop-market-state" role="status"><CardzipLoader compact label="Loading business page" /></p>
           : error && !shop ? <p className="shop-market-error" role="alert">{error}</p>
             : shop && (
               <>

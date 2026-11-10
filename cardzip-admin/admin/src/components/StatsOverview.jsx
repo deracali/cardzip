@@ -1,3 +1,5 @@
+import CardzipLoader from './CardzipLoader'
+
 const formatNaira = (value) => `₦${Number(value || 0).toLocaleString('en-NG', { maximumFractionDigits: 0 })}`
 const formatCount = (value) => Number(value || 0).toLocaleString('en-NG')
 
@@ -21,7 +23,7 @@ export default function StatsOverview({ stats = {}, loading = false, onNavigate 
         {statsData.map((stat) => (
           <div key={stat.title} className="stat-card">
             <span className="stat-card-title">{stat.title}</span>
-            <div className="stat-card-value">{loading ? 'Loading…' : stat.value}</div>
+            <div className="stat-card-value">{loading ? <CardzipLoader compact label="Loading statistic" /> : stat.value}</div>
             <span className={`stat-card-subtext ${stat.badgeType}`}>
               {stat.subtext}
             </span>
@@ -33,7 +35,7 @@ export default function StatsOverview({ stats = {}, loading = false, onNavigate 
         <div className="float-main-summary">
           <div className="float-main-header">
             <span className="float-label">Tracked wallet and company balances</span>
-            <div className="float-main-value">{loading ? 'Loading…' : formatNaira(totalTrackedBalance)}</div>
+            <div className="float-main-value">{loading ? <CardzipLoader compact label="Loading balances" /> : formatNaira(totalTrackedBalance)}</div>
           </div>
 
           <div className="float-action-btns">
@@ -54,7 +56,7 @@ export default function StatsOverview({ stats = {}, loading = false, onNavigate 
                 <span className="float-card-title">{card.title}</span>
                 <span className="float-badge">{card.badge}</span>
               </div>
-              <div className="float-card-value">{loading ? 'Loading…' : card.value}</div>
+              <div className="float-card-value">{loading ? <CardzipLoader compact label={`Loading ${card.title.toLowerCase()}`} /> : card.value}</div>
               <div className="float-card-subtext">{card.subtext}</div>
             </div>
           ))}

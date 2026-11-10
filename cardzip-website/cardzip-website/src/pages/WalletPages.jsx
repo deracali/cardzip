@@ -17,6 +17,7 @@ import {
   Wallet,
 } from 'lucide-react'
 import { userApi } from '../services/api'
+import CardzipLoader from '../components/CardzipLoader'
 
 const formatNaira = (value) => `₦${Number(value || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 const walletFundingVatRate = 0.075
@@ -174,7 +175,7 @@ function RemoteHistory({ type }) {
         <span>{pageInfo.totalItems} records</span>
       </div>
       {error && <p className="wallet-notice error" role="alert">{error}</p>}
-      {loading ? <p>Loading wallet history…</p> : rows.length ? <HistoryTable rows={rows} type={type === 'withdrawals' ? 'withdrawals' : 'activity'} /> : <p>No transactions found for this period.</p>}
+      {loading ? <p><CardzipLoader compact label="Loading wallet history" /></p> : rows.length ? <HistoryTable rows={rows} type={type === 'withdrawals' ? 'withdrawals' : 'activity'} /> : <p>No transactions found for this period.</p>}
       <div className="pagination-controls">
         <button type="button" disabled={loading || pageInfo.page <= 1} onClick={() => load(pageInfo.page - 1)}>Previous</button>
         <span>Page {pageInfo.page} of {pageInfo.totalPages}</span>
@@ -204,8 +205,8 @@ export default function WalletPage({ onNavigate }) {
       {error && <p className="wallet-notice error" role="alert">{error}</p>}
       <section className="wallet-hero reveal">
         <div className="wallet-hero-top"><div className="wallet-balance-label"><Wallet size={17} /> Available balance</div><span className="wallet-secure-tag"><ShieldCheck size={14} /> Secure wallet</span></div>
-        <div className="wallet-balance-value">{balance !== null ? formatNaira(balance.balance) : 'Loading…'}</div>
-        <p className="wallet-hero-note">Cardzip {balance?.currency || 'NGN'} wallet · {balance ? `Updated ${dateLabel(balance.updatedAt)}` : 'Loading balance'}</p>
+        <div className="wallet-balance-value">{balance !== null ? formatNaira(balance.balance) : <CardzipLoader compact label="Loading wallet balance" />}</div>
+        <p className="wallet-hero-note">Cardzip {balance?.currency || 'NGN'} wallet · {balance ? `Updated ${dateLabel(balance.updatedAt)}` : <CardzipLoader compact label="Loading balance" />}</p>
         <div className="wallet-actions">
           <button type="button" className="wallet-primary-action" onClick={() => onNavigate('/add-money')}><Plus size={17} /> Add money</button>
           <button type="button" className="wallet-secondary-action" onClick={() => onNavigate('/withdraw')}><ArrowUpRight size={16} /> Withdraw</button>
@@ -274,7 +275,7 @@ export function AddMoneyPage({ onNavigate }) {
         <button type="submit" disabled={submitting} className="btn-emerald-submit wallet-submit"><span>{submitting ? 'Connecting to Paystack…' : `Pay ${formatNaira(totalFundingCost)}`}</span><ArrowUpRight size={16} /></button>
         <span className="wallet-form-footnote"><ShieldCheck size={14} /> Your wallet is not credited until Paystack confirms your payment.</span>
       </form><aside className="wallet-side-column">
-        <div className="wallet-summary-card reveal"><span className="wallet-summary-icon"><Wallet size={19} /></span><span className="wallet-summary-label">Current balance</span><strong>{balance !== null ? formatNaira(balance.balance) : 'Loading…'}</strong><span className="wallet-summary-caption">Your verified balance after payment is confirmed.</span></div>
+        <div className="wallet-summary-card reveal"><span className="wallet-summary-icon"><Wallet size={19} /></span><span className="wallet-summary-label">Current balance</span><strong>{balance !== null ? formatNaira(balance.balance) : <CardzipLoader compact label="Loading wallet balance" />}</strong><span className="wallet-summary-caption">Your verified balance after payment is confirmed.</span></div>
         <div className="wallet-info-card reveal"><h3>Payment security</h3><p>Cardzip never receives or stores your full card details. Payment confirmation is checked directly with Paystack.</p><button type="button" className="wallet-text-link" onClick={() => onNavigate('/add-money-history')}>View deposit history <ArrowRight size={14} /></button></div>
       </aside></div>
     </WalletLayout>
@@ -351,7 +352,7 @@ export function WithdrawalPage({ onNavigate }) {
   return (
     <WalletLayout><WalletHeader breadcrumb="Home / Wallet / Withdraw" title="Withdraw to your bank" subtitle="Your wallet ledger is checked before funds are reserved for payout review." onNavigate={onNavigate} />
       <div className="wallet-form-layout"><form className="wallet-form-card reveal" onSubmit={submit}>
-        <div className="wallet-withdraw-balance"><Wallet size={17} /><span>Available to withdraw</span><strong>{balance !== null ? formatNaira(balance.balance) : 'Loading…'}</strong></div>
+        <div className="wallet-withdraw-balance"><Wallet size={17} /><span>Available to withdraw</span><strong>{balance !== null ? formatNaira(balance.balance) : <CardzipLoader compact label="Loading wallet balance" />}</strong></div>
         <label className="wallet-field-label" htmlFor="withdrawal-amount">Amount to withdraw</label>
         <div className="wallet-amount-input"><span>₦</span><input id="withdrawal-amount" inputMode="numeric" value={amount} onChange={(event) => { setAmount(event.target.value.replace(/\D/g, '')); setNotice('') }} placeholder="Enter amount" /></div>
         <div className="wallet-section-heading wallet-method-heading"><span className="wallet-step-number">01</span><div><h2>Payout bank account</h2><p>Withdrawals are only sent to your saved account.</p></div></div>

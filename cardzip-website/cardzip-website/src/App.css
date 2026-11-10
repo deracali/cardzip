@@ -133,7 +133,7 @@ body *:not(code):not(pre) {
   background-color: #f8fafc;
 }
 
-.session-loading {
+.cardzip-loader {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -147,7 +147,7 @@ body *:not(code):not(pre) {
   letter-spacing: .14em;
 }
 
-.session-brand {
+.cardzip-loader-mark {
   display: grid;
   width: 58px;
   height: 58px;
@@ -160,16 +160,33 @@ body *:not(code):not(pre) {
   box-shadow: 0 12px 30px rgba(5, 150, 105, .2);
 }
 
-.session-spinner {
-  width: 22px;
-  height: 22px;
-  border: 3px solid #d1fae5;
-  border-top-color: #059669;
-  border-radius: 50%;
-  animation: cardzipSpin 0.8s linear infinite;
+.cardzip-loader-mark svg {
+  width: 30px;
+  height: 30px;
+  color: #fff;
 }
 
-@keyframes cardzipSpin {
+.cardzip-loader-icon {
+  animation: cardzip-loader-spin 1s linear infinite;
+}
+
+.cardzip-loader strong {
+  color: #047857;
+  font-size: 10px;
+  letter-spacing: .16em;
+}
+
+.cardzip-loader-inline {
+  display: inline-flex;
+  width: 1em;
+  height: 1em;
+  align-items: center;
+  justify-content: center;
+  color: #059669;
+  vertical-align: -0.15em;
+}
+
+@keyframes cardzip-loader-spin {
   to { transform: rotate(360deg); }
 }
 
@@ -3805,6 +3822,11 @@ textarea:focus {
   font-weight: 650;
 }
 
+.product-details-loading .cardzip-loader-inline {
+  width: 22px;
+  height: 22px;
+}
+
 .product-stock-line.unavailable .product-stock-dot { background: #ef4444; box-shadow: 0 0 0 4px #fee2e2; }
 .product-buy-row button:disabled,
 .product-buy-now:disabled { opacity: 0.55; cursor: not-allowed; }
@@ -6199,6 +6221,7 @@ textarea:focus {
 .nav-menu { display: flex; flex-direction: column; gap: 4px; }
 .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; border: none; background: none; font-size: 12px; font-weight: 700; color: #64748b; cursor: pointer; text-align: left; }
 .nav-item.active { background: #0b1120; color: #ffffff; }
+.nav-item.active[aria-current="page"] { cursor: default; }
 .nav-item:hover:not(.active) { background: #f1f5f9; }
 .dashboard-logout-button { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid #fee2e2; border-radius: 8px; background: #fff7f7; color: #b42318; font-size: 12px; font-weight: 700; cursor: pointer; text-align: left; }
 .dashboard-logout-button:hover { background: #fee2e2; }

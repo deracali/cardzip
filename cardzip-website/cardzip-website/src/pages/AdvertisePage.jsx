@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, Megaphone, Upload } from 'lucide-react'
 import { userApi } from '../services/api'
+import CardzipLoader from '../components/CardzipLoader'
 import './AdvertisePage.css'
 
 const formatNaira = (amount) => new Intl.NumberFormat('en-NG', {
@@ -97,7 +98,7 @@ export default function AdvertisePage({ onNavigate, showCampaignsOnly = false })
           <p>{showCampaignsOnly ? 'Track payment, review, and scheduled run dates for your Cardzip campaigns.' : 'Choose a premium website or app placement, upload your creative, and reach customers across Cardzip.'}</p>
         </header>
 
-        {loading ? <p className="advertise-state" role="status">Loading advertising options…</p> : (
+        {loading ? <p className="advertise-state" role="status"><CardzipLoader compact label="Loading advertising options" /></p> : (
           <div className={`advertise-layout${showCampaignsOnly ? ' campaigns-only' : ''}`}>
             {!showCampaignsOnly && <form className="advertise-form" onSubmit={submit}>
               <div className="advertise-form-title"><span><Megaphone size={18} /></span><div><strong>Build your campaign</strong><small>Your banner goes live after payment and creative approval.</small></div></div>

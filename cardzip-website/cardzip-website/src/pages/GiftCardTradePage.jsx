@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ArrowUpRight, Check, CheckCircle2, ChevronDown, FileText, ShieldCheck, UploadCloud, X, XCircle } from 'lucide-react'
 import { userApi } from '../services/api'
 import { mergeGiftCardTrades, subscribeToGiftCardTradeChanges } from '../services/giftCardRealtime'
+import CardzipLoader from '../components/CardzipLoader'
 
 const giftCardLogoDomains = {
   amazon: 'amazon.com',
@@ -211,7 +212,7 @@ export default function GiftCardTradePage({ onNavigate }) {
 
             {/* Brand Selector */}
             <label className="field-label">Choose a gift card</label>
-            {catalogLoading && <p role="status">Loading available gift cards…</p>}
+            {catalogLoading && <p role="status"><CardzipLoader compact label="Loading available gift cards" /></p>}
             {catalogError && <p className="wallet-notice error" role="alert">{catalogError}</p>}
             {!catalogLoading && !catalogError && giftCards.length === 0 && <p className="wallet-notice error" role="status">No gift cards are currently available. Please try again later.</p>}
             <div className="brand-selector-grid">

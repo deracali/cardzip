@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Camera, MapPin, MessageCircle, Phone } from 'luc
 import { userApi } from '../services/api'
 import { formatNaira } from '../utils/currency'
 import AppDownloadFooter from '../components/AppDownloadFooter'
+import CardzipLoader from '../components/CardzipLoader'
 import './ShopMarketplace.css'
 
 const whatsappNumber = (phone) => {
@@ -54,7 +55,7 @@ export default function ShopProductDetailsPage({ shopSlug, shopProductSlug, onNa
       <main className="shop-market-page">
         <div className="shop-market-shell shop-product-detail-shell">
         <button type="button" className="shop-market-back" onClick={() => onNavigate?.(`/shops/${encodeURIComponent(shopSlug)}`)}><ArrowLeft size={15} /> Back to store</button>
-        {loading ? <p className="shop-market-state" role="status">Loading product…</p>
+        {loading ? <p className="shop-market-state" role="status"><CardzipLoader compact label="Loading product" /></p>
           : error || !product || !shop ? <p className="shop-market-error" role="alert">{error || 'This product is unavailable.'}</p>
             : (
               <>

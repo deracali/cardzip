@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { RefreshCw, Search } from 'lucide-react'
 import { adminApi } from '../services/api'
+import CardzipLoader from '../components/CardzipLoader'
 
 const statuses = [
   { label: 'All', value: '' },
@@ -152,7 +153,7 @@ export default function EsimPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="10" className="virtual-admin-empty">Loading virtual-number transactions…</td></tr>
+                <tr><td colSpan="10" className="virtual-admin-empty"><CardzipLoader compact label="Loading virtual-number transactions" /></td></tr>
               ) : transactions.length ? transactions.map((transaction) => (
                 <tr key={transaction._id}>
                   <td className="virtual-admin-reference">{transaction.reference}</td>

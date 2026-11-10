@@ -2,6 +2,7 @@ import { ArrowUpRight, BanknoteArrowUp, ChevronDown, ReceiptText, ShieldCheck, W
 import { useEffect, useRef, useState } from 'react'
 import { billApi, userApi } from '../services/api'
 import BillReceiptDialog from '../components/BillReceiptDialog'
+import CardzipLoader from '../components/CardzipLoader'
 
 const formatNaira = (amount) => `₦${Number(amount || 0).toLocaleString('en-NG')}`
 const formatDate = (date) => date ? new Date(date).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' }) : '—'
@@ -111,7 +112,7 @@ export default function BillHistoryPage({ onNavigate }) {
   const completedCount = entries.filter((entry) => entry.status === 'completed').length
   const settledCount = entries.filter((entry) => ['completed', 'failed'].includes(entry.status)).length
   const stats = [
-    { label: 'Bill payments', value: loading ? 'Loading…' : String(pagination.totalItems), icon: ReceiptText, tone: 'green' },
+    { label: 'Bill payments', value: loading ? <CardzipLoader compact label="Loading bill count" /> : String(pagination.totalItems), icon: ReceiptText, tone: 'green' },
     { label: 'This month', value: formatNaira(currentMonthEntries.filter((entry) => entry.status === 'completed').reduce((sum, entry) => sum + entry.amount, 0)), icon: BanknoteArrowUp, tone: 'amber' },
     { label: 'Success rate', value: settledCount ? `${((completedCount / settledCount) * 100).toFixed(1)}%` : '—', icon: ShieldCheck, tone: 'green' },
   ]
@@ -190,7 +191,7 @@ export default function BillHistoryPage({ onNavigate }) {
                 </tr>
               ))}
               {!loading && entries.length === 0 && <tr><td colSpan="5" className="date-txt">No bill payments found.</td></tr>}
-              {loading && <tr><td colSpan="5" className="date-txt">Loading bill history…</td></tr>}
+              {loading && <tr><td colSpan="5" className="date-txt"><CardzipLoader compact label="Loading bill history" /></td></tr>}
             </tbody>
           </table>
           {error && <p className="wallet-notice error" role="alert">{error}</p>}
@@ -206,7 +207,7 @@ export default function BillHistoryPage({ onNavigate }) {
         <div className="selected-order-tracker">
           <div className="tracker-left reveal">
             <h3>Latest bill payment</h3>
-            <p>{entries[0] ? `${entries[0].category} · ${entries[0].serviceName}` : loading ? 'Loading payment history…' : 'No bill payments yet.'}</p>
+            <p>{entries[0] ? `${entries[0].category} · ${entries[0].serviceName}` : loading ? <CardzipLoader compact label="Loading payment history" /> : 'No bill payments yet.'}</p>
             <div className="steps-tracker">
               {entries[0] && <>
                 <div className="step-node active"><span>{entries[0].status === 'completed' ? '✓ Payment successful' : entries[0].status.toUpperCase()}</span><span className="time-sub">{formatDate(entries[0].createdAt)}</span></div>

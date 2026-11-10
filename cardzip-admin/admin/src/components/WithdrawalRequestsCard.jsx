@@ -1,4 +1,5 @@
 import { ArrowRight, ShieldAlert } from 'lucide-react'
+import CardzipLoader from './CardzipLoader'
 
 const formatNaira = (value) => `₦${Number(value || 0).toLocaleString('en-NG', { maximumFractionDigits: 0 })}`
 
@@ -27,7 +28,7 @@ export default function WithdrawalRequestsCard({ withdrawals = [], count = 0, lo
           </div>
         ))}
         {!loading && withdrawals.length === 0 && <p className="overview-card-empty">No pending withdrawal requests.</p>}
-        {loading && withdrawals.length === 0 && <p className="overview-card-empty">Loading withdrawal requests…</p>}
+        {loading && withdrawals.length === 0 && <p className="overview-card-empty"><CardzipLoader compact label="Loading withdrawal requests" /></p>}
       </div>
     </div>
   )

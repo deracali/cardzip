@@ -14,6 +14,7 @@ import { userApi } from '../services/api'
 import { addToCart } from '../services/cart'
 import { getStorefrontPreferences, recordProductInteraction } from '../services/storePreferences'
 import { formatNaira } from '../utils/currency'
+import CardzipLoader from '../components/CardzipLoader'
 import './ProductDetailsPage.css'
 
 const colorSwatches = {
@@ -121,9 +122,8 @@ export default function ProductDetailsPage({ productSlug, onNavigate, user }) {
   if (loading) {
     return (
       <main className="page-wrapper">
-        <div className="page-container product-details-loading" role="status" aria-live="polite">
-          <span className="session-spinner" aria-hidden="true" />
-          <span>Loading product…</span>
+        <div className="page-container product-details-loading">
+          <CardzipLoader compact label="Loading product" />
         </div>
       </main>
     )

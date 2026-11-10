@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ArrowLeft, Check, ChevronLeft, ChevronRight, Code2, Globe2, LifeBuoy, Smartphone, X, ZoomIn } from 'lucide-react'
 import { getUserToken, userApi } from '../services/api'
 import { formatNaira } from '../utils/currency'
+import CardzipLoader from '../components/CardzipLoader'
 import './DigitalAssets.css'
 
 export default function DigitalAssetDetailsPage({ digitalAssetSlug, onNavigate }) {
@@ -277,7 +278,7 @@ export default function DigitalAssetDetailsPage({ digitalAssetSlug, onNavigate }
     }
   }
 
-  if (loading || loadedSlug !== digitalAssetSlug) return <main className="digital-assets-page"><div className="digital-assets-shell"><p className="digital-assets-state">Loading digital product…</p></div></main>
+  if (loading || loadedSlug !== digitalAssetSlug) return <main className="digital-assets-page"><div className="digital-assets-shell"><p className="digital-assets-state"><CardzipLoader compact label="Loading digital product" /></p></div></main>
   if (!asset) return <main className="digital-assets-page"><div className="digital-assets-shell"><p className="digital-assets-error" role="alert">{error || 'This digital product could not be found.'}</p><button className="digital-back-link" type="button" onClick={() => onNavigate?.('/digital-assets')}><ArrowLeft size={15} /> Browse websites and apps</button></div></main>
 
   return (

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowDownLeft, ArrowUpRight, Building2, RefreshCw, Search, Wallet } from 'lucide-react'
 import { adminApi } from '../services/api'
+import CardzipLoader from '../components/CardzipLoader'
 
 const emptyTreasury = {
   userWallet: { totalBalance: 0, usersWithBalance: 0, totalUsers: 0 },
@@ -139,7 +140,7 @@ export default function TreasuryPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="7" className="treasury-empty">Loading user wallet transactions…</td></tr>
+                <tr><td colSpan="7" className="treasury-empty"><CardzipLoader compact label="Loading user wallet transactions" /></td></tr>
               ) : userTransactions.length ? userTransactions.map((transaction) => (
                 <tr key={transaction._id}>
                   <td className="font-mono">{transaction.referenceId || '—'}</td>
@@ -187,7 +188,7 @@ export default function TreasuryPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="6" className="treasury-empty">Loading company wallet transactions…</td></tr>
+                <tr><td colSpan="6" className="treasury-empty"><CardzipLoader compact label="Loading company wallet transactions" /></td></tr>
               ) : companyTransactions.length ? companyTransactions.map((transaction) => (
                 <tr key={transaction._id}>
                   <td className="font-mono">{transaction.referenceId}</td>

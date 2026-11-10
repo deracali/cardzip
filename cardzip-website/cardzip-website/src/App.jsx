@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { LifeBuoy } from 'lucide-react'
 import Header from './components/Header'
+import CardzipLoader from './components/CardzipLoader'
 const Overview = lazy(() => import('./pages/Overview'))
 const AboutPage = lazy(() => import('./pages/AboutPage'))
 const Login = lazy(() => import('./pages/Login'))
@@ -154,7 +155,7 @@ function App() {
 
   if (path === '/login' || path === '/signup') {
     return (
-      <Suspense fallback={<main className="session-loading" role="status">Loading…</main>}><Login
+      <Suspense fallback={<CardzipLoader label="Loading sign-in…" />}><Login
         initialMode={path === '/signup' ? 'signup' : 'login'}
         onForgotPassword={() => navigate('/forgot-password')}
         onAuthenticated={(session) => {
@@ -168,7 +169,7 @@ function App() {
   }
 
   if (path === '/forgot-password') {
-    return <Suspense fallback={<main className="session-loading" role="status">Loading…</main>}><ForgotPasswordPage onBackToLogin={() => navigate('/login')} /></Suspense>
+    return <Suspense fallback={<CardzipLoader label="Loading password recovery…" />}><ForgotPasswordPage onBackToLogin={() => navigate('/login')} /></Suspense>
   }
 
   const productSlug = path.startsWith('/product/') ? path.slice('/product/'.length) : null
@@ -183,7 +184,7 @@ function App() {
   const orderId = path.startsWith('/orders/') ? path.slice('/orders/'.length) : null
   const page = pages[path]
   if (requiresAuthentication && !user) {
-    if (!authChecked) return <main className="session-loading" role="status"><span className="session-brand">C</span><span className="session-spinner" />LOADING CARDZIP</main>
+    if (!authChecked) return <CardzipLoader label="Checking your session…" />
     return null
   }
   const logout = () => {
@@ -253,7 +254,7 @@ function App() {
         featureSettings={featureSettings}
       />
       <main className="app-main-content">
-        <Suspense fallback={<main className="session-loading" role="status"><span className="session-brand">C</span><span className="session-spinner" />LOADING CARDZIP</main>}>
+        <Suspense fallback={<CardzipLoader />}>
           <Page key={productSlug || digitalAssetSlug || communityListingId || shopProductSlug || shopSlug || orderId || path} onNavigate={navigate} onLogout={logout} productSlug={productSlug} digitalAssetSlug={digitalAssetSlug} listingId={communityListingId} shopSlug={shopProductShopSlug || shopSlug} shopProductSlug={shopProductSlug} orderId={orderId} user={user} featureSettings={featureSettings} title={path === '/bills' ? 'Bill payments' : 'eSIM / virtual numbers'} />
         </Suspense>
       </main>

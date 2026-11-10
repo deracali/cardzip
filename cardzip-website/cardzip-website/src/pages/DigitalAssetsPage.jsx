@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Code2, Globe2, Search, Smartphone } from 'lucide
 import { userApi } from '../services/api'
 import { getStorefrontPreferences, recordStoreSearch } from '../services/storePreferences'
 import { formatNaira } from '../utils/currency'
+import CardzipLoader from '../components/CardzipLoader'
 import './DigitalAssets.css'
 
 const typeLabels = { website: 'Website', app: 'Android app', ios_app: 'iOS app', full_stack: 'Full stack', admin: 'Admin' }
@@ -65,7 +66,7 @@ export default function DigitalAssetsPage({ onNavigate }) {
           {searchTerm && <button type="button" className="digital-assets-clear-search" onClick={() => { setSearchInput(''); setSearchTerm(''); setLoading(true); setError('') }}>Clear</button>}
         </form>
         {error && <p className="digital-assets-error" role="alert">{error}</p>}
-        {loading ? <p className="digital-assets-state" role="status">Loading digital products…</p> : null}
+        {loading ? <p className="digital-assets-state" role="status"><CardzipLoader compact label="Loading digital products" /></p> : null}
         {!loading && !error && assets.length === 0 ? <div className="digital-assets-empty"><Code2 size={28} /><strong>{searchTerm ? 'No matching websites or apps' : 'New digital products are on the way'}</strong><span>{searchTerm ? 'Try a different search term or clear your search.' : 'Check back soon for websites and apps curated by Cardzip.'}</span>{searchTerm && <button type="button" onClick={() => { setSearchInput(''); setSearchTerm(''); setLoading(true) }}>Clear search</button>}</div> : null}
         <section className="digital-assets-grid" aria-label="Websites and apps">
           {assets.map((asset) => {

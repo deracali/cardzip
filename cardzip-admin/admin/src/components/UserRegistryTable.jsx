@@ -1,5 +1,6 @@
 import { ArrowRight, Users } from 'lucide-react'
 import CustomSelect from './CustomSelect'
+import CardzipLoader from './CardzipLoader'
 
 const kycOptions = [
   { value: 'all', label: 'All KYC statuses' },
@@ -77,7 +78,7 @@ export default function UserRegistryTable({
               )
             })}
             {!loading && users.length === 0 && <tr><td colSpan="5" className="overview-empty-cell">No customer records match these filters.</td></tr>}
-            {loading && users.length === 0 && <tr><td colSpan="5" className="overview-empty-cell">Loading customer records…</td></tr>}
+            {loading && users.length === 0 && <tr><td colSpan="5" className="overview-empty-cell"><CardzipLoader compact label="Loading customer records" /></td></tr>}
           </tbody>
         </table>
       </div>

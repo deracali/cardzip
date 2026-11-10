@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Check, Copy, Gift, Users, Wallet } from 'lucide-react'
 import { userApi } from '../services/api'
+import CardzipLoader from '../components/CardzipLoader'
 
 const formatNaira = (amount) => `₦${Number(amount || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
@@ -51,7 +52,7 @@ export default function ReferralPage({ onNavigate }) {
         </div>
 
         {error && <p className="wallet-notice error" role="alert">{error}</p>}
-        {loading ? <p role="status">Loading your referral summary…</p> : referral && <>
+        {loading ? <p role="status"><CardzipLoader compact label="Loading your referral summary" /></p> : referral && <>
           <section className="referral-link-card">
             <div><span className="referral-eyebrow">YOUR REFERRAL CODE</span><strong className="referral-code">{referral.referralCode || 'Not available'}</strong></div>
             <div className="referral-link-row">

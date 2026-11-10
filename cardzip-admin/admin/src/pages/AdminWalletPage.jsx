@@ -15,6 +15,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import { adminApi } from '../services/api'
+import CardzipLoader from '../components/CardzipLoader'
 
 const emptyStats = {
   totalUserWalletBalance: 0,
@@ -268,7 +269,7 @@ export default function AdminWalletPage() {
                 <tr><td colSpan="7" className="wallet-empty-state">No wallet transactions match these filters.</td></tr>
               )}
               {loading && (
-                <tr><td colSpan="7" className="wallet-empty-state">Loading wallet history…</td></tr>
+                <tr><td colSpan="7" className="wallet-empty-state"><CardzipLoader compact label="Loading wallet history" /></td></tr>
               )}
             </tbody>
           </table>

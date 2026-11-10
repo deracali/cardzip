@@ -3,6 +3,7 @@ import { ArrowRight, Camera } from 'lucide-react'
 import { userApi } from '../services/api'
 import { getStorefrontPreferences } from '../services/storePreferences'
 import { formatNaira } from '../utils/currency'
+import CardzipLoader from './CardzipLoader'
 
 export default function HomeProductsSection({ onNavigate }) {
   const [products, setProducts] = useState([])
@@ -44,7 +45,7 @@ export default function HomeProductsSection({ onNavigate }) {
           <span className="home-product-info"><strong>{product.name}</strong><small>{product.category || 'General'} · {product.isSold ? 'Sold' : product.condition === 'used' ? 'Used' : 'Brand new'}</small><b>{formatNaira(product.price)}</b></span>
         </button>)}
       </div>}
-      {loading && <p className="home-products-message" role="status">Loading featured products…</p>}
+      {loading && <p className="home-products-message" role="status"><CardzipLoader compact label="Loading featured products" /></p>}
       {!loading && products.length === 0 && <p className="home-products-message" role="status">
         {loadError ? 'Featured products could not be loaded right now.' : 'No products are featured right now.'}
         {' '}<button type="button" onClick={() => onNavigate?.('/shop')}>Browse the full store</button>

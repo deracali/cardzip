@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ArrowUpRight, Copy, ChevronDown, Check, RefreshCw, Search, X } from 'lucide-react'
 import { sms4Api } from '../services/api'
+import CardzipLoader from '../components/CardzipLoader'
 
 const listFrom = (response, keys) => {
   if (Array.isArray(response)) return response
@@ -279,14 +280,14 @@ export default function VirtualNumbersPage() {
                   {selected && <Check size={16} className="sms4-choice-check" />}
                 </button>
               })}
-              {areas.length === 0 && <p className="field-hint">{loading ? 'Loading areas…' : 'No areas available.'}</p>}
+              {areas.length === 0 && <p className="field-hint">{loading ? <CardzipLoader compact label="Loading areas" /> : 'No areas available.'}</p>}
             </div>
 
             <div className="form-field">
               <label className="field-label">Choose an app</label>
               <div className="sms4-app-picker">
                 <button type="button" className="sms4-app-select" aria-haspopup="listbox" aria-expanded={appPickerOpen} disabled={loading || apps.length === 0} onClick={() => setAppPickerOpen((open) => !open)}>
-                  <span>{selectedApp || (loading ? 'Loading apps…' : 'Select an app')}</span>
+                  <span>{selectedApp || (loading ? <CardzipLoader compact label="Loading apps" /> : 'Select an app')}</span>
                   <ChevronDown size={16} />
                 </button>
                 {appPickerOpen && <div className="sms4-app-menu">
@@ -332,11 +333,11 @@ export default function VirtualNumbersPage() {
                     onClick={() => setSelectedDuration(optionValue)}
                   >
                     <span>{label || `Duration ${index + 1}`}</span>
-                    <strong>{pricingLoading ? 'Loading price…' : formatPrice(durationPrices[optionValue])}</strong>
+                    <strong>{pricingLoading ? <CardzipLoader compact label="Loading price" /> : formatPrice(durationPrices[optionValue])}</strong>
                     {selected && <Check size={15} className="sms4-choice-check" />}
                   </button>
                 })}
-                {durations.length === 0 && <p className="field-hint">{selectedApp ? 'Loading provider durations…' : 'Choose an app to view durations.'}</p>}
+                {durations.length === 0 && <p className="field-hint">{selectedApp ? <CardzipLoader compact label="Loading provider durations" /> : 'Choose an app to view durations.'}</p>}
               </div>
             </div>
 
@@ -347,7 +348,7 @@ export default function VirtualNumbersPage() {
 
             <div className="price-breakdown">
               <div className="price-row"><span>Selected duration</span><span>{selectedDuration || 'Choose a duration'}</span></div>
-              <div className="price-row total"><span>Price preview</span><span className="total-val">{pricingLoading ? 'Loading…' : selectedPrice}</span></div>
+              <div className="price-row total"><span>Price preview</span><span className="total-val">{pricingLoading ? <CardzipLoader compact label="Loading price" /> : selectedPrice}</span></div>
             </div>
 
             <button className="btn-emerald-submit" onClick={() => setShowPaymentChoice(true)} disabled={submitting || loading || pricingLoading || !selectedApp}>
@@ -378,7 +379,7 @@ export default function VirtualNumbersPage() {
               </div>}
 
               <div className="number-display-row">
-                <h2 className="number-val">{phoneNumber || (loading ? 'Loading…' : 'No number yet')}</h2>
+                <h2 className="number-val">{phoneNumber || (loading ? <CardzipLoader compact label="Loading phone number" /> : 'No number yet')}</h2>
                 <button className="btn-copy-num" onClick={handleCopy} disabled={!phoneNumber}>
                   <span>{copied ? 'Copied!' : 'Copy Number'}</span>
                   {copied ? <Check size={12} /> : <Copy size={12} />}

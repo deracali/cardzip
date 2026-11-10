@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ArrowRight } from 'lucide-react'
+import CardzipLoader from './CardzipLoader'
 
 const categories = ['All', 'Airtime', 'Data', 'TV', 'Electricity', 'Education']
 const formatNaira = (value) => `₦${Number(value || 0).toLocaleString('en-NG', { maximumFractionDigits: 0 })}`
@@ -37,7 +38,7 @@ export default function BillPaymentsControl({ bills = [], stats = {}, loading = 
           </div>
         ))}
         {!loading && filteredBills.length === 0 && <p className="overview-card-empty">No bill payments found for this category and period.</p>}
-        {loading && bills.length === 0 && <p className="overview-card-empty">Loading bill payment history…</p>}
+        {loading && bills.length === 0 && <p className="overview-card-empty"><CardzipLoader compact label="Loading bill payment history" /></p>}
       </div>
 
       <div className="batch-banner">

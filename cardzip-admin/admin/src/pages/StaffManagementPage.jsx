@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Download, Pencil, RefreshCw, Search, UserCheck, UserPlus, UserX, X } from 'lucide-react'
 import CustomSelect from '../components/CustomSelect'
 import { adminApi } from '../services/api'
+import CardzipLoader from '../components/CardzipLoader'
 
 const assignablePages = [
   'Overview', 'Users', 'Treasury', 'Admin Wallet', 'Add Money', 'Withdrawals',
@@ -382,7 +383,7 @@ export default function StaffManagementPage() {
             <button type="submit" disabled={searching || loading}>{searching ? <><RefreshCw size={13} className="staff-spin" /> Searching…</> : 'Search'}</button>
           </form>
         </div>
-        {loading ? <p>Loading staff…</p> : (
+        {loading ? <p><CardzipLoader compact label="Loading staff" /></p> : (
           <div className="table-responsive">
             <table className="staff-table">
               <thead><tr><th>Name</th><th>Email</th><th>Department</th><th>Page access</th><th>Status</th><th>Actions</th></tr></thead>
@@ -417,7 +418,7 @@ export default function StaffManagementPage() {
           <form className="staff-attendance-period" onSubmit={(event) => { event.preventDefault(); setAttendancePage(1); setSearching(true); Promise.resolve(refresh(1)).finally(() => setSearching(false)) }}>
             <label>From<input aria-label="Attendance from date" type="date" value={attendanceFrom} onChange={(event) => setAttendanceFrom(event.target.value)} /></label>
             <label>To<input aria-label="Attendance to date" type="date" value={attendanceTo} onChange={(event) => setAttendanceTo(event.target.value)} /></label>
-            <button type="submit" className="btn-secondary" disabled={loading || searching}><RefreshCw size={14} className={searching ? 'staff-spin' : ''} /> {searching ? 'Loading…' : 'Refresh'}</button>
+            <button type="submit" className="btn-secondary" disabled={loading || searching}>{searching ? <CardzipLoader compact label="Loading staff" /> : <><RefreshCw size={14} /> Refresh</>}</button>
             <button type="button" className="btn-secondary staff-attendance-download" onClick={downloadAttendance} disabled={loading || attendance.length === 0}><Download size={14} /> Download CSV</button>
           </form>
         </div>
@@ -435,7 +436,7 @@ export default function StaffManagementPage() {
                   <td>{record.status === 'absent' || record.status === 'not_clocked_in' ? '—' : formatDuration(record.durationMinutes)}</td>
                 </tr>
               ))}
-              {!attendance.length && <tr><td colSpan="6" className="staff-empty-row">{loading ? 'Loading attendance…' : 'No attendance records in this period.'}</td></tr>}
+              {!attendance.length && <tr><td colSpan="6" className="staff-empty-row">{loading ? <CardzipLoader compact label="Loading attendance" /> : 'No attendance records in this period.'}</td></tr>}
             </tbody>
           </table>
         </div>

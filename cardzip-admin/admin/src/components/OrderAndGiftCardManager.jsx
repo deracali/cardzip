@@ -1,4 +1,5 @@
 import { ArrowRight, ShoppingBag } from 'lucide-react'
+import CardzipLoader from './CardzipLoader'
 
 const formatNaira = (value) => `₦${Number(value || 0).toLocaleString('en-NG', { maximumFractionDigits: 0 })}`
 
@@ -29,7 +30,7 @@ export default function OrderAndGiftCardManager({
             </div>
             <span className={`overview-history-status ${latestOrder.status}`}>{latestOrder.status}</span>
           </div>
-        ) : <p className="overview-card-empty">{loading ? 'Loading e-commerce order history…' : 'No e-commerce orders in this period.'}</p>}
+        ) : <p className="overview-card-empty">{loading ? <CardzipLoader compact label="Loading e-commerce orders" /> : 'No e-commerce orders in this period.'}</p>}
         <div className="overview-manager-footer">{Number(orderStats.total || 0).toLocaleString('en-NG')} orders · {formatNaira(orderStats.paidVolume)} paid volume</div>
       </div>
 
@@ -46,7 +47,7 @@ export default function OrderAndGiftCardManager({
             </div>
             <span className={`overview-history-status ${latestGiftCard.status}`}>{latestGiftCard.status}</span>
           </div>
-        ) : <p className="overview-card-empty">{loading ? 'Loading gift card trade history…' : 'No gift card trades in this period.'}</p>}
+        ) : <p className="overview-card-empty">{loading ? <CardzipLoader compact label="Loading gift card trades" /> : 'No gift card trades in this period.'}</p>}
         <div className="overview-manager-footer">{Number(giftCardStats.total || 0).toLocaleString('en-NG')} trades · {formatNaira(giftCardStats.payoutVolume)} successful payout volume</div>
       </div>
     </div>

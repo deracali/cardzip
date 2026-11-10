@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { adminApi } from '../services/api';
+import CardzipLoader from '../components/CardzipLoader';
 
 const PAGE_SIZE = 20;
 const FILTERS = [
@@ -170,7 +171,7 @@ function AddMoneyPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="10" className="add-money-empty">Loading wallet top-ups…</td></tr>
+                <tr><td colSpan="10" className="add-money-empty"><CardzipLoader compact label="Loading wallet top-ups" /></td></tr>
               ) : payments.length === 0 ? (
                 <tr><td colSpan="10" className="add-money-empty">{error ? 'Could not load top-ups.' : 'No wallet top-ups found.'}</td></tr>
               ) : payments.map((payment) => (

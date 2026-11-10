@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ExternalLink, Send } from 'lucide-react'
 import CustomSelect from '../components/CustomSelect'
 import { adminApi } from '../services/api'
+import CardzipLoader from '../components/CardzipLoader'
 
 const taskStatusOptions = [
   { value: 'todo', label: 'To do' },
@@ -105,7 +106,7 @@ export default function MyTasksPage({ onViewOrder }) {
       </header>
       {error && <p role="alert" className="form-error">{error}</p>}
       <div className="section-card staff-task-list">
-        {loading ? <p className="staff-empty-row">Loading your tasks…</p> : tasks.length === 0 ? <p className="staff-empty-row">No tasks are currently assigned to you.</p> : tasks.map((task) => {
+        {loading ? <p className="staff-empty-row"><CardzipLoader compact label="Loading your tasks" /></p> : tasks.length === 0 ? <p className="staff-empty-row">No tasks are currently assigned to you.</p> : tasks.map((task) => {
           const giftCard = task.relatedGiftCard
           const storeOrder = task.relatedStoreOrder
           const supportRequest = task.relatedSupportRequest

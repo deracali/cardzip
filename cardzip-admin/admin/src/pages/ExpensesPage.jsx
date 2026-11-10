@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BadgeDollarSign, CalendarDays, CheckCircle2, CircleDollarSign, RefreshCw } from 'lucide-react'
 import { adminApi } from '../services/api'
+import CardzipLoader from '../components/CardzipLoader'
 
 const formatNgn = (value) => new Intl.NumberFormat('en-NG', {
   style: 'currency',
@@ -214,7 +215,7 @@ export default function ExpensesPage() {
                 </tr>
               })}
               {!loading && staff.length === 0 && <tr><td colSpan="4" className="staff-empty-row">No active staff accounts were found.</td></tr>}
-              {loading && <tr><td colSpan="4" className="staff-empty-row">Loading staff and salary records…</td></tr>}
+              {loading && <tr><td colSpan="4" className="staff-empty-row"><CardzipLoader compact label="Loading staff and salary records" /></td></tr>}
             </tbody>
           </table>
         </div>

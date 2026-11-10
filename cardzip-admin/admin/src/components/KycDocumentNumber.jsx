@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { adminApi } from '../services/api'
+import CardzipLoader from './CardzipLoader'
 
 export default function KycDocumentNumber({ userId, documentLastFour }) {
   const [documentNumber, setDocumentNumber] = useState('')
@@ -44,7 +45,7 @@ export default function KycDocumentNumber({ userId, documentLastFour }) {
         aria-label={visible ? 'Hide full ID number' : 'Reveal full ID number'}
       >
         {visible ? <EyeOff size={14} /> : <Eye size={14} />}
-        {loading ? 'Loading…' : visible ? 'Hide' : 'Show full number'}
+        {loading ? <CardzipLoader compact label="Loading ID number" /> : visible ? 'Hide' : 'Show full number'}
       </button>
       {error && <span className="kyc-document-number-error" role="alert">{error}</span>}
     </div>

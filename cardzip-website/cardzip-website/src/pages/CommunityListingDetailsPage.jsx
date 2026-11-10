@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, BadgeCheck, Megaphone, MessageCircle, Phone, Shi
 import { getUserToken, userApi } from '../services/api'
 import { recordProductInteraction } from '../services/storePreferences'
 import { formatNaira } from '../utils/currency'
+import CardzipLoader from '../components/CardzipLoader'
 import CommunityChatDialog from '../components/CommunityChatDialog'
 import CommunitySellerInbox from '../components/CommunitySellerInbox'
 import './CommunityListingDetailsPage.css'
@@ -154,7 +155,7 @@ export default function CommunityListingDetailsPage({ listingId, onNavigate, use
   }
 
   if (loading) {
-    return <main className="community-detail-page"><div className="community-detail-shell" role="status">Loading listing…</div></main>
+    return <main className="community-detail-page"><div className="community-detail-shell" role="status"><CardzipLoader compact label="Loading listing" /></div></main>
   }
   if (!listing) {
     return <main className="community-detail-page"><div className="community-detail-shell">

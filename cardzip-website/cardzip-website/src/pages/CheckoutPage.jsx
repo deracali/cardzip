@@ -3,6 +3,7 @@ import { ArrowUpRight, CheckCircle2, MessageSquare, ShieldCheck, X, XCircle } fr
 import { userApi } from '../services/api'
 import { clearCart, getCart } from '../services/cart'
 import { formatNaira } from '../utils/currency'
+import CardzipLoader from '../components/CardzipLoader'
 
 export default function CheckoutPage({ onNavigate }) {
   const [cart] = useState(getCart)
@@ -91,7 +92,7 @@ export default function CheckoutPage({ onNavigate }) {
           <div className="payment-options">
             <button type="button" className={`pay-option ${paymentMethod === 'wallet' ? 'selected' : ''}`} onClick={() => setPaymentMethod('wallet')}>
               <span className="pay-top"><span>Cardzip wallet</span><span className={`radio-dot ${paymentMethod === 'wallet' ? 'active' : ''}`} /></span>
-              <span className="pay-sub">Balance: {balance ? formatNaira(balance.balance) : 'Loading…'}</span>
+              <span className="pay-sub">Balance: {balance ? formatNaira(balance.balance) : <CardzipLoader compact label="Loading wallet balance" />}</span>
             </button>
             <button type="button" className={`pay-option ${paymentMethod === 'paystack' ? 'selected' : ''}`} onClick={() => setPaymentMethod('paystack')}>
               <span className="pay-top"><span>Paystack</span><span className={`radio-dot ${paymentMethod === 'paystack' ? 'active' : ''}`} /></span>
@@ -113,7 +114,7 @@ export default function CheckoutPage({ onNavigate }) {
           </section>
           <section className="checkout-card"><h3 className="section-title">Payment method</h3><p className="section-desc">Choose a secure way to pay for {formatNaira(total)}.</p>
             <div className="payment-options">
-              <button type="button" className={`pay-option ${paymentMethod === 'wallet' ? 'selected' : ''}`} onClick={() => setPaymentMethod('wallet')}><span className="pay-top"><span>Cardzip wallet</span><span className={`radio-dot ${paymentMethod === 'wallet' ? 'active' : ''}`} /></span><span className="pay-sub">Balance: {balance ? formatNaira(balance.balance) : 'Loading…'}</span></button>
+              <button type="button" className={`pay-option ${paymentMethod === 'wallet' ? 'selected' : ''}`} onClick={() => setPaymentMethod('wallet')}><span className="pay-top"><span>Cardzip wallet</span><span className={`radio-dot ${paymentMethod === 'wallet' ? 'active' : ''}`} /></span><span className="pay-sub">Balance: {balance ? formatNaira(balance.balance) : <CardzipLoader compact label="Loading wallet balance" />}</span></button>
               <button type="button" className={`pay-option ${paymentMethod === 'paystack' ? 'selected' : ''}`} onClick={() => setPaymentMethod('paystack')}><span className="pay-top"><span>Paystack</span><span className={`radio-dot ${paymentMethod === 'paystack' ? 'active' : ''}`} /></span><span className="pay-sub">Visa · Mastercard · Verve</span></button>
             </div>
             {paymentMethod === 'wallet' && balance && balance.balance < total && <p role="status">Your wallet balance is less than the order total; choose Paystack or add funds to your wallet.</p>}

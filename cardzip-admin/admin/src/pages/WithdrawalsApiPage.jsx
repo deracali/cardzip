@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, CheckCircle2, Eye, RefreshCw, Search, ShieldAlert, ShieldCheck, X } from 'lucide-react'
 import CustomSelect from '../components/CustomSelect'
 import { adminApi } from '../services/api'
+import CardzipLoader from '../components/CardzipLoader'
 
 const formatNaira = (value) => new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 2 }).format(Number(value || 0))
 
@@ -280,7 +281,7 @@ export default function WithdrawalsApiPage() {
             </button>
           </div>
         </div>
-        {loading ? <div className="withdrawal-loading"><span className="withdrawal-spinner" /> Loading withdrawal requests…</div> : (
+        {loading ? <div className="withdrawal-loading"><CardzipLoader compact label="Loading withdrawal requests" /></div> : (
           <div className="table-responsive">
             <table className="withdraw-table">
               <thead><tr><th>Reference / Date</th><th>Customer</th><th>Bank destination</th><th>Amount</th><th>Ledger check</th><th>Request status</th><th /></tr></thead>

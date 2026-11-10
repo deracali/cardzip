@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ArrowUpRight, CheckCircle2, Package, Truck } from 'lucide-react'
 import { userApi } from '../services/api'
 import { formatNaira } from '../utils/currency'
+import CardzipLoader from '../components/CardzipLoader'
 
 const formatDate = (value) => value ? new Date(value).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' }) : '—'
 const statusLabel = (status) => ({
@@ -102,7 +103,7 @@ export default function OrderHistoryPage({ onNavigate }) {
                   )
                 })}
                 {!loading && !error && orders.length === 0 && <tr><td colSpan="6" className="wallet-empty-state">You have not placed any orders yet.</td></tr>}
-                {loading && <tr><td colSpan="6" className="wallet-empty-state">Loading your order history…</td></tr>}
+                {loading && <tr><td colSpan="6" className="wallet-empty-state"><CardzipLoader compact label="Loading your order history" /></td></tr>}
               </tbody>
             </table>
           </div>

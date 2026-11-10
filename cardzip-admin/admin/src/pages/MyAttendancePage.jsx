@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { CalendarClock, Clock3, LogIn, LogOut, RefreshCw } from 'lucide-react'
 import { adminApi } from '../services/api'
+import CardzipLoader from '../components/CardzipLoader'
 
 const formatTime = (value) => value
   ? new Date(value).toLocaleTimeString('en-NG', { timeZone: 'Africa/Lagos', hour: '2-digit', minute: '2-digit' })
@@ -111,7 +112,7 @@ export default function MyAttendancePage() {
           <table className="staff-table staff-attendance-table">
             <thead><tr><th>Date</th><th>Status</th><th>Clock in</th><th>Clock out</th><th>Duration</th></tr></thead>
             <tbody>
-              {loading ? <tr><td colSpan="5" className="staff-empty-row">Loading attendance…</td></tr> : historyRows.map((record) => (
+              {loading ? <tr><td colSpan="5" className="staff-empty-row"><CardzipLoader compact label="Loading attendance" /></td></tr> : historyRows.map((record) => (
                 <tr key={record._id}>
                   <td>{record.attendanceDate}</td>
                   <td><span className={`staff-attendance-status ${record.status}`}>{labelStatus(record.status)}</span></td>

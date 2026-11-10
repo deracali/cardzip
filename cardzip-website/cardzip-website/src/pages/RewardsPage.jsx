@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Award, Check, Gift, Repeat2, Users } from 'lucide-react'
 import { userApi } from '../services/api'
+import CardzipLoader from '../components/CardzipLoader'
 
 const tiers = [
   { name: 'Bronze', points: 0 },
@@ -40,7 +41,7 @@ export default function RewardsPage({ onNavigate }) {
         </div>
 
         {error && <p className="wallet-notice error" role="alert">{error}</p>}
-        {loading ? <p role="status">Loading your rewards…</p> : account && <>
+        {loading ? <p role="status"><CardzipLoader compact label="Loading your rewards" /></p> : account && <>
           <section className="rewards-membership-panel">
             <div className="rewards-membership-top">
               <div>

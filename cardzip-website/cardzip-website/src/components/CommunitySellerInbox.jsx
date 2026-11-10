@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { LoaderCircle, MessageCircle, X } from 'lucide-react'
+import { MessageCircle, X } from 'lucide-react'
 import { getUserToken, userApi } from '../services/api'
+import CardzipLoader from './CardzipLoader'
 import CommunityChatDialog from './CommunityChatDialog'
 import './CommunitySellerInbox.css'
 
@@ -87,7 +88,7 @@ export default function CommunitySellerInbox({ user, listingId, placement = 'pag
             <button type="button" aria-label="Close seller chats" onClick={() => setOpen(false)}><X size={17} /></button>
           </header>
           {error ? <p className="community-seller-inbox-error" role="alert">{error}</p>
-            : loading ? <p className="community-seller-inbox-state"><LoaderCircle size={15} className="community-seller-inbox-spinner" /> Loading chats…</p>
+            : loading ? <p className="community-seller-inbox-state"><CardzipLoader compact label="Loading chats" /></p>
               : conversations.length === 0 ? <p className="community-seller-inbox-state">Buyer conversations about your community listings will appear here.</p>
                 : <div className="community-seller-inbox-list">
                   {conversations.map((conversation) => (
