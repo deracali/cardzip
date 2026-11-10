@@ -7155,6 +7155,25 @@ textarea:focus {
     gap: 15px;
   }
 
+  .auth-form-login .form-utility-row {
+    order: 2;
+  }
+
+  .auth-form-login .submit-btn {
+    order: 1;
+  }
+
+  .auth-form .submit-btn {
+    display: flex;
+    width: 100%;
+    min-height: 50px;
+    flex: 0 0 auto;
+    align-self: stretch;
+    justify-content: center;
+    visibility: visible;
+    opacity: 1;
+  }
+
   .form-group input[type="text"],
   .form-group input[type="email"],
   .form-group input[type="password"] {

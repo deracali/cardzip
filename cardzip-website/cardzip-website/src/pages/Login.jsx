@@ -215,7 +215,7 @@ export default function AuthPage({ initialMode = 'login', onForgotPassword, onAu
               {isLogin ? 'Log in to trade, connect, shop and pay.' : 'One account. Your everyday digital economy.'}
             </p>
 
-            <form onSubmit={handleSubmit} className="auth-form">
+            <form onSubmit={handleSubmit} className={`auth-form${isLogin ? ' auth-form-login' : ''}`}>
               {!isLogin && (
                 <div className="form-group">
                   <label htmlFor="fullName">Full name</label>

@@ -195,6 +195,10 @@
   cursor: pointer;
 }
 
+.mobile-login-btn {
+  display: none;
+}
+
 /* Responsive collapse for small screens */
 @media (max-width: 900px) {
   .cardzip-header {
@@ -223,6 +227,15 @@
   .header-nav.open .nav-btn {
     padding: 12px 8px;
     text-align: left;
+  }
+
+  .header-nav.open .mobile-login-btn {
+    display: block;
+    margin-top: 6px;
+    border: 1px solid rgba(16, 185, 129, .35);
+    border-radius: 8px;
+    color: #6ee7b7;
+    font-weight: 700;
   }
 
   .header-nav.open .nav-btn.active::after {

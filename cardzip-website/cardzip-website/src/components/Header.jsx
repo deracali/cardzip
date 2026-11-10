@@ -163,6 +163,15 @@ export default function Header({ currentTab = 'home', onSelectTab, onOpenDashboa
             {item.label}
           </button>
         ))}
+        {!getUserToken() && (
+          <button
+            type="button"
+            className="nav-btn mobile-login-btn"
+            onClick={() => selectTab('/login')}
+          >
+            Log in
+          </button>
+        )}
       </nav>
 
       {/* Right: Exchange Rate, Wallet & Dashboard CTA */}
