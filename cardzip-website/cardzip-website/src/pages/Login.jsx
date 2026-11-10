@@ -373,7 +373,7 @@ export default function AuthPage({ initialMode = 'login', onForgotPassword, onAu
               {isLogin && (
                 <div className="help-note">
                   <Headphones size={14} />
-                  <span>Need a hand? <a href="#help" className="green-link">Get help</a></span>
+                  <span>Need a hand? <a href="mailto:support@cardzip.ng" className="green-link">Get help</a></span>
                 </div>
               )}
             </div>

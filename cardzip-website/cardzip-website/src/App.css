@@ -7094,3 +7094,155 @@ textarea:focus {
   .support-request > header { flex-direction: column; }
   .support-message { max-width: 100%; }
 }
+
+/* Phone-sized layouts */
+@media (max-width: 760px) {
+  .app-container,
+  .app-main-content,
+  .overview-container,
+  .overview-main-content,
+  .page-wrapper,
+  .page-container {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .page-container {
+    padding: clamp(20px, 5vw, 32px) clamp(14px, 4vw, 24px);
+  }
+
+  .auth-wrapper {
+    min-height: 100vh;
+    min-height: 100svh;
+    justify-content: flex-start;
+    gap: 16px;
+    padding: max(16px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
+      max(16px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+  }
+
+  .auth-container {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 560px;
+    flex: 1;
+    align-items: start;
+    gap: 0;
+  }
+
+  .auth-form-card {
+    width: 100%;
+    min-width: 0;
+    padding: clamp(20px, 5vw, 32px);
+    border-radius: 18px;
+    box-shadow: 0 8px 26px rgba(15, 23, 42, .06);
+  }
+
+  .form-inner {
+    min-width: 0;
+  }
+
+  .form-heading {
+    font-size: clamp(25px, 7vw, 32px);
+    line-height: 1.2;
+  }
+
+  .form-subheading {
+    margin-bottom: 22px;
+    line-height: 1.5;
+  }
+
+  .auth-form {
+    gap: 15px;
+  }
+
+  .form-group input[type="text"],
+  .form-group input[type="email"],
+  .form-group input[type="password"] {
+    min-height: 46px;
+    font-size: 16px;
+  }
+
+  .form-utility-row,
+  .toggle-auth-mode {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .form-footer-security {
+    align-items: flex-start;
+    margin-top: 24px;
+  }
+
+  .sec-note,
+  .help-note {
+    align-items: flex-start;
+    line-height: 1.5;
+  }
+
+  .global-auth-footer {
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 8px;
+  }
+
+  .footer-links {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+  }
+
+  .google-auth-button,
+  .google-auth-button > div {
+    max-width: 100%;
+  }
+
+  .app-main-content :where(section, article, form, aside) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .app-main-content :where(img, video, canvas, svg) {
+    max-width: 100%;
+  }
+
+  .app-main-content :where(input, select, textarea, button) {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  .auth-form-card {
+    padding: 22px 18px;
+    border-radius: 16px;
+  }
+
+  .form-footer-security {
+    gap: 10px;
+  }
+
+  .global-auth-footer {
+    font-size: 11px;
+  }
+
+  .footer-links {
+    gap: 8px 12px;
+  }
+
+  .page-container {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+}
+
+@media (max-width: 360px) {
+  .auth-form-card {
+    padding-right: 15px;
+    padding-left: 15px;
+  }
+
+  .toggle-auth-mode {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

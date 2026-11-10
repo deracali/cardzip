@@ -57,7 +57,7 @@ export default function Login({ onLogin, onForgotPassword }) {
           <span className="status-indicator">
             <span className="dot"></span> Status: All live
           </span>
-          <a href="#support" className="nav-link">Support</a>
+          <a href="mailto:support@cardzip.ng" className="nav-link">Support</a>
           <span className="version-tag">v3.2.1</span>
         </div>
       </header>

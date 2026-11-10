@@ -1,1 +1,17 @@
 **/node_modules/
+
+# Environment files
+**/.env*
+**/*.env
+**/*.env.*
+!cardzip-admin/admin/.env.example
+
+# Secret and credential files
+**/*secret*
+**/*credential*
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/*.keystore
+**/*.jks
