@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
   ShieldCheck,
-  Mail,
   Lock,
   Eye,
   EyeOff,
@@ -177,7 +176,6 @@ export default function Login({ onLogin, onForgotPassword }) {
               <div className="form-field">
                 <label>Work email</label>
                 <div className="input-box">
-                  <Mail size={16} className="input-icon" />
                   <input
                     type="email"
                     value={email}
