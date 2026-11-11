@@ -27,6 +27,8 @@ import LetterheadPage from './pages/LetterheadPage'
 import ServiceVisibilityPage from './pages/ServiceVisibilityPage'
 import KycReviewsPage from './pages/KycReviewsPage'
 import WhatsAppInboxPage from './pages/WhatsAppInboxPage'
+import SupportInboxPage from './pages/SupportInboxPage'
+import MarketplaceReportsPage from './pages/MarketplaceReportsPage'
 import CardzipLoader from './components/CardzipLoader'
 import { adminApi, getAdminToken, setAdminToken } from './services/api'
 
@@ -86,6 +88,10 @@ function App() {
         return <KycReviewsPage onViewUser={(id) => { setSelectedUserId(id); setActiveTab('User Details') }} />
       case 'WhatsApp Inbox':
         return <WhatsAppInboxPage />
+      case 'Support Inbox':
+        return <SupportInboxPage />
+      case 'Marketplace Reports':
+        return <MarketplaceReportsPage />
       case 'User Details':
         return <UserDetailsPage userId={selectedUserId} onBack={() => setActiveTab('Users')} />
       case 'Treasury':

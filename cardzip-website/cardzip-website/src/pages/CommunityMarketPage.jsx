@@ -22,6 +22,15 @@ const getListingImages = (listing) => (
     ? listing.images
     : listing.imageUrl ? [listing.imageUrl] : []
 )
+const loadCommunityListingRows = async (preferences) => {
+  const [publicResult, ownedResult] = await Promise.all([
+    userApi.communityListings(`?page=1&limit=50&preferences=${preferences}`),
+    getUserToken() ? userApi.myCommunityListings() : Promise.resolve({ data: [] }),
+  ])
+  const rowsById = new Map((publicResult.data || []).map((listing) => [listing._id, listing]))
+  for (const listing of ownedResult.data || []) rowsById.set(listing._id, listing)
+  return [...rowsById.values()]
+}
 const getId = (value) => String(value?._id || value?.id || value || '')
 const isOwnListing = (listing, user) => (
   getId(user?._id || user?.id || user?.userId) !== ''
@@ -67,11 +76,10 @@ export default function CommunityMarketPage({ onNavigate, user }) {
   const loadListings = useCallback(async () => {
     try {
       const preferences = encodeURIComponent(JSON.stringify(getStorefrontPreferences(user)))
-      const result = await userApi.communityListings(`?page=1&limit=50&preferences=${preferences}`)
       setLoadError('')
-      const rows = Array.isArray(result.data) ? result.data : []
+      const rows = await loadCommunityListingRows(preferences)
       setListings(rows)
-      void Promise.all(rows.map((listing) => recordPromotionEvent(listing, 'impression')))
+      void Promise.all(rows.filter((listing) => listing.moderationStatus !== 'suspended').map((listing) => recordPromotionEvent(listing, 'impression')))
         .then(refreshPromotionPerformance)
     } catch (error) {
       setLoadError(error.message || 'Could not load community listings.')
@@ -83,13 +91,12 @@ export default function CommunityMarketPage({ onNavigate, user }) {
   useEffect(() => {
     let active = true
     const preferences = encodeURIComponent(JSON.stringify(getStorefrontPreferences(user)))
-    userApi.communityListings(`?page=1&limit=50&preferences=${preferences}`)
-      .then((result) => {
+    loadCommunityListingRows(preferences)
+      .then((rows) => {
         if (!active) return
         setLoadError('')
-        const rows = Array.isArray(result.data) ? result.data : []
         setListings(rows)
-        void Promise.all(rows.map((listing) => recordPromotionEvent(listing, 'impression')))
+        void Promise.all(rows.filter((listing) => listing.moderationStatus !== 'suspended').map((listing) => recordPromotionEvent(listing, 'impression')))
           .then(() => { if (active) return refreshPromotionPerformance() })
       })
       .catch((error) => {
@@ -345,6 +352,7 @@ export default function CommunityMarketPage({ onNavigate, user }) {
                       <strong className="community-listing-price">{Number(listing.price) === 0 ? 'Free' : formatNaira(listing.price)}</strong>
                       <p className="community-listing-description">{listing.description}</p>
                       <span className="community-seller-name">Listed by {listing.sellerName}</span>
+                      {isOwnListing(listing, user) && listing.moderationStatus === 'suspended' && <p className="community-moderation-reason"><strong>Hidden by Cardzip:</strong> {listing.moderationReason || 'This listing is temporarily unavailable.'}</p>}
                       {!listing.isDigitalAsset && isOwnListing(listing, user) && <div className="community-owner-actions">
                         <button className="community-owner-status" type="button" disabled={updatingListingId === listing._id} onClick={() => void updateSoldStatus(listing)}>{updatingListingId === listing._id ? 'Updating…' : listing.isSold ? 'Mark available' : 'Mark sold'}</button>
                         <button className="community-owner-edit" type="button" disabled={updatingListingId === listing._id} onClick={() => editListing(listing)}>Edit listing</button>

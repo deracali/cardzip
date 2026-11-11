@@ -220,7 +220,7 @@ export default function SubmitDigitalAssetPage({ onNavigate }) {
         <section className="digital-my-submissions">
           <h2>Your submissions</h2>
           {submissions.length === 0 ? <p>Your listing review status will appear here.</p> : submissions.map((item) => (
-            <article key={item._id}><span><strong>{item.name}</strong><small>{item.productType} · Use {formatNaira(item.usePrice || item.price)}{Number(item.templatePrice) > 0 ? ` · Full template ${formatNaira(item.templatePrice)}` : ''}</small>{item.sellerReviewNote && <small>{item.sellerReviewNote}</small>}</span><b className={`digital-review-status ${item.sellerListingStatus}`}>{statusLabel(item.sellerListingStatus)}</b></article>
+            <article key={item._id}><span><strong>{item.name}</strong><small>{item.productType} · Use {formatNaira(item.usePrice || item.price)}{Number(item.templatePrice) > 0 ? ` · Full template ${formatNaira(item.templatePrice)}` : ''}</small>{item.sellerReviewNote && <small>{item.sellerReviewNote}</small>}{item.moderationStatus === 'suspended' && <small className="digital-moderation-reason">Hidden by Cardzip: {item.moderationReason || 'This listing is temporarily unavailable.'}</small>}</span><b className={`digital-review-status ${item.moderationStatus === 'suspended' ? 'suspended' : item.sellerListingStatus}`}>{item.moderationStatus === 'suspended' ? 'Suspended' : statusLabel(item.sellerListingStatus)}</b></article>
           ))}
         </section>
       </div>

@@ -5,6 +5,7 @@ import { getUserToken, userApi } from '../services/api'
 import { formatNaira } from '../utils/currency'
 import { addCardzipLogo } from '../utils/receiptPdf'
 import CardzipLoader from '../components/CardzipLoader'
+import ReportListingButton from '../components/ReportListingButton'
 import './ShopMarketplace.css'
 
 const whatsappNumber = (phone) => {
@@ -172,7 +173,7 @@ export default function ShopProfilePage({ shopSlug, onNavigate }) {
                 <header className="shop-profile-hero">
                   {shop.bannerImage ? <img className="shop-profile-banner" src={shop.bannerImage} alt={`${shop.businessName} banner`} /> : <div className="shop-profile-mark"><Store size={30} /></div>}
                   <div className="shop-profile-copy"><span className="shop-market-verified">{shop.shopType === 'business' ? 'VERIFIED CARDZIP BUSINESS' : 'VERIFIED CARDZIP SHOP'}</span><h1>{shop.businessName}</h1><p>{shop.description || (shop.shopType === 'business' ? 'Book an appointment with this local business.' : 'Discover products from this local business.')}</p><span className="shop-profile-address"><MapPin size={15} />{shop.address}</span></div>
-                  <div className="shop-profile-contact"><a href={`tel:${shop.contactPhone}`}><Phone size={15} /> Call</a><a href={`https://wa.me/${whatsappNumber(shop.contactPhone)}`} target="_blank" rel="noreferrer"><MessageCircle size={15} /> WhatsApp</a><button type="button" onClick={() => void copyShopPage()}><Copy size={15} /> Copy page link</button></div>
+                  <div className="shop-profile-contact"><a href={`tel:${shop.contactPhone}`}><Phone size={15} /> Call</a><a href={`https://wa.me/${whatsappNumber(shop.contactPhone)}`} target="_blank" rel="noreferrer"><MessageCircle size={15} /> WhatsApp</a><button type="button" onClick={() => void copyShopPage()}><Copy size={15} /> Copy page link</button><ReportListingButton targetType="shop" targetId={shop._id} targetTitle={shop.businessName} onNavigate={onNavigate} /></div>
                 </header>
                 {shop.shopType === 'business' ? (
                   <section className="shop-profile-products" aria-labelledby="business-appointments-heading">

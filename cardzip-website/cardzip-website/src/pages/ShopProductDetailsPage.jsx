@@ -4,6 +4,7 @@ import { userApi } from '../services/api'
 import { formatNaira } from '../utils/currency'
 import AppDownloadFooter from '../components/AppDownloadFooter'
 import CardzipLoader from '../components/CardzipLoader'
+import ReportListingButton from '../components/ReportListingButton'
 import './ShopMarketplace.css'
 
 const whatsappNumber = (phone) => {
@@ -79,6 +80,7 @@ export default function ShopProductDetailsPage({ shopSlug, shopProductSlug, onNa
                       <a href={`https://wa.me/${whatsappNumber(shop.contactPhone)}?text=${encodeURIComponent(`Hi, I'm interested in ${product.name} from ${shop.businessName}.`)}`} target="_blank" rel="noreferrer"><MessageCircle size={15} /> Ask about this product <ArrowRight size={15} /></a>
                       <a href={`tel:${shop.contactPhone}`}><Phone size={15} /> Call store</a>
                     </div>
+                    <ReportListingButton targetType="shop_product" targetId={product._id} targetTitle={product.name} onNavigate={onNavigate} />
                     <p className="shop-direct-contact-note">Contact the store directly to arrange a purchase. Cardzip does not process payment or delivery for this product.</p>
                   </div>
                 </section>

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, Code2, Globe2, LifeBuoy, Smartphone, X, ZoomIn } from 'lucide-react'
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, Code2, Download, FileText, Globe2, LifeBuoy, Smartphone, X, ZoomIn } from 'lucide-react'
 import { getUserToken, userApi } from '../services/api'
 import { formatNaira } from '../utils/currency'
 import CardzipLoader from '../components/CardzipLoader'
+import ReportListingButton from '../components/ReportListingButton'
 import './DigitalAssets.css'
 
 export default function DigitalAssetDetailsPage({ digitalAssetSlug, onNavigate }) {
@@ -303,6 +304,7 @@ export default function DigitalAssetDetailsPage({ digitalAssetSlug, onNavigate }
             <h1>{asset.name}</h1>
             <p>{asset.description || 'A digital product from Cardzip, with clear usage and setup options.'}</p>
             {asset.websiteUrl && <button className="digital-demo-link" type="button" onClick={() => setWebsitePreviewOpen(true)}>Visit website <Globe2 size={15} /></button>}
+            {!isOwner && <ReportListingButton targetType="store_product" targetId={asset._id} targetTitle={asset.name} onNavigate={onNavigate} />}
           </div>
         </section>
         <div className="digital-detail-layout">
@@ -325,19 +327,19 @@ export default function DigitalAssetDetailsPage({ digitalAssetSlug, onNavigate }
                   ? <a className="digital-access-link" href={paidReceipt.accessUrl} target="_blank" rel="noreferrer">Open iOS app access</a>
                   : <button className="digital-access-link" type="button" onClick={() => setWebsitePreviewOpen(true)}>Open website access in preview</button>
               )}
-              {!receiptLoading && (paidReceipt?.sourceCodeAvailable || paidReceipt?.templateSourceCodeAvailable) && <button className="digital-access-link" type="button" disabled={Boolean(downloadingFile)} onClick={() => void downloadPurchasedFile('source-code', undefined, `${asset.name}-source-code.zip`)}>
-                {downloadingFile === (paidReceipt?.purchaseType === 'template' ? 'template-source-code' : 'rental-source-code') ? 'Downloading source code…' : `Download ${paidReceipt?.purchaseType === 'template' ? 'full-template' : 'rental'} source ZIP`}
+              {!receiptLoading && (paidReceipt?.sourceCodeAvailable || paidReceipt?.templateSourceCodeAvailable) && <button className="digital-access-link digital-download-button" type="button" disabled={Boolean(downloadingFile)} onClick={() => void downloadPurchasedFile('source-code', undefined, `${asset.name}-source-code.zip`)}>
+                <Download size={17} aria-hidden="true" /><span>{downloadingFile === (paidReceipt?.purchaseType === 'template' ? 'template-source-code' : 'rental-source-code') ? 'Downloading source code…' : `Download ${paidReceipt?.purchaseType === 'template' ? 'full-template' : 'rental'} source ZIP`}</span>
               </button>}
               {!receiptLoading && paidReceipt?.documents?.map((document, index) => {
                 const key = `document-${index}`
-                return <button className="digital-access-link" type="button" key={`${document.name}-${index}`} disabled={Boolean(downloadingFile)} onClick={() => void downloadPurchasedFile('document', index, document.name)}>
-                  {downloadingFile === key ? `Downloading ${document.name}…` : `Download ${document.name}`}
+                return <button className="digital-access-link digital-download-button" type="button" key={`${document.name}-${index}`} disabled={Boolean(downloadingFile)} onClick={() => void downloadPurchasedFile('document', index, document.name)}>
+                  <Download size={17} aria-hidden="true" /><span>{downloadingFile === key ? `Downloading ${document.name}…` : `Buyer file · ${document.name}`}</span>
                 </button>
               })}
               {!receiptLoading && paidReceipt?.templateDocuments?.map((document, index) => {
                 const key = `template-document-${index}`
-                return <button className="digital-access-link" type="button" key={`template-${document.name}-${index}`} disabled={Boolean(downloadingFile)} onClick={() => void downloadPurchasedFile('template-document', index, document.name)}>
-                  {downloadingFile === key ? `Downloading ${document.name}…` : `Download legal document: ${document.name}`}
+                return <button className="digital-access-link digital-download-button" type="button" key={`template-${document.name}-${index}`} disabled={Boolean(downloadingFile)} onClick={() => void downloadPurchasedFile('template-document', index, document.name)}>
+                  <FileText size={17} aria-hidden="true" /><span>{downloadingFile === key ? `Downloading ${document.name}…` : `Legal document · ${document.name}`}</span>
                 </button>
               })}
               {downloadError && <p className="digital-download-unavailable" role="alert">{downloadError}</p>}

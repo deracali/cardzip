@@ -211,7 +211,7 @@ function App() {
   if (!page && !productSlug && !digitalAssetSlug && !communityListingId && !orderId && !shopSlug && !shopProductSlug) {
     return (
       <div className="app-container">
-        <Header currentTab="home" onSelectTab={(tab) => selectTab(tab)} onOpenDashboard={() => navigate('/profile')} onOpenWallet={() => navigate('/wallet')} user={user} featureSettings={featureSettings} />
+        <Header currentTab="home" routeKey={path} onSelectTab={(tab) => selectTab(tab)} onOpenDashboard={() => navigate('/profile')} onOpenWallet={() => navigate('/wallet')} user={user} featureSettings={featureSettings} />
         <main className="app-main-content">
           <section className="page-container" role="status">
             <h1>Page not found</h1>
@@ -247,6 +247,7 @@ function App() {
     <div className="app-container">
       <Header
         currentTab={page?.tab || (productSlug || digitalAssetSlug || communityListingId || shopSlug || shopProductSlug ? 'shop' : 'home')}
+        routeKey={path}
         onSelectTab={selectTab}
         onOpenDashboard={() => navigate('/profile')}
         onOpenWallet={() => navigate('/wallet')}

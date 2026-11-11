@@ -51,15 +51,27 @@
 .digital-review-status { padding: 6px 9px; border-radius: 999px; background: #fff5df; color: #8d6412; font-size: 9px; }
 .digital-review-status.approved { background: #eaf8ef; color: #16623a; }
 .digital-review-status.rejected { background: #fff0f0; color: #9d3434; }
+.digital-review-status.suspended,.digital-moderation-reason { background: #fff7ed; color: #9a3412; }
+.digital-moderation-reason { padding: 6px 8px; border-radius: 6px; line-height: 1.5; overflow-wrap: anywhere; }
 .seller-digital-receipt { display: grid; gap: 12px; margin: 20px 0; padding: 18px; border: 1px solid #dbe9e1; border-radius: 14px; background: #fff; }
 .seller-digital-receipt h2 { color: #162d40; font-size: 18px; }
 .seller-digital-receipt p { color: #5d6d75; font-size: 11px; }
 .seller-digital-preview { height: min(65vh,650px); overflow: hidden; border: 1px solid #dce5e3; border-radius: 10px; background: #f7faf8; }
 .seller-digital-preview iframe { width: 100%; height: 100%; border: 0; }
-.digital-access-link { display: inline-flex; width: fit-content; align-items: center; padding: 9px 12px; border-radius: 8px; background: #edf8f1; color: #087a4c; font-size: 10px; font-weight: 800; }
-.digital-access-link:where(button) { border: 0; font: inherit; cursor: pointer; }
+.digital-access-link { display: inline-flex; min-height: 44px; width: fit-content; align-items: center; justify-content: center; gap: 8px; padding: 10px 13px; border: 1px solid #c9e6d3; border-radius: 9px; background: #edf8f1; color: #087a4c; font-size: 11px; font-weight: 800; line-height: 1.4; text-align: center; text-decoration: none; overflow-wrap: anywhere; }
+.digital-access-link:where(button) { font: inherit; cursor: pointer; }
 .digital-access-link:where(button):disabled { opacity: .65; cursor: wait; }
-.digital-paid-downloads { display: grid; justify-items: start; gap: 9px; padding: 14px; border: 1px solid #bfe3ce; border-radius: 11px; background: #f4fbf6; }
+.digital-access-link:where(a):hover { border-color: #69b88c; background: #e4f5ea; }
+.digital-paid-downloads { display: grid; justify-items: stretch; gap: 10px; min-width: 0; padding: 14px; border: 1px solid #bfe3ce; border-radius: 11px; background: #f4fbf6; }
+.digital-paid-downloads > .digital-access-link { width: 100%; min-width: 0; }
+.digital-paid-downloads > .digital-download-button { display: flex; width: 100%; min-width: 0; min-height: 52px; align-items: center; justify-content: flex-start; gap: 12px; padding: 12px 15px; border: 1px solid #bfe3ce; border-radius: 10px; background: #fff; box-shadow: 0 2px 6px rgba(8, 122, 76, .07); color: #087a4c; font-size: 12px; text-align: left; transition: background .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
+.digital-paid-downloads > .digital-download-button svg { flex: 0 0 auto; }
+.digital-paid-downloads > .digital-download-button span { min-width: 0; flex: 1; overflow-wrap: anywhere; line-height: 1.45; }
+.digital-paid-downloads > .digital-download-button:hover:not(:disabled) { transform: translateY(-1px); border-color: #69b88c; background: #f3fbf6; box-shadow: 0 5px 12px rgba(8, 122, 76, .12); }
+.digital-paid-downloads > .digital-download-button:focus-visible { outline: 2px solid #087a4c; outline-offset: 2px; }
+.digital-paid-downloads > .digital-download-button:disabled { opacity: .65; cursor: wait; }
+.digital-paid-downloads > .digital-download-button:active:not(:disabled) { transform: translateY(0); background: #e4f5ea; }
+.digital-paid-downloads > .digital-download-button:disabled svg { opacity: .7; }
 .digital-paid-downloads > strong { color: #17623d; font-size: 12px; }
 .digital-paid-downloads > span { color: #63757b; font-size: 10px; line-height: 1.5; }
 .digital-download-unavailable { color: #8b4545; font-size: 10px; line-height: 1.5; }
@@ -110,6 +122,7 @@
 .digital-detail-copy > p { max-width: 680px; color: #5e6f78; font-size: 13px; line-height: 1.7; }
 .digital-demo-link { display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; background: transparent; color: #087a4c; font: inherit; font-size: 11px; font-weight: 800; cursor: pointer; }
 .digital-demo-link:hover { color: #075d3b; }
+.digital-detail-copy > .report-listing-button { display: flex; width: fit-content; margin-top: 14px; }
 .digital-website-preview-backdrop { position: fixed; z-index: 1100; inset: 0; display: grid; place-items: center; padding: 20px; background: #07111fee; }
 .digital-website-preview { display: flex; width: min(1200px,100%); height: min(860px,92vh); flex-direction: column; overflow: hidden; border: 1px solid #dfe8e6; border-radius: 16px; background: #fff; box-shadow: 0 24px 80px #0005; }
 .digital-website-preview > header { display: flex; min-height: 62px; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; border-bottom: 1px solid #e1e8ea; }
@@ -143,4 +156,4 @@
 .digital-promotion-buttons button:disabled { opacity: .65; cursor: wait; }
 .digital-detail-code { display: flex; align-items: center; gap: 7px; margin-top: 20px; color: #65757d; font-size: 10px; }
 @media (max-width: 760px) { .digital-assets-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .digital-detail-layout { grid-template-columns: 1fr; } }
-@media (max-width: 540px) { .digital-assets-page { padding: 22px 15px 60px; } .digital-assets-grid { grid-template-columns: 1fr; } .digital-asset-card-image { height: 190px; } .digital-detail-hero { align-items: flex-start; flex-direction: column; padding: 17px; } .digital-detail-gallery { width: 100%; } .digital-detail-art { height: 220px; } .digital-image-lightbox { padding: 55px 45px; } .digital-image-lightbox-nav.previous { left: 5px; } .digital-image-lightbox-nav.next { right: 5px; } .digital-instructions-card,.digital-options-card { padding: 17px; } .digital-purchase-option { align-items: flex-start; flex-direction: column; } }
+@media (max-width: 540px) { .digital-assets-page { padding: 22px 15px 60px; } .digital-assets-grid { grid-template-columns: 1fr; } .digital-asset-card-image { height: 190px; } .digital-detail-hero { align-items: flex-start; flex-direction: column; padding: 17px; } .digital-detail-gallery { width: 100%; } .digital-detail-art { height: 220px; } .digital-image-lightbox { padding: 55px 45px; } .digital-image-lightbox-nav.previous { left: 5px; } .digital-image-lightbox-nav.next { right: 5px; } .digital-instructions-card,.digital-options-card { padding: 17px; } .digital-purchase-option { align-items: flex-start; flex-direction: column; } .digital-paid-downloads { width: 100%; padding: 12px; } .digital-paid-downloads > .digital-access-link { min-height: 48px; } .digital-paid-downloads > .digital-download-button { min-height: 56px; padding: 13px; font-size: 12px; } }

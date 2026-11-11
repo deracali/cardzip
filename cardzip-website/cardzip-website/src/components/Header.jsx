@@ -6,7 +6,7 @@ import CommunitySellerInbox from './CommunitySellerInbox'
 import CardzipLoader from './CardzipLoader'
 
 
-export default function Header({ currentTab = 'home', onSelectTab, onOpenDashboard, onOpenWallet, user, featureSettings }) {
+export default function Header({ currentTab = 'home', routeKey, onSelectTab, onOpenDashboard, onOpenWallet, user, featureSettings }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [walletBalance, setWalletBalance] = useState(null)
   const [walletError, setWalletError] = useState('')
@@ -177,15 +177,6 @@ export default function Header({ currentTab = 'home', onSelectTab, onOpenDashboa
 
       {/* Right: Exchange Rate, Wallet & Dashboard CTA */}
       <div className="header-actions">
-        <button
-          type="button"
-          className="mobile-nav-toggle"
-          aria-label={isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-          aria-expanded={isMenuOpen}
-          onClick={() => setIsMenuOpen((open) => !open)}
-        >
-          {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
         {getUserToken() && <button
           type="button"
           className="header-notifications-btn"
@@ -198,7 +189,7 @@ export default function Header({ currentTab = 'home', onSelectTab, onOpenDashboa
           <span>Notifications</span>
           {unreadNotifications > 0 && <span className="header-notification-badge">{unreadNotifications > 99 ? '99+' : unreadNotifications}</span>}
         </button>}
-        <CommunitySellerInbox user={user} placement="header" />
+        <CommunitySellerInbox key={routeKey} user={user} placement="header" />
 
         {/* Separator Line */}
         {getUserToken() && <div className="header-divider" />}
@@ -218,6 +209,15 @@ export default function Header({ currentTab = 'home', onSelectTab, onOpenDashboa
         >
           Dashboard
         </button>}
+        <button
+          type="button"
+          className="mobile-nav-toggle"
+          aria-label={isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          aria-expanded={isMenuOpen}
+          onClick={() => setIsMenuOpen((open) => !open)}
+        >
+          {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
       </div>
       {notificationsOpen && createPortal(<div className="site-notification-backdrop" onMouseDown={(event) => {
         if (event.target === event.currentTarget) {

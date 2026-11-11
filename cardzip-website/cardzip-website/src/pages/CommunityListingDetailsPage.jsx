@@ -6,6 +6,7 @@ import { formatNaira } from '../utils/currency'
 import CardzipLoader from '../components/CardzipLoader'
 import CommunityChatDialog from '../components/CommunityChatDialog'
 import CommunitySellerInbox from '../components/CommunitySellerInbox'
+import ReportListingButton from '../components/ReportListingButton'
 import './CommunityListingDetailsPage.css'
 
 const getListingImages = (listing) => (
@@ -198,6 +199,7 @@ export default function CommunityListingDetailsPage({ listingId, onNavigate, use
               <a href={`tel:${listing.phone}`}><Phone size={16} /> Call seller</a>
               <a href={`https://wa.me/${getWhatsAppNumber(listing.phone)}`} target="_blank" rel="noreferrer"><MessageCircle size={16} /> WhatsApp</a>
             </div> : listing.isSold ? <p className="community-detail-sold-note">This item has been sold.</p> : null}
+            {!isOwner && <ReportListingButton targetType="community_listing" targetId={listing._id} targetTitle={listing.title} onNavigate={onNavigate} />}
             {chatError && <p className="community-chat-action-error" role="alert">{chatError}</p>}
             {isOwner && <>
               <CommunitySellerInbox user={user} listingId={listing._id} />

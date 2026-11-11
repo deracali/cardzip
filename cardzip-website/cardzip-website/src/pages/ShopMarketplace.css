@@ -131,6 +131,10 @@
 .shop-review-status { flex: 0 0 auto; padding: 8px 11px; border-radius: 999px; background: #fff5df; color: #94600e; font-size: 10px; font-weight: 800; }
 .shop-review-status.approved { background: #e9f8ef; color: #087a4c; }
 .shop-review-status.rejected { background: #fff0ef; color: #a33b34; }
+.shop-moderation-notice,.shop-moderation-reason { padding: 12px 14px; border: 1px solid #fed7aa; border-radius: 8px; background: #fff7ed; color: #9a3412; font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+.shop-moderation-notice { margin-top: 16px; }
+.shop-moderation-notice p { margin: 4px 0 0; }
+.shop-moderation-reason { margin: 8px 0; }
 .shop-application-status { display: flex; align-items: flex-start; gap: 13px; padding: 18px; border: 1px solid #ecd7ad; border-radius: 13px; background: #fff9ed; color: #906119; }
 .shop-application-status > svg { flex: 0 0 auto; }
 .shop-application-status > div { flex: 1; }

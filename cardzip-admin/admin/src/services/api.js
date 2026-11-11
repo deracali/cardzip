@@ -112,6 +112,8 @@ export const adminApi = {
   clockOut: () => apiRequest('/admin/attendance/clock-out', { method: 'POST', body: {} }),
   supportRequests: (query = '') => apiRequest(`/admin/support-requests${query}`),
   updateSupportRequest: (id, body) => apiRequest(`/admin/support-requests/${encodeURIComponent(id)}`, { method: 'PATCH', body }),
+  reports: (query = '') => apiRequest(`/admin/reports${query}`),
+  updateReport: (id, body) => apiRequest(`/admin/reports/${encodeURIComponent(id)}`, { method: 'PATCH', body }),
   withdrawals: (query = '', accessToken) => apiRequest(`/admin/withdrawals${query}`, { headers: withdrawalAccessHeaders(accessToken) }),
   withdrawalAudit: (id, accessToken) => apiRequest(`/admin/withdrawals/${encodeURIComponent(id)}/audit`, { headers: withdrawalAccessHeaders(accessToken) }),
   reviewWithdrawal: (id, body, accessToken) => apiRequest(`/admin/withdrawals/${encodeURIComponent(id)}`, { method: 'PATCH', body, headers: withdrawalAccessHeaders(accessToken) }),

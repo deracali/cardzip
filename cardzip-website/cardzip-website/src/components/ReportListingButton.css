@@ -1,0 +1,24 @@
+.report-listing-button { display: inline-flex; min-height: 36px; align-items: center; justify-content: center; gap: 7px; padding: 0 11px; border: 1px solid #d5ded8; border-radius: 7px; background: #fff; color: #64746a; font: inherit; font-size: 11px; font-weight: 750; cursor: pointer; }
+.report-listing-button:hover { border-color: #efb4b4; background: #fff7f7; color: #a32836; }
+.report-listing-notice { margin: 8px 0 0; color: #087a4c; font-size: 11px; line-height: 1.5; }
+.report-listing-backdrop { position: fixed; z-index: 160; inset: 0; display: grid; place-items: center; overflow-y: auto; padding: 16px; background: rgba(15, 23, 42, .62); }
+.report-listing-dialog { width: min(460px, 100%); max-height: min(720px, 100%); overflow-y: auto; padding: 22px; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; box-shadow: 0 24px 70px rgba(15, 23, 42, .22); }
+.report-listing-dialog > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.report-listing-dialog > header span { color: #059669; font-size: 9px; font-weight: 850; letter-spacing: .1em; }
+.report-listing-dialog h2 { margin: 5px 0 0; color: #0f172a; font-size: 18px; }
+.report-listing-dialog > header button { display: grid; width: 32px; height: 32px; flex: 0 0 auto; place-items: center; border: 1px solid #e2e8f0; border-radius: 7px; background: #fff; color: #64748b; cursor: pointer; }
+.report-listing-target { margin: 12px 0; color: #64748b; font-size: 12px; overflow-wrap: anywhere; }
+.report-listing-dialog form { display: grid; gap: 12px; }
+.report-listing-dialog label { display: grid; gap: 6px; color: #334155; font-size: 11px; font-weight: 700; }
+.report-listing-dialog label > span { display: inline; }
+.report-listing-dialog select,.report-listing-dialog textarea { width: 100%; min-width: 0; padding: 10px 11px; border: 1px solid #dbe4ee; border-radius: 8px; background: #fff; color: #0f172a; font: inherit; font-size: 12px; }
+.report-listing-dialog textarea { min-height: 90px; resize: vertical; line-height: 1.5; }
+.report-listing-dialog select:focus,.report-listing-dialog textarea:focus { outline: 2px solid rgba(16, 185, 129, .22); border-color: #10b981; }
+.report-listing-error { margin: 0; color: #be123c; font-size: 11px; }
+.report-listing-privacy { margin: 0; color: #64748b; font-size: 10px; line-height: 1.5; }
+.report-listing-dialog form > button { min-height: 40px; border: 0; border-radius: 8px; background: #059669; color: #fff; font: inherit; font-size: 12px; font-weight: 750; cursor: pointer; }
+.report-listing-dialog form > button:disabled { opacity: .55; cursor: not-allowed; }
+
+@media (max-width: 480px) {
+  .report-listing-dialog { padding: 18px; }
+}

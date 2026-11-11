@@ -15,6 +15,7 @@ import { addToCart } from '../services/cart'
 import { getStorefrontPreferences, recordProductInteraction } from '../services/storePreferences'
 import { formatNaira } from '../utils/currency'
 import CardzipLoader from '../components/CardzipLoader'
+import ReportListingButton from '../components/ReportListingButton'
 import './ProductDetailsPage.css'
 
 const colorSwatches = {
@@ -310,6 +311,7 @@ export default function ProductDetailsPage({ productSlug, onNavigate, user }) {
               <span><strong>Promote your product to local buyers</strong><small>Post a community listing and connect directly. No Cardzip payment.</small></span>
               <ArrowRight size={16} />
             </button>
+            <ReportListingButton targetType="store_product" targetId={product._id} targetTitle={product.name} onNavigate={onNavigate} />
           </section>
         </div>
 

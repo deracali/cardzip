@@ -86,6 +86,110 @@
   font-weight: 700;
 }
 
+.support-inbox-page { display: grid; min-width: 0; gap: 18px; }
+.support-inbox-header { display: flex; min-width: 0; align-items: flex-end; justify-content: space-between; gap: 18px; }
+.support-inbox-kicker { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 7px; color: #059669; font-size: 10px; font-weight: 800; letter-spacing: .1em; }
+.support-inbox-header .page-title { margin: 0; }
+.support-inbox-header .page-subtitle { margin: 6px 0 0; }
+.support-inbox-filter { display: grid; min-width: 180px; gap: 6px; color: #64748b; font-size: 11px; font-weight: 700; }
+.support-inbox-filter select,.support-inbox-status select { min-height: 38px; padding: 0 10px; border: 1px solid #dbe4e8; border-radius: 8px; background: #fff; color: #334155; font: inherit; }
+.support-inbox-alert { margin: 0; padding: 11px 14px; border: 1px solid; border-radius: 9px; font-size: 12px; }
+.support-inbox-alert.error { border-color: #fecdd3; background: #fff1f2; color: #be123c; }
+.support-inbox-alert.success { border-color: #a7f3d0; background: #ecfdf5; color: #047857; }
+.support-inbox-list { min-width: 0; padding: 0; overflow: hidden; }
+.support-inbox-list-heading { padding: 17px 20px; border-bottom: 1px solid #e2e8f0; }
+.support-inbox-list-heading h2 { margin: 0; color: #1e293b; font-size: 15px; }
+.support-inbox-list-heading p { margin: 4px 0 0; color: #64748b; font-size: 11px; }
+.support-inbox-empty { margin: 0; padding: 28px 16px; color: #64748b; font-size: 12px; text-align: center; }
+.support-inbox-request { display: grid; min-width: 0; gap: 13px; padding: 18px 20px; border-bottom: 1px solid #e2e8f0; }
+.support-inbox-request:last-of-type { border-bottom: 0; }
+.support-inbox-request-header { display: flex; min-width: 0; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.support-inbox-request-title { min-width: 0; }
+.support-inbox-request-title h3 { margin: 0; color: #1e293b; font-size: 14px; overflow-wrap: anywhere; }
+.support-inbox-request-title > span { display: block; margin-top: 5px; color: #64748b; font-size: 10px; overflow-wrap: anywhere; }
+.support-inbox-status { display: grid; flex: 0 0 auto; gap: 4px; color: #64748b; font-size: 9px; font-weight: 700; }
+.support-inbox-status select { min-height: 32px; font-size: 11px; }
+.support-inbox-description { margin: 0; color: #475569; font-size: 12px; line-height: 1.55; white-space: pre-line; overflow-wrap: anywhere; }
+.support-inbox-conversation { display: grid; min-width: 0; gap: 8px; }
+.support-inbox-message { max-width: 88%; min-width: 0; padding: 9px 11px; border-radius: 9px; background: #f1f5f9; }
+.support-inbox-message.admin,.support-inbox-message.staff { justify-self: end; background: #ecfdf5; }
+.support-inbox-message strong { color: #475569; font-size: 10px; }
+.support-inbox-message p { margin: 4px 0; color: #334155; font-size: 11px; line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
+.support-inbox-message time { color: #94a3b8; font-size: 9px; }
+.support-inbox-reply { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid #eef2f6; }
+.support-inbox-reply label { color: #475569; font-size: 11px; font-weight: 700; }
+.support-inbox-reply textarea { width: 100%; min-width: 0; min-height: 72px; padding: 10px 11px; border: 1px solid #dbe4ee; border-radius: 8px; color: #0f172a; font: inherit; font-size: 12px; line-height: 1.5; resize: vertical; }
+.support-inbox-reply button,.support-inbox-pagination button { display: inline-flex; min-height: 34px; align-items: center; justify-content: center; gap: 7px; padding: 0 12px; border: 0; border-radius: 7px; background: #059669; color: #fff; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
+.support-inbox-reply button { justify-self: end; }
+.support-inbox-reply button:disabled,.support-inbox-pagination button:disabled { opacity: .5; cursor: not-allowed; }
+.support-inbox-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 20px; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 11px; }
+.support-inbox-pagination > div { display: flex; gap: 8px; }
+.support-inbox-pagination button { border: 1px solid #dbe4e8; background: #fff; color: #334155; }
+
+@media (max-width: 760px) {
+  .support-inbox-header { align-items: stretch; flex-direction: column; }
+  .support-inbox-filter { width: 100%; }
+  .support-inbox-request { padding: 15px; }
+  .support-inbox-request-header { align-items: stretch; flex-direction: column; }
+  .support-inbox-status { align-self: flex-start; }
+  .support-inbox-message { max-width: 100%; }
+  .support-inbox-pagination { align-items: flex-start; flex-direction: column; padding: 12px 15px; }
+  .support-inbox-pagination > div { width: 100%; justify-content: space-between; }
+}
+
+.marketplace-reports-page { display: grid; min-width: 0; gap: 18px; }
+.marketplace-reports-header { display: flex; min-width: 0; align-items: flex-end; justify-content: space-between; gap: 18px; }
+.marketplace-reports-header .page-title { margin: 0; }
+.marketplace-reports-header .page-subtitle { margin: 6px 0 0; }
+.marketplace-reports-kicker { display: inline-flex; ali-headergn-items: center; gap: 6px; margin-bottom: 7px; color: #b45309; font-size: 10px; font-weight: 800; letter-spacing: .1em; }
+.marketplace-reports-header > label { display: grid; min-width: 180px; gap: 6px; color: #64748b; font-size: 11px; font-weight: 700; }
+.marketplace-reports-header select { min-height: 38px; padding: 0 10px; border: 1px solid #dbe4e8; border-radius: 8px; background: #fff; color: #334155; font: inherit; }
+.marketplace-reports-alert { margin: 0; padding: 11px 14px; border: 1px solid; border-radius: 9px; font-size: 12px; }
+.marketplace-reports-alert.error { border-color: #fecdd3; background: #fff1f2; color: #be123c; }
+.marketplace-reports-alert.success { border-color: #a7f3d0; background: #ecfdf5; color: #047857; }
+.marketplace-reports-list { min-width: 0; padding: 0; overflow: hidden; }
+.marketplace-reports-list-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 17px 20px; border-bottom: 1px solid #e2e8f0; color: #b45309; }
+.marketplace-reports-list-heading h2 { margin: 0; color: #1e293b; font-size: 15px; }
+.marketplace-reports-list-heading p { margin: 4px 0 0; color: #64748b; font-size: 11px; }
+.marketplace-reports-empty { margin: 0; padding: 28px 16px; color: #64748b; font-size: 12px; text-align: center; }
+.marketplace-report-card { display: grid; min-width: 0; gap: 12px; padding: 18px 20px; border-bottom: 1px solid #e2e8f0; }
+.marketplace-report-card:last-of-type { border-bottom: 0; }
+.marketplace-report-card-header { display: flex; min-width: 0; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.marketplace-report-target { min-width: 0; }
+.marketplace-report-target > span { color: #059669; font-size: 9px; font-weight: 800; text-transform: uppercase; }
+.marketplace-report-target h3 { margin: 4px 0; color: #1e293b; font-size: 14px; overflow-wrap: anywhere; }
+.marketplace-report-target small { display: block; color: #64748b; font-size: 10px; overflow-wrap: anywhere; }
+.marketplace-report-status { flex: 0 0 auto; padding: 5px 8px; border-radius: 20px; background: #eff6ff; color: #1d4ed8; font-size: 9px; font-weight: 750; text-transform: capitalize; }
+.marketplace-report-status.resolved { background: #ecfdf5; color: #047857; }
+.marketplace-report-status.dismissed { background: #f1f5f9; color: #64748b; }
+.marketplace-report-reason { padding: 10px 12px; border-radius: 8px; background: #f8fafc; color: #334155; font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+.marketplace-report-reason p { margin: 4px 0 0; white-space: pre-line; }
+.marketplace-report-suspension { margin: 0; padding: 10px 12px; border-radius: 8px; background: #fff7ed; color: #9a3412; font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+.marketplace-report-actions { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid #eef2f6; }
+.marketplace-report-actions > label { color: #475569; font-size: 11px; font-weight: 700; }
+.marketplace-report-actions textarea { width: 100%; min-width: 0; min-height: 70px; padding: 10px 11px; border: 1px solid #dbe4ee; border-radius: 8px; color: #0f172a; font: inherit; font-size: 12px; line-height: 1.5; resize: vertical; }
+.marketplace-report-actions > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.marketplace-report-actions button,.marketplace-report-restore { display: inline-flex; min-height: 34px; align-items: center; justify-content: center; gap: 7px; padding: 0 12px; border: 0; border-radius: 7px; font: inherit; font-size: 11px; font-weight: 750; cursor: pointer; }
+.marketplace-report-suspend { background: #b91c1c; color: #fff; }
+.marketplace-report-dismiss { border: 1px solid #dbe4e8 !important; background: #fff; color: #475569; }
+.marketplace-report-restore { justify-self: start; background: #059669; color: #fff; }
+.marketplace-report-actions button:disabled,.marketplace-report-restore:disabled { opacity: .5; cursor: not-allowed; }
+.marketplace-reports-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 20px; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 11px; }
+.marketplace-reports-pagination > div { display: flex; gap: 8px; }
+.marketplace-reports-pagination button { min-height: 34px; padding: 0 12px; border: 1px solid #dbe4e8; border-radius: 7px; background: #fff; color: #334155; font: inherit; font-size: 11px; cursor: pointer; }
+.marketplace-reports-pagination button:disabled { opacity: .5; cursor: not-allowed; }
+
+@media (max-width: 760px) {
+  .marketplace-reports-header { align-items: stretch; flex-direction: column; }
+  .marketplace-reports-header > label { width: 100%; }
+  .marketplace-report-card { padding: 15px; }
+  .marketplace-report-card-header { flex-direction: column; }
+  .marketplace-report-actions > div { align-items: stretch; flex-direction: column; }
+  .marketplace-report-actions button,.marketplace-report-restore { width: 100%; }
+  .marketplace-reports-pagination { align-items: flex-start; flex-direction: column; padding: 12px 15px; }
+  .marketplace-reports-pagination > div { width: 100%; justify-content: space-between; }
+}
+
 /* Base Reset & Main Layout Setup */
 * {
   box-sizing: border-box;
@@ -5139,6 +5243,12 @@ html, body, #root {
   .expenses-service-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 640px) {
+  .card-header {
+    height: 119px;
+    padding: 18px 16px;
+    box-sizing: border-box;
+  }
+  .card-header.flex-between { align-items: flex-start; }
   .staff-page .card-header.flex-between { align-items: stretch; flex-direction: column; }
   .staff-page .search-box-sm { width: 100%; }
   .staff-page .pagination-controls { justify-content: center; padding: 12px; }
