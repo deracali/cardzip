@@ -44,6 +44,11 @@ img { display: block; max-width: 100%; }
 .main-nav a { position: relative; padding-block: 22px; color: #9aa8bb; font-size: 12px; transition: color .18s ease; }
 .main-nav a:hover, .main-nav a.active { color: #fff; }
 .main-nav a.active::after { position: absolute; right: 0; bottom: 12px; left: 0; height: 2px; background: var(--cyan); content: ""; }
+.header-account-links { display: flex; align-items: center; gap: 12px; margin-left: 4px; padding-left: 14px; border-left: 1px solid #263345; white-space: nowrap; }
+.main-nav .header-account-links a { padding-block: 0; color: #b6c1d0; font-weight: 600; }
+.main-nav .header-account-links a:hover { color: #fff; }
+.main-nav .header-account-links .header-auth-signup { display: inline-flex; min-height: 32px; align-items: center; padding: 0 12px; border: 1px solid var(--cyan); border-radius: 6px; color: #03151b; background: var(--cyan); }
+.main-nav .header-account-links .header-auth-signup:hover { color: #03151b; background: #3added; }
 .header-actions { display: flex; align-items: center; justify-self: end; gap: 14px; }
 .availability { display: inline-flex; align-items: center; gap: 6px; color: #b6c1d0; font-size: 10px; white-space: nowrap; }
 .availability i, .booking-pill i, .auth-pill i { width: 6px; height: 6px; border-radius: 50%; background: #96e642; box-shadow: 0 0 10px rgba(150, 230, 66, .55); }
@@ -448,6 +453,11 @@ img { display: block; max-width: 100%; }
 }
 
 @media (max-width: 900px) {
+  .header-inner { gap: 10px; }
+  .main-nav { gap: clamp(10px, 1.4vw, 16px); }
+  .header-actions { gap: 10px; }
+  .header-actions .availability { display: none; }
+  .header-account-links { gap: 8px; margin-left: 0; padding-left: 8px; }
   .hero-grid { grid-template-columns: minmax(0, .9fr) minmax(0, 1fr); gap: 25px; }
   .hero-copy h1 { font-size: clamp(39px, 6vw, 58px); }
   .preview-window { min-height: 260px; }
@@ -472,6 +482,9 @@ img { display: block; max-width: 100%; }
   .main-nav.is-open { display: grid; }
   .main-nav a { padding: 12px 8px; border-bottom: 1px solid #162334; font-size: 13px; }
   .main-nav a.active::after { right: auto; bottom: 8px; width: 26px; }
+  .header-account-links { gap: 12px; margin: 4px 8px 0; padding: 12px 0 0; border-top: 1px solid #162334; border-left: 0; }
+  .main-nav .header-account-links a { min-height: 40px; padding: 10px 8px; font-size: 13px; }
+  .main-nav .header-account-links .header-auth-signup { min-height: 38px; padding: 0 14px; }
   .header-actions { display: none; }
   .hero-section { padding: 31px 0 26px; }
   .hero-grid, .section-shell { width: calc(100% - 30px); }

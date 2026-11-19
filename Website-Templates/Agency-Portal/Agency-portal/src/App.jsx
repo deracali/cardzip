@@ -144,6 +144,10 @@ function Header({ portal = false, active = '' }) {
               <a className={active === 'contact' ? 'active' : ''} href="/messages" onClick={() => setMenuOpen(false)}>Messages</a>
             </>
           )}
+          <div className="header-account-links">
+            <a href="/login" onClick={() => setMenuOpen(false)}>Log in</a>
+            <a className="header-auth-signup" href="/signup" onClick={() => setMenuOpen(false)}>Sign up</a>
+          </div>
         </nav>
         <div className="header-actions">
           <span className="availability"><i /> Available for Q4</span>

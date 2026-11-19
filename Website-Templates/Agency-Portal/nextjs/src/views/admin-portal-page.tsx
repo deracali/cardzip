@@ -136,7 +136,6 @@ function rowTitle(row: AdminRow): string {
 function rowDescription(row: AdminRow): string {
   if ("body" in row) return row.body;
   if ("summary" in row) return row.summary;
-  if ("summary" in row) return row.summary;
   if ("project" in row) return `${row.email} · ${row.project}`;
   if ("service" in row) return `${row.service} · ${row.client}`;
   if ("role" in row) return `${row.role} · ${row.email}`;

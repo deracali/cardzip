@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from "next/link";
 import { getSessionUser } from "../services/agency-api";
+import type { CaseStudy } from "../services/agency-api";
 import {
   ArrowLeft,
   ArrowRight,
@@ -31,7 +32,9 @@ import {
   Zap,
 } from 'lucide-react'
 
-export const projects = [
+type Project = { id: string; name: string; client: string; type: string; visual: string; image: string; images?: string[]; alt: string; summary: string; description: string; result: string; deliverables: string[] };
+
+export const projects: Project[] = [
   {
     id: 'lumen-finance',
     name: 'Lumen Finance Dashboard',
@@ -73,7 +76,7 @@ export const projects = [
   },
 ]
 
-export const featuredProject = {
+export const featuredProject: Project = {
   id: 'aurora-commerce',
   name: 'Aurora Immersive 3D Commerce',
   client: 'Nexora · +372% conversion',
@@ -109,10 +112,6 @@ import { useMenuState } from "../hooks/useMenuState";
 
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import type { CaseStudy } from "../services/agency-api";
-
-type Project = { id: string; name: string; client: string; type: string; visual: string; image: string; images?: string[]; alt: string; summary: string; description: string; result: string; deliverables: string[] };
-
 export function Brand({ compact = false }: { compact?: boolean }) {
   return (
     <Link className="brand" href="/" aria-label="NOVA Studio home">
@@ -152,6 +151,10 @@ export function Header({ portal = false, active = '' }: { portal?: boolean; acti
               <Link className={active === 'contact' ? 'active' : ''} href="/messages" onClick={() => setMenuOpen(false)}>Messages</Link>
             </>
           )}
+          <div className="header-account-links">
+            <Link href="/login" onClick={() => setMenuOpen(false)}>Log in</Link>
+            <Link className="header-auth-signup" href="/signup" onClick={() => setMenuOpen(false)}>Sign up</Link>
+          </div>
         </nav>
         <div className="header-actions">
           <span className="availability"><i /> Available for Q4</span>
