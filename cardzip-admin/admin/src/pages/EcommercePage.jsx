@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { AlertCircle, Check, ChevronDown, FileText, ImagePlus, MapPin, Package, Pencil, Plus, Search, ShoppingBag, Sparkles, Trash2, Upload, X } from 'lucide-react'
+import JSZip from 'jszip'
 import { adminApi } from '../services/api'
 import CustomSelect from '../components/CustomSelect'
 import CardzipLoader from '../components/CardzipLoader'
@@ -52,6 +53,8 @@ const formatNaira = (amount) => new Intl.NumberFormat('en-NG', {
   maximumFractionDigits: 0,
 }).format(Number(amount || 0))
 
+const MAX_TEMPLATE_ARCHIVE_SIZE = 500 * 1024 * 1024
+
 const formatStatus = (status) => String(status || 'processing')
   .replaceAll('_', ' ')
   .replace(/\b\w/g, (character) => character.toUpperCase())
@@ -64,6 +67,16 @@ const productImages = (item) => [...new Set([
 const truncateProductText = (value, maxLength) => {
   const text = typeof value === 'string' ? value.trim() : ''
   return text.length > maxLength ? `${text.slice(0, maxLength).trimEnd()}…` : text
+}
+
+const inspectZipRootFolders = async (file) => {
+  const archive = await JSZip.loadAsync(file, { checkCRC32: false })
+  const rootFolders = new Set()
+  Object.values(archive.files).forEach((entry) => {
+    const segments = entry.name.replace(/\\/g, '/').split('/').filter(Boolean)
+    if (segments[0] && (segments.length > 1 || entry.dir)) rootFolders.add(segments[0])
+  })
+  return [...rootFolders].sort()
 }
 
 const legacyColorValues = {
@@ -108,6 +121,7 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
   const [uploadingImageIndex, setUploadingImageIndex] = useState(null)
   const [uploadingSourceCode, setUploadingSourceCode] = useState(false)
   const [uploadingTemplateSourceCode, setUploadingTemplateSourceCode] = useState(false)
+  const [templateArchiveInfo, setTemplateArchiveInfo] = useState(null)
   const [uploadingDocuments, setUploadingDocuments] = useState(false)
   const [documentUploadFeedback, setDocumentUploadFeedback] = useState([])
   const [productError, setProductError] = useState('')
@@ -465,11 +479,24 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
   }
 
   const uploadProductSourceCode = async (file, fieldName) => {
-    const setUploading = fieldName === 'templateSourceCodeUrl' ? setUploadingTemplateSourceCode : setUploadingSourceCode
+    const isTemplateArchive = fieldName === 'templateSourceCodeUrl'
+    const setUploading = isTemplateArchive ? setUploadingTemplateSourceCode : setUploadingSourceCode
+    let folders = []
+    if (isTemplateArchive) {
+      setTemplateArchiveInfo({ fileName: file.name, folders, status: 'inspecting' })
+    }
     setUploading(true)
     setProductError('')
     setNotice('')
     try {
+      if (isTemplateArchive) {
+        try {
+          folders = await inspectZipRootFolders(file)
+        } catch {
+          throw new Error('Could not inspect this full-template ZIP. Make sure it is a valid, unencrypted ZIP archive.')
+        }
+        setTemplateArchiveInfo({ fileName: file.name, folders, status: 'uploading' })
+      }
       const result = await adminApi.uploadStoreProductSourceCode(file)
       const sourceCodeUrl = result.data?.sourceCodeUrl
       if (!sourceCodeUrl) throw new Error('The source-code upload did not return a saved URL.')
@@ -481,8 +508,10 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
         [fieldName]: sourceCodeUrl,
         [backupFieldName]: result.data?.sourceCodeCloudinaryUrl || '',
       }))
+      if (isTemplateArchive) setTemplateArchiveInfo({ fileName: file.name, folders, status: 'uploaded' })
       setNotice(`${fieldName === 'templateSourceCodeUrl' ? 'Full-template' : 'Rental'} source-code ZIP uploaded. Save the product to publish it.`)
     } catch (uploadError) {
+      if (isTemplateArchive) setTemplateArchiveInfo({ fileName: file.name, folders, status: 'failed' })
       setProductError(uploadError.message || 'Could not upload the source-code ZIP.')
     } finally {
       setUploading(false)
@@ -569,6 +598,7 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
       }
       setModalOpen(false)
       setProduct(emptyProduct)
+      setTemplateArchiveInfo(null)
       generateOnNameChange.current = false
       setEditingProductId(null)
       setPagination((current) => ({ ...current, page: 1 }))
@@ -584,6 +614,7 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
 
   const openProductModal = (selectedProduct = null) => {
     setProductError('')
+    setTemplateArchiveInfo(null)
     setProductTypeOpen(false)
     setAddingProductCategory(false)
     setEditingProductId(selectedProduct?._id || null)
@@ -1423,7 +1454,7 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
                     <label className="form-group">Full template price (NGN)<input name="templatePrice" type="number" min="0" step="1" value={product.templatePrice} onChange={updateProduct} placeholder="Includes backend + 2-week setup" /></label>
                   </div>
                   <div className="form-group">Rental source-code archive (ZIP), optional<label className={`ecom-upload-image-button${uploadingSourceCode || savingProduct ? ' is-disabled' : ''}`}><Upload size={14} /><span>{uploadingSourceCode ? 'Uploading ZIP…' : product.sourceCodeUrl ? 'Replace rental ZIP' : 'Choose rental ZIP'}</span><input aria-label="Choose rental source-code ZIP" type="file" accept=".zip,application/zip,application/x-zip-compressed" disabled={uploadingSourceCode || savingProduct} onChange={(event) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ''; if (!file) return; if (!file.name.toLowerCase().endsWith('.zip') || file.size > 100 * 1024 * 1024) { setProductError('Choose a ZIP source-code archive up to 100 MB.'); return } void uploadProductSourceCode(file, 'sourceCodeUrl') }} /></label><small>{uploadingSourceCode ? 'Uploading rental archive…' : product.sourceCodeUrl ? 'Rental archive uploaded. Buyers who paid for Use / rental can download it.' : 'Optional ZIP made available to buyers who pay for Use / rental.'}</small></div>
-                  <div className="form-group">Full-template source-code archive (ZIP), optional<label className={`ecom-upload-image-button${uploadingTemplateSourceCode || savingProduct ? ' is-disabled' : ''}`}><Upload size={14} /><span>{uploadingTemplateSourceCode ? 'Uploading ZIP…' : product.templateSourceCodeUrl ? 'Replace full-template ZIP' : 'Choose full-template ZIP'}</span><input aria-label="Choose full-template source-code ZIP" type="file" accept=".zip,application/zip,application/x-zip-compressed" disabled={uploadingTemplateSourceCode || savingProduct} onChange={(event) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ''; if (!file) return; if (!file.name.toLowerCase().endsWith('.zip') || file.size > 100 * 1024 * 1024) { setProductError('Choose a ZIP source-code archive up to 100 MB.'); return } void uploadProductSourceCode(file, 'templateSourceCodeUrl') }} /></label><small>{uploadingTemplateSourceCode ? 'Uploading full-template archive…' : product.templateSourceCodeUrl ? 'Full-template archive uploaded. Buyers who purchase the full template can download it.' : 'Optional separate ZIP for buyers who purchase the full template.'}</small></div>
+                  <div className="form-group">Full-template source-code archive (ZIP), optional<label className={`ecom-upload-image-button${uploadingTemplateSourceCode || savingProduct ? ' is-disabled' : ''}`}><Upload size={14} /><span>{uploadingTemplateSourceCode ? 'Uploading ZIP…' : product.templateSourceCodeUrl ? 'Replace full-template ZIP' : 'Choose full-template ZIP'}</span><input aria-label="Choose full-template source-code ZIP" type="file" accept=".zip,application/zip,application/x-zip-compressed" disabled={uploadingTemplateSourceCode || savingProduct} onChange={(event) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ''; if (!file) return; if (!file.name.toLowerCase().endsWith('.zip')) { setProductError('Choose a file with a .zip extension.'); return } if (file.size > MAX_TEMPLATE_ARCHIVE_SIZE) { setProductError('Full-template ZIPs must be 500 MB or smaller.'); return } void uploadProductSourceCode(file, 'templateSourceCodeUrl') }} /></label><small>{uploadingTemplateSourceCode ? 'Uploading full-template archive…' : product.templateSourceCodeUrl ? 'Full-template archive uploaded. Buyers who purchase the full template can download it.' : 'Optional separate ZIP for buyers who purchase the full template. Maximum 500 MB.'}</small>{templateArchiveInfo && <small className="ecom-template-archive-preview" role={templateArchiveInfo.status === 'failed' ? 'alert' : 'status'}><strong>{templateArchiveInfo.fileName}</strong>{' · '}{templateArchiveInfo.status === 'inspecting' ? 'Checking ZIP folders…' : templateArchiveInfo.status === 'failed' ? 'ZIP inspection or upload failed.' : templateArchiveInfo.folders.length ? `Folders inside ZIP: ${templateArchiveInfo.folders.slice(0, 5).map((folder) => `${folder}/`).join(', ')}${templateArchiveInfo.folders.length > 5 ? `, and ${templateArchiveInfo.folders.length - 5} more` : ''}` : 'No top-level folder detected; files may be at the ZIP root.'}{templateArchiveInfo.status === 'uploading' ? ' · Uploading…' : templateArchiveInfo.status === 'uploaded' ? ' · Upload complete. Save the product to keep it.' : ''}</small>}</div>
                   <div className="ecom-product-documents">
                     <span className="ecom-product-documents-title">Buyer files <small>Any file type is supported. Buyers can download files after payment.</small></span>
                     <label className={`ecom-upload-image-button${uploadingDocuments || savingProduct || product.documents.length >= 10 ? ' is-disabled' : ''}`}>

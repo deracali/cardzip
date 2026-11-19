@@ -14,4 +14,4 @@
 **/*.p12
 **/*.pfx
 **/*.keystore
-**/*.jks
+**/*.jks*.zip 
