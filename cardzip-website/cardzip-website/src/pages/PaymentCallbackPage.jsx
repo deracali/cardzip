@@ -20,7 +20,7 @@ export default function PaymentCallbackPage({ onNavigate }) {
   const [digitalProductSourceCode, setDigitalProductSourceCode] = useState(null)
   const [digitalProductId, setDigitalProductId] = useState('')
   const [digitalProductDocuments, setDigitalProductDocuments] = useState([])
-  const [digitalProductTemplateDocuments, setDigitalProductTemplateDocuments] = useState([])
+  const [digitalProductTemplateSourceCodeParts, setDigitalProductTemplateSourceCodeParts] = useState([])
   const [digitalProductAccessType, setDigitalProductAccessType] = useState('')
   const [digitalProductPurchaseType, setDigitalProductPurchaseType] = useState('')
   const [sellerDigitalAsset, setSellerDigitalAsset] = useState(null)
@@ -160,12 +160,10 @@ export default function PaymentCallbackPage({ onNavigate }) {
         setSellerDigitalAsset(purchasedSellerAsset || null)
         const downloadableProduct = digitalProduct || purchasedSellerAsset
         setDigitalProductAccess(downloadableProduct?.accessUrl || null)
-        setDigitalProductSourceCode(
-          downloadableProduct?.sourceCodeAvailable || downloadableProduct?.templateSourceCodeAvailable ? 'available' : null,
-        )
+        setDigitalProductSourceCode(downloadableProduct?.sourceCodeAvailable || downloadableProduct?.sourceCodeUrl ? 'available' : null)
         setDigitalProductId(downloadableProduct?.productId || '')
         setDigitalProductDocuments(downloadableProduct?.documents || [])
-        setDigitalProductTemplateDocuments(downloadableProduct?.templateDocuments || [])
+        setDigitalProductTemplateSourceCodeParts(downloadableProduct?.templateSourceCodeParts || [])
         setDigitalProductAccessType(downloadableProduct?.productType || '')
         setDigitalProductPurchaseType(downloadableProduct?.purchaseType || '')
         setOrderPayment(isStoreOrder)
@@ -193,10 +191,10 @@ export default function PaymentCallbackPage({ onNavigate }) {
           : isSellerDigitalAsset
             ? `Payment confirmed for ${purchasedSellerAsset?.productName || 'your digital listing'}. The seller’s 70% share has been credited to their Cardzip wallet. Your paid access and downloads are ready below.`
             : isDigitalProduct
-            ? digitalProduct?.purchaseType === 'template' && !digitalProduct?.sourceCodeUrl
+              ? digitalProduct?.purchaseType === 'template' && !digitalProduct?.sourceCodeUrl && !digitalProduct?.templateSourceCodeParts?.length
               ? `Payment confirmed for ${digitalProduct.productName}. Contact support to arrange your project template handover and two weeks of setup/upload.`
               : digitalProduct?.purchaseType === 'template'
-                ? `Payment confirmed for ${digitalProduct.productName}. Your template source-code download is ready below.`
+                  ? `Payment confirmed for ${digitalProduct.productName}. Your template ZIP downloads are ready below.`
               : digitalProduct?.accessUrl
                 ? `Payment confirmed for ${digitalProduct.productName}. Your access is ready below.`
                 : `Payment is complete. Contact Cardzip support to arrange your digital-product access.`
@@ -217,7 +215,7 @@ export default function PaymentCallbackPage({ onNavigate }) {
         setDigitalProductSourceCode(null)
         setDigitalProductId('')
         setDigitalProductDocuments([])
-        setDigitalProductTemplateDocuments([])
+        setDigitalProductTemplateSourceCodeParts([])
         setDigitalProductAccessType('')
         setDigitalProductPurchaseType('')
         setStatus('failed')
@@ -245,10 +243,10 @@ export default function PaymentCallbackPage({ onNavigate }) {
             {downloadingFile === key ? `Downloading ${document.name}…` : `Download ${document.name}`}
           </button>
         })}
-        {status === 'success' && digitalProductTemplateDocuments.map((document, index) => {
-          const key = `template-document-${index}`
-          return <button className="digital-access-link" type="button" key={`template-${document.name}-${index}`} disabled={Boolean(downloadingFile)} onClick={() => void downloadPurchasedFile(digitalProductId, 'template-document', index, document.name)}>
-            {downloadingFile === key ? `Downloading ${document.name}…` : `Download legal document: ${document.name}`}
+        {status === 'success' && digitalProductTemplateSourceCodeParts.map((part, index) => {
+          const key = `template-source-code-part-${index}`
+          return <button className="digital-access-link" type="button" key={`template-part-${part.name}-${index}`} disabled={Boolean(downloadingFile)} onClick={() => void downloadPurchasedFile(digitalProductId, 'template-source-code-part', index, part.name)}>
+            {downloadingFile === key ? `Downloading ${part.name}…` : `Download ZIP part: ${part.name}`}
           </button>
         })}
         {downloadError && <p className="digital-download-unavailable" role="alert">{downloadError}</p>}
@@ -257,9 +255,6 @@ export default function PaymentCallbackPage({ onNavigate }) {
           {sellerDigitalAsset.websiteUrl && <div className="seller-digital-preview"><iframe title={`Preview ${sellerDigitalAsset.productName}`} src={sellerDigitalAsset.websiteUrl} sandbox="allow-scripts allow-forms allow-popups" referrerPolicy="no-referrer" /></div>}
           {sellerDigitalAsset.apkUrl && <a className="digital-access-link" href={sellerDigitalAsset.apkUrl} target="_blank" rel="noreferrer" download>Download Android APK</a>}
           {sellerDigitalAsset.iosAppUrl && <a className="digital-access-link" href={sellerDigitalAsset.iosAppUrl} target="_blank" rel="noreferrer">Open iOS app</a>}
-          {sellerDigitalAsset.sourceCodeAvailable && <button className="digital-access-link" type="button" disabled={Boolean(downloadingFile)} onClick={() => void downloadPurchasedFile(sellerDigitalAsset.productId, 'source-code', undefined, `${sellerDigitalAsset.productName}-source-code.zip`)}>
-            {downloadingFile === 'template-source-code' || downloadingFile === 'rental-source-code' ? 'Downloading source code…' : `Download ${sellerDigitalAsset.purchaseType === 'template' ? 'full-template' : 'rental'} source ZIP`}
-          </button>}
           <div className="seller-digital-gallery">{sellerDigitalAsset.screenshots?.map((image, index) => <img key={`${image}-${index}`} src={image} alt={`${sellerDigitalAsset.productName} screenshot ${index + 1}`} loading="lazy" />)}</div>
         </section>}
         <button type="button" className="btn-emerald-submit" onClick={() => onNavigate?.(purpose === 'bill_payment' ? '/bills' : virtualNumberPayment ? '/virtual-numbers' : communityPromotionPayment ? (communityPromotionListingId ? `/community-market/${communityPromotionListingId}` : '/community-market') : advertisementPayment ? '/my-adverts' : digitalProductPayment || purpose === 'seller_digital_asset' ? '/digital-assets' : status === 'success' && orderPayment ? '/orders' : status === 'success' ? '/wallet' : '/add-money')}>

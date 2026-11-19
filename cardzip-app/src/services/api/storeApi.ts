@@ -132,8 +132,8 @@ export interface CreateSellerDigitalAssetPayload {
   sourceCodeCloudinaryUrl?: string;
   templateSourceCodeUrl?: string;
   templateSourceCodeCloudinaryUrl?: string;
+  templateSourceCodeParts: Array<{ name: string; url: string; cloudinaryUrl?: string; mimeType: string }>;
   documents: Array<{ name: string; url: string; cloudinaryUrl?: string; mimeType: string }>;
-  templateDocuments: Array<{ name: string; url: string; cloudinaryUrl?: string; mimeType: string }>;
   websiteUrl?: string;
   apkUrl?: string;
   iosAppUrl?: string;

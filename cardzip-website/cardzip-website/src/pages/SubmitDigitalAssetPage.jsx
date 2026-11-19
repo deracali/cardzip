@@ -8,6 +8,8 @@ const MAX_SCREENSHOTS = 20
 const MAX_IMAGE_SIZE = 8 * 1024 * 1024
 const MAX_BUYER_DOCUMENTS = 10
 const MAX_DOCUMENT_SIZE = 20 * 1024 * 1024
+const MAX_SOURCE_CODE_ARCHIVE_SIZE = 100 * 1024 * 1024
+const MAX_TEMPLATE_SOURCE_CODE_PARTS = 10
 const listingTypes = [
   { value: 'website', label: 'Website' },
   { value: 'app', label: 'Android app' },
@@ -33,8 +35,9 @@ export default function SubmitDigitalAssetPage({ onNavigate }) {
   const [templatePrice, setTemplatePrice] = useState('')
   const [sourceCodeFile, setSourceCodeFile] = useState(null)
   const [templateSourceCodeFile, setTemplateSourceCodeFile] = useState(null)
+  const [templateSourceCodeParts, setTemplateSourceCodeParts] = useState([])
+  const [templatePartInputOpen, setTemplatePartInputOpen] = useState(false)
   const [documents, setDocuments] = useState([])
-  const [templateDocuments, setTemplateDocuments] = useState([])
   const [photos, setPhotos] = useState([])
   const [photoNames, setPhotoNames] = useState([])
   const [submissions, setSubmissions] = useState([])
@@ -66,6 +69,23 @@ export default function SubmitDigitalAssetPage({ onNavigate }) {
     setError('')
   }
 
+  const chooseTemplateSourceCodePart = (event) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    if (!file.name.toLowerCase().endsWith('.zip') || file.size > MAX_SOURCE_CODE_ARCHIVE_SIZE) {
+      setError('Each ZIP part must be a ZIP archive up to 100 MB.')
+      return
+    }
+    if (templateSourceCodeParts.length >= MAX_TEMPLATE_SOURCE_CODE_PARTS) {
+      setError(`Add no more than ${MAX_TEMPLATE_SOURCE_CODE_PARTS} additional ZIP parts.`)
+      return
+    }
+    setTemplateSourceCodeParts((current) => [...current, file])
+    setTemplatePartInputOpen(false)
+    setError('')
+  }
+
   const submit = async (event) => {
     event.preventDefault()
     if (!getUserToken()) {
@@ -91,8 +111,8 @@ export default function SubmitDigitalAssetPage({ onNavigate }) {
       setError('Choose the rental/use source-code ZIP for the use option.')
       return
     }
-    if (Number(templatePrice) > 0 && !templateSourceCodeFile) {
-      setError('Choose the full-template source-code ZIP for the template option.')
+    if (Number(templatePrice) > 0 && !templateSourceCodeFile && templateSourceCodeParts.length === 0) {
+      setError('Choose a full-template source-code ZIP or add at least one ZIP part.')
       return
     }
     setSaving(true)
@@ -118,6 +138,16 @@ export default function SubmitDigitalAssetPage({ onNavigate }) {
       }
       const rentalArchive = await uploadArchive(sourceCodeFile, 'rental')
       const templateArchive = await uploadArchive(templateSourceCodeFile, 'full-template')
+      const uploadedTemplateSourceCodeParts = []
+      for (const [index, file] of templateSourceCodeParts.entries()) {
+        const uploaded = await uploadArchive(file, `full-template ZIP part ${index + 1}`)
+        uploadedTemplateSourceCodeParts.push({
+          name: file.name,
+          url: uploaded.sourceCodeUrl,
+          cloudinaryUrl: uploaded.sourceCodeCloudinaryUrl || '',
+          mimeType: 'application/zip',
+        })
+      }
       const uploadDocuments = async (files, label) => {
         const uploaded = []
         for (const [index, file] of files.entries()) {
@@ -129,7 +159,6 @@ export default function SubmitDigitalAssetPage({ onNavigate }) {
         return uploaded
       }
       const uploadedDocuments = await uploadDocuments(documents, 'buyer')
-      const uploadedTemplateDocuments = await uploadDocuments(templateDocuments, 'full-template legal')
       const result = await userApi.createSellerDigitalAsset({
         name,
         productType: type,
@@ -144,8 +173,8 @@ export default function SubmitDigitalAssetPage({ onNavigate }) {
           templateSourceCodeUrl: templateArchive.sourceCodeUrl,
           templateSourceCodeCloudinaryUrl: templateArchive.sourceCodeCloudinaryUrl,
         } : {}),
+        templateSourceCodeParts: uploadedTemplateSourceCodeParts,
         documents: uploadedDocuments,
-        templateDocuments: uploadedTemplateDocuments,
         ...(type === 'website' || type === 'full_stack' || type === 'admin'
           ? { websiteUrl: url }
           : type === 'app'
@@ -163,8 +192,9 @@ export default function SubmitDigitalAssetPage({ onNavigate }) {
       setTemplatePrice('')
       setSourceCodeFile(null)
       setTemplateSourceCodeFile(null)
+      setTemplateSourceCodeParts([])
+      setTemplatePartInputOpen(false)
       setDocuments([])
-      setTemplateDocuments([])
       setPhotos([])
       setPhotoNames([])
       setNotice('Your listing and source-code ZIP are submitted for review. Approval takes 1–3 business days; it appears in the marketplace only after an admin approves it.')
@@ -202,14 +232,17 @@ export default function SubmitDigitalAssetPage({ onNavigate }) {
             <label className="wide">{type === 'website' || type === 'full_stack' || type === 'admin' ? 'Website URL' : type === 'app' ? 'Android APK download URL' : 'iOS app access URL'}<input type="url" value={url} onChange={(event) => setUrl(event.target.value)} required placeholder="https://…" /></label>
             <label>Contact details for Cardzip review<input value={contact} onChange={(event) => setContact(event.target.value)} required maxLength={120} placeholder="Email or phone (not shown to buyers)" /><small>This contact information is kept private and is not displayed to buyers.</small></label>
             <label>Rental / use price (NGN)<input type="number" min="100" max="5000000" step="1" value={usePrice} onChange={(event) => setUsePrice(event.target.value)} placeholder="Optional · minimum ₦100" /><small>{Number(usePrice) >= 100 ? `You receive ${formatNaira(Math.floor(Number(usePrice) * 0.7))} after payment.` : 'Optional; pays you 70% per successful purchase.'}</small></label>
-            <label>Full-template price (NGN)<input type="number" min="100" max="5000000" step="1" value={templatePrice} onChange={(event) => setTemplatePrice(event.target.value)} placeholder="Optional · minimum ₦100" /><small>{Number(templatePrice) >= 100 ? `You receive ${formatNaira(Math.floor(Number(templatePrice) * 0.7))} after payment.` : 'Optional; includes the full project and its legal documents.'}</small></label>
+            <label>Full-template price (NGN)<input type="number" min="100" max="5000000" step="1" value={templatePrice} onChange={(event) => setTemplatePrice(event.target.value)} placeholder="Optional · minimum ₦100" /><small>{Number(templatePrice) >= 100 ? `You receive ${formatNaira(Math.floor(Number(templatePrice) * 0.7))} after payment.` : 'Optional; includes the full project and separate downloadable ZIP parts.'}</small></label>
           </div>
-          {Number(usePrice) > 0 && <label className="digital-screenshot-picker"><UploadCloud size={19} /><strong>Rental / use source code (ZIP)</strong><span>Required when you offer rental/use. Buyers can download it after approval and payment. Maximum 100 MB.</span><input type="file" accept=".zip,application/zip,application/x-zip-compressed" disabled={saving} onChange={(event) => { const file = event.target.files?.[0] || null; event.target.value = ''; if (file && (file.size > 100 * 1024 * 1024 || !file.name.toLowerCase().endsWith('.zip'))) { setError('Choose a ZIP archive up to 100 MB.'); setSourceCodeFile(null); return } setSourceCodeFile(file); setError('') }} /><b>{sourceCodeFile?.name || 'No rental source ZIP selected'}</b></label>}
-          {Number(templatePrice) > 0 && <label className="digital-screenshot-picker"><UploadCloud size={19} /><strong>Full-template source code (ZIP)</strong><span>Required when you offer the full template. Maximum 100 MB.</span><input type="file" accept=".zip,application/zip,application/x-zip-compressed" disabled={saving} onChange={(event) => { const file = event.target.files?.[0] || null; event.target.value = ''; if (file && (file.size > 100 * 1024 * 1024 || !file.name.toLowerCase().endsWith('.zip'))) { setError('Choose a ZIP archive up to 100 MB.'); setTemplateSourceCodeFile(null); return } setTemplateSourceCodeFile(file); setError('') }} /><b>{templateSourceCodeFile?.name || 'No full-template source ZIP selected'}</b></label>}
-          <label className="digital-screenshot-picker"><UploadCloud size={19} /><strong>Buyer files for rental / use</strong><span>Optional. Add up to {MAX_BUYER_DOCUMENTS} files, 20 MB each.</span><input type="file" multiple disabled={saving} onChange={(event) => { const selected = [...(event.target.files || [])]; event.target.value = ''; if (documents.length + selected.length > MAX_BUYER_DOCUMENTS || selected.some((file) => file.size > MAX_DOCUMENT_SIZE)) { setError('Add no more than 10 buyer files, up to 20 MB each.'); return } setDocuments((current) => [...current, ...selected]) }} /><b>{documents.length} of {MAX_BUYER_DOCUMENTS} selected</b></label>
+          {Number(usePrice) > 0 && <label className="digital-screenshot-picker"><UploadCloud size={19} /><strong>Rental / use source code (ZIP)</strong><span>Required when you offer rental/use. Buyers can download it after approval and payment. Maximum 100 MB.</span><input type="file" accept=".zip,application/zip,application/x-zip-compressed" disabled={saving} onChange={(event) => { const file = event.target.files?.[0] || null; event.target.value = ''; if (file && (file.size > MAX_SOURCE_CODE_ARCHIVE_SIZE || !file.name.toLowerCase().endsWith('.zip'))) { setError('Choose a ZIP archive up to 100 MB.'); setSourceCodeFile(null); return } setSourceCodeFile(file); setError('') }} /><b>{sourceCodeFile?.name || 'No rental source ZIP selected'}</b></label>}
+          {Number(templatePrice) > 0 && <><label className="digital-screenshot-picker"><UploadCloud size={19} /><strong>Full-template source code (ZIP)</strong><span>Optional if you add ZIP parts. Each file uploads separately; maximum 100 MB per ZIP.</span><input type="file" accept=".zip,application/zip,application/x-zip-compressed" disabled={saving} onChange={(event) => { const file = event.target.files?.[0] || null; event.target.value = ''; if (file && (file.size > MAX_SOURCE_CODE_ARCHIVE_SIZE || !file.name.toLowerCase().endsWith('.zip'))) { setError('Choose a ZIP archive up to 100 MB.'); setTemplateSourceCodeFile(null); return } setTemplateSourceCodeFile(file); setError('') }} /><b>{templateSourceCodeFile?.name || 'No primary full-template ZIP selected'}</b></label>
+            {templateSourceCodeParts.map((file, index) => <div className="digital-screenshot-preview" key={`${file.name}-${index}`}><span>ZIP part {index + 1}: {file.name}</span></div>)}
+            {templatePartInputOpen && <label className="digital-screenshot-picker"><UploadCloud size={19} /><strong>Additional full-template ZIP part</strong><span>Choose one ZIP file, up to 100 MB.</span><input type="file" accept=".zip,application/zip,application/x-zip-compressed" disabled={saving} onChange={chooseTemplateSourceCodePart} /></label>}
+            <button type="button" className="digital-access-link" disabled={saving || templateSourceCodeParts.length >= MAX_TEMPLATE_SOURCE_CODE_PARTS} onClick={() => { setError(''); setTemplatePartInputOpen(true) }}>Add another ZIP part</button>
+            <small>{templateSourceCodeParts.length} of {MAX_TEMPLATE_SOURCE_CODE_PARTS} additional ZIP parts selected. Buyers get a separate download button for each.</small>
+          </>}
+          <label className="digital-screenshot-picker"><UploadCloud size={19} /><strong>Buyer guide files for rental / use</strong><span>Optional. Add up to {MAX_BUYER_DOCUMENTS} files, 20 MB each.</span><input type="file" multiple disabled={saving} onChange={(event) => { const selected = [...(event.target.files || [])]; event.target.value = ''; if (documents.length + selected.length > MAX_BUYER_DOCUMENTS || selected.some((file) => file.size > MAX_DOCUMENT_SIZE)) { setError('Add no more than 10 buyer guide files, up to 20 MB each.'); return } setDocuments((current) => [...current, ...selected]) }} /><b>{documents.length} of {MAX_BUYER_DOCUMENTS} selected</b></label>
           {documents.length > 0 && <div className="digital-screenshot-preview">{documents.map((file, index) => <span key={`${file.name}-${index}`}>{file.name}</span>)}</div>}
-          <label className="digital-screenshot-picker"><UploadCloud size={19} /><strong>Full-template legal documents</strong><span>Optional. Buyers who purchase the full template can download these files.</span><input type="file" multiple disabled={saving} onChange={(event) => { const selected = [...(event.target.files || [])]; event.target.value = ''; if (templateDocuments.length + selected.length > MAX_BUYER_DOCUMENTS || selected.some((file) => file.size > MAX_DOCUMENT_SIZE)) { setError('Add no more than 10 legal documents, up to 20 MB each.'); return } setTemplateDocuments((current) => [...current, ...selected]) }} /><b>{templateDocuments.length} of {MAX_BUYER_DOCUMENTS} selected</b></label>
-          {templateDocuments.length > 0 && <div className="digital-screenshot-preview">{templateDocuments.map((file, index) => <span key={`${file.name}-${index}`}>{file.name}</span>)}</div>}
           <label className="digital-screenshot-picker"><UploadCloud size={19} /><strong>App or website screenshots</strong><span>Select 10–20 images. Buyers can view the full gallery only after payment; each image must be 8 MB or smaller.</span><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple onChange={choosePhotos} disabled={saving} /><b>{photos.length} of {MAX_SCREENSHOTS} selected · {photos.length < 10 ? `${10 - photos.length} more required` : 'Minimum met'}</b></label>
           {photoNames.length > 0 && <div className="digital-screenshot-preview">{photoNames.map((photoName, index) => <span key={`${photoName}-${index}`}>{index + 1}. {photoName}</span>)}</div>}
           {error && <p className="digital-assets-error" role="alert">{error}</p>}

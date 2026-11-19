@@ -21,8 +21,8 @@ const emptyProduct = {
   sourceCodeCloudinaryUrl: '',
   templateSourceCodeUrl: '',
   templateSourceCodeCloudinaryUrl: '',
+  templateSourceCodeParts: [],
   documents: [],
-  templateDocuments: [],
   websiteUrl: '',
   apkUrl: '',
   iosAppUrl: '',
@@ -121,6 +121,8 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
   const [uploadingImageIndex, setUploadingImageIndex] = useState(null)
   const [uploadingSourceCode, setUploadingSourceCode] = useState(false)
   const [uploadingTemplateSourceCode, setUploadingTemplateSourceCode] = useState(false)
+  const [uploadingTemplatePart, setUploadingTemplatePart] = useState(false)
+  const [templateSourceCodePartInputOpen, setTemplateSourceCodePartInputOpen] = useState(false)
   const [templateArchiveInfo, setTemplateArchiveInfo] = useState(null)
   const [uploadingDocuments, setUploadingDocuments] = useState(false)
   const [documentUploadFeedback, setDocumentUploadFeedback] = useState([])
@@ -519,6 +521,43 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
     }
   }
 
+  const uploadAdditionalTemplateSourceCode = async (file) => {
+    if (!file.name.toLowerCase().endsWith('.zip')) {
+      setProductError('Choose a file with a .zip extension.')
+      return
+    }
+    if (file.size > MAX_TEMPLATE_ARCHIVE_SIZE) {
+      setProductError('Each full-template ZIP part must be 500 MB or smaller.')
+      return
+    }
+    if (product.templateSourceCodeParts.length >= 10) {
+      setProductError('Add no more than 10 separate full-template ZIP parts.')
+      return
+    }
+
+    setUploadingTemplatePart(true)
+    setProductError('')
+    setNotice('')
+    try {
+      const result = await adminApi.uploadStoreProductSourceCode(file)
+      const url = result.data?.sourceCodeUrl
+      if (!url) throw new Error('The ZIP part upload did not return a saved URL.')
+      const part = {
+        name: file.name,
+        url,
+        ...(result.data?.sourceCodeCloudinaryUrl ? { cloudinaryUrl: result.data.sourceCodeCloudinaryUrl } : {}),
+        mimeType: 'application/zip',
+      }
+      setProduct((current) => ({ ...current, templateSourceCodeParts: [...current.templateSourceCodeParts, part] }))
+      setTemplateSourceCodePartInputOpen(false)
+      setNotice(`${file.name} uploaded separately. Save the product to publish it.`)
+    } catch (uploadError) {
+      setProductError(uploadError.message || `Could not upload ${file.name}.`)
+    } finally {
+      setUploadingTemplatePart(false)
+    }
+  }
+
   const uploadProductDocuments = async (files, fieldName = 'documents') => {
     const selectedFiles = Array.from(files)
     if (!selectedFiles.length) return
@@ -616,6 +655,7 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
   const openProductModal = (selectedProduct = null) => {
     setProductError('')
     setTemplateArchiveInfo(null)
+    setTemplateSourceCodePartInputOpen(false)
     setProductTypeOpen(false)
     setAddingProductCategory(false)
     setEditingProductId(selectedProduct?._id || null)
@@ -659,7 +699,9 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
         || (Number(selectedProduct.sourceArchiveVersion) < 2 ? selectedProduct.sourceCodeUrl || '' : ''),
       templateSourceCodeCloudinaryUrl: selectedProduct.templateSourceCodeCloudinaryUrl || '',
       documents: Array.isArray(selectedProduct.documents) ? selectedProduct.documents : [],
-      templateDocuments: Array.isArray(selectedProduct.templateDocuments) ? selectedProduct.templateDocuments : [],
+      templateSourceCodeParts: Array.isArray(selectedProduct.templateSourceCodeParts)
+        ? selectedProduct.templateSourceCodeParts
+        : [],
       isActive: selectedProduct.isActive !== false,
     } : emptyProduct)
     generateOnNameChange.current = false
@@ -1457,14 +1499,14 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
                   <div className="form-group">Rental source-code archive (ZIP), optional<label className={`ecom-upload-image-button${uploadingSourceCode || savingProduct ? ' is-disabled' : ''}`}><Upload size={14} /><span>{uploadingSourceCode ? 'Uploading ZIP…' : product.sourceCodeUrl ? 'Replace rental ZIP' : 'Choose rental ZIP'}</span><input aria-label="Choose rental source-code ZIP" type="file" accept=".zip,application/zip,application/x-zip-compressed" disabled={uploadingSourceCode || savingProduct} onChange={(event) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ''; if (!file) return; if (!file.name.toLowerCase().endsWith('.zip') || file.size > 100 * 1024 * 1024) { setProductError('Choose a ZIP source-code archive up to 100 MB.'); return } void uploadProductSourceCode(file, 'sourceCodeUrl') }} /></label><small>{uploadingSourceCode ? 'Uploading rental archive…' : product.sourceCodeUrl ? 'Rental archive uploaded. Buyers who paid for Use / rental can download it.' : 'Optional ZIP made available to buyers who pay for Use / rental.'}</small></div>
                   <div className="form-group">
                     Full-template source-code archive (ZIP), optional
-                    <label className={`ecom-upload-image-button${uploadingTemplateSourceCode || savingProduct ? ' is-disabled' : ''}`}>
+                    <label className={`ecom-upload-image-button${uploadingTemplateSourceCode || uploadingTemplatePart || savingProduct ? ' is-disabled' : ''}`}>
                       <Upload size={14} />
                       <span>{uploadingTemplateSourceCode ? 'Uploading ZIP…' : product.templateSourceCodeUrl ? 'Replace full-template ZIP' : 'Choose full-template ZIP'}</span>
                       <input
                         aria-label="Choose full-template source-code ZIP"
                         type="file"
                         accept=".zip,application/zip,application/x-zip-compressed"
-                        disabled={uploadingTemplateSourceCode || savingProduct}
+                        disabled={uploadingTemplateSourceCode || uploadingTemplatePart || savingProduct}
                         onChange={(event) => {
                           const file = event.currentTarget.files?.[0]
                           event.currentTarget.value = ''
@@ -1494,9 +1536,55 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
                         {templateArchiveInfo.status === 'uploading' ? ' · Uploading…' : templateArchiveInfo.status === 'uploaded' ? ' · Upload complete. Save the product to keep it.' : ''}
                       </small>
                     )}
+                    <div className="ecom-template-source-code-parts">
+                      <small>Add more ZIPs one at a time. Each ZIP is uploaded separately and buyers can download each part individually.</small>
+                      {product.templateSourceCodeParts.map((document, index) => (
+                        <div className="ecom-product-document" key={document.url}>
+                          <FileText size={14} /><span>{document.name}</span>
+                          <span className="ecom-product-document-status"><Check size={12} /> Separate ZIP uploaded</span>
+                          <button
+                            type="button"
+                            className="ecom-remove-image-button"
+                            aria-label={`Remove ${document.name}`}
+                            disabled={uploadingTemplatePart || savingProduct}
+                            onClick={() => setProduct((current) => ({
+                              ...current,
+                              templateSourceCodeParts: current.templateSourceCodeParts.filter((_, partIndex) => partIndex !== index),
+                            }))}
+                          ><X size={14} /></button>
+                        </div>
+                      ))}
+                      {templateSourceCodePartInputOpen && (
+                        <label className={`ecom-upload-image-button${uploadingTemplatePart || savingProduct ? ' is-disabled' : ''}`}>
+                          <Upload size={14} />
+                          <span>{uploadingTemplatePart ? 'Uploading ZIP part…' : 'Choose another ZIP part'}</span>
+                          <input
+                            aria-label="Choose an additional full-template ZIP"
+                            type="file"
+                            accept=".zip,application/zip,application/x-zip-compressed"
+                            disabled={uploadingTemplatePart || savingProduct}
+                            onChange={(event) => {
+                              const file = event.currentTarget.files?.[0]
+                              event.currentTarget.value = ''
+                              if (file) void uploadAdditionalTemplateSourceCode(file)
+                            }}
+                          />
+                        </label>
+                      )}
+                      <button
+                        type="button"
+                        className="btn-table-action"
+                        disabled={uploadingTemplateSourceCode || uploadingTemplatePart || savingProduct || product.templateSourceCodeParts.length >= 10}
+                        onClick={() => {
+                          setProductError('')
+                          setTemplateSourceCodePartInputOpen(true)
+                        }}
+                      ><Plus size={14} /> Add another ZIP</button>
+                      <small>{product.templateSourceCodeParts.length} of 10 ZIP parts uploaded.</small>
+                    </div>
                   </div>
                   <div className="ecom-product-documents">
-                    <span className="ecom-product-documents-title">Buyer files <small>Any file type is supported. Buyers can download files after payment.</small></span>
+                    <span className="ecom-product-documents-title">Buyer guide files <small>Buyers can download these files after payment.</small></span>
                     <label className={`ecom-upload-image-button${uploadingDocuments || savingProduct || product.documents.length >= 10 ? ' is-disabled' : ''}`}>
                       <FileText size={14} />
                       <span>{uploadingDocuments ? 'Uploading files…' : product.documents.length ? 'Add more files' : 'Choose files'}</span>
@@ -1518,30 +1606,7 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
                     ))}
                     <small aria-live="polite">{product.documents.length ? `${product.documents.length} of 10 files uploaded` : 'No files uploaded'} · Any file type, 20 MB maximum per file.</small>
                   </div>
-                  <div className="ecom-product-documents">
-                    <span className="ecom-product-documents-title">Full-template legal documents <small>Only buyers who purchase the full template can download these files.</small></span>
-                    <label className={`ecom-upload-image-button${uploadingDocuments || savingProduct || product.templateDocuments.length >= 10 ? ' is-disabled' : ''}`}>
-                      <FileText size={14} />
-                      <span>{uploadingDocuments ? 'Uploading files…' : product.templateDocuments.length ? 'Add more legal documents' : 'Choose legal documents'}</span>
-                      <input aria-label="Upload full-template legal documents" type="file" multiple disabled={uploadingDocuments || savingProduct || product.templateDocuments.length >= 10} onChange={(event) => { const files = Array.from(event.currentTarget.files || []); event.currentTarget.value = ''; if (files.length) void uploadProductDocuments(files, 'templateDocuments') }} />
-                    </label>
-                    {product.templateDocuments.map((document, index) => (
-                      <div className="ecom-product-document" key={document.url}>
-                        <FileText size={14} /><span>{document.name}</span>
-                        <span className="ecom-product-document-status"><Check size={12} /> Uploaded</span>
-                        <button type="button" className="ecom-remove-image-button" aria-label={`Remove ${document.name}`} disabled={uploadingDocuments || savingProduct} onClick={() => setProduct((current) => ({ ...current, templateDocuments: current.templateDocuments.filter((_, documentIndex) => documentIndex !== index) }))}><X size={14} /></button>
-                      </div>
-                    ))}
-                    {documentUploadFeedback.filter((upload) => upload.fieldName === 'templateDocuments').map((upload) => (
-                      <div className={`ecom-product-document ecom-product-document-pending ${upload.status === 'failed' ? 'has-error' : ''}`} key={upload.id} role={upload.status === 'failed' ? 'alert' : 'status'}>
-                        <FileText size={14} /><span>{upload.name}</span>
-                        <span className="ecom-product-document-status">{upload.status === 'uploading' ? 'Uploading…' : upload.error || 'Upload failed'}</span>
-                        {upload.status === 'failed' && <button type="button" className="ecom-remove-image-button" aria-label={`Dismiss ${upload.name} upload error`} onClick={() => setDocumentUploadFeedback((current) => current.filter((entry) => entry.id !== upload.id))}><X size={14} /></button>}
-                      </div>
-                    ))}
-                    <small aria-live="polite">{product.templateDocuments.length ? `${product.templateDocuments.length} of 10 legal documents uploaded` : 'No legal documents uploaded'} · Any file type, 20 MB maximum per file.</small>
-                  </div>
-                  <label className="form-group">Usage and setup instructions<textarea name="usageInstructions" rows="5" value={product.usageInstructions} onChange={updateProduct} maxLength={5000} required placeholder="Explain how buyers can use this item and what setup/support is included." /></label>
+                  <label className="form-group">Buyer guide and setup instructions<textarea name="usageInstructions" rows="5" value={product.usageInstructions} onChange={updateProduct} maxLength={5000} required placeholder="Explain how buyers can use this item and what setup/support is included." /></label>
                 </section>
               )}
               {product.productType === 'product' && <div className="ecom-product-images">

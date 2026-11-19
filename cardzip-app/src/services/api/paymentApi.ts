@@ -52,8 +52,8 @@ export interface DigitalProductPaystackVerification {
     sourceCodeAvailable?: boolean;
     templateSourceCodeAvailable?: boolean;
     sourceCodeUrl?: string;
+    templateSourceCodeParts?: { name: string; mimeType: string }[];
     documents: { name: string; mimeType: string }[];
-    templateDocuments?: { name: string; mimeType: string }[];
   };
 }
 
@@ -73,8 +73,9 @@ export interface SellerDigitalAssetPaystackVerification {
     iosAppUrl?: string;
     accessUrl?: string;
     sourceCodeAvailable: boolean;
+    templateSourceCodeAvailable?: boolean;
+    templateSourceCodeParts?: { name: string; mimeType: string }[];
     documents?: { name: string; mimeType: string }[];
-    templateDocuments?: { name: string; mimeType: string }[];
   };
 }
 
@@ -233,7 +234,7 @@ export const fetchMyDigitalProductPaymentsApi = async (
 export const downloadDigitalProductFileApi = async (
   token: string,
   productId: string,
-  fileType: 'rental-source-code' | 'template-source-code' | 'document' | 'template-document',
+  fileType: 'rental-source-code' | 'template-source-code' | 'template-source-code-part' | 'document' | 'template-document',
   documentIndex: number,
   reference: string,
   filename: string,

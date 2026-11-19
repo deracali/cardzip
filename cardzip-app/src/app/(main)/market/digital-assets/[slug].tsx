@@ -36,8 +36,9 @@ type DigitalProductReceipt = {
   accessUrl?: string;
   sourceCodeAvailable?: boolean;
   templateSourceCodeAvailable?: boolean;
+  sourceCodeUrl?: string;
+  templateSourceCodeParts?: { name: string; mimeType: string }[];
   documents: { name: string; mimeType: string }[];
-  templateDocuments?: { name: string; mimeType: string }[];
   reference: string;
 };
 type SellerReceipt = SellerDigitalAssetPaystackVerification['sellerDigitalAsset'] & { reference: string };
@@ -105,6 +106,12 @@ export default function DigitalAssetDetailsScreen() {
   const currentPurchaseHistory = purchaseHistory?.key === purchaseHistoryKey ? purchaseHistory : null;
   const receipt = currentPurchaseHistory?.receipt ?? null;
   const sellerReceipt = currentPurchaseHistory?.sellerReceipt ?? null;
+  const sourceArchiveAvailable = sellerReceipt
+    ? sellerReceipt.sourceCodeAvailable
+    : receipt?.purchaseType === 'template'
+      ? Boolean(receipt.sourceCodeUrl)
+      : Boolean(receipt?.sourceCodeAvailable);
+  const templateSourceCodeParts = sellerReceipt?.templateSourceCodeParts || receipt?.templateSourceCodeParts || [];
   const paidOptions = currentPurchaseHistory?.paidOptions ?? { use: false, template: false };
   const purchaseError = purchaseErrorState?.key === purchaseHistoryKey ? purchaseErrorState.message : '';
   const checkingPurchaseHistory = Boolean(token && productId && !currentPurchaseHistory);
@@ -271,7 +278,8 @@ export default function DigitalAssetDetailsScreen() {
         documents: result.digitalProduct.documents || [],
         sourceCodeAvailable: result.digitalProduct.sourceCodeAvailable,
         templateSourceCodeAvailable: result.digitalProduct.templateSourceCodeAvailable,
-        templateDocuments: result.digitalProduct.templateDocuments || [],
+        sourceCodeUrl: result.digitalProduct.sourceCodeUrl,
+        templateSourceCodeParts: result.digitalProduct.templateSourceCodeParts || [],
         reference: payment.reference,
       });
       setSellerReceipt(null);
@@ -371,7 +379,7 @@ export default function DigitalAssetDetailsScreen() {
   };
 
   const downloadPurchasedFile = async (
-    fileType: 'source-code' | 'document' | 'template-document',
+    fileType: 'source-code' | 'template-source-code-part' | 'document' | 'template-document',
     documentIndex: number,
     filename: string,
     mimeType = 'application/octet-stream',
@@ -445,13 +453,13 @@ export default function DigitalAssetDetailsScreen() {
         <View style={styles.optionsCard}>
           <Text style={styles.sectionTitle}>Choose your option</Text>
           {asset.isSellerListing ? <>
-            <View style={styles.sellerTerms}><Text style={styles.optionTitle}>Purchase from the creator</Text><Text style={styles.optionDescription}>Each paid option unlocks its own ZIP and buyer files. Full-template buyers also receive its legal documents.</Text><Text style={styles.sellerPayout}>Seller receives 70% · Cardzip retains 30% · seller withdrawals take 1–2 business days.</Text></View>
+            <View style={styles.sellerTerms}><Text style={styles.optionTitle}>Purchase from the creator</Text><Text style={styles.optionDescription}>Each paid option unlocks its own ZIP and buyer guide files. Full-template ZIP parts are provided as separate downloads.</Text><Text style={styles.sellerPayout}>Seller receives 70% · Cardzip retains 30% · seller withdrawals take 1–2 business days.</Text></View>
             {(Number(asset.usePrice) > 0 || (!Number(asset.usePrice) && !Number(asset.templatePrice) && Number(asset.price) > 0)) ? <TouchableOpacity style={styles.option} disabled={Boolean(busyOption) || checkingPurchaseHistory || paidOptions.use} onPress={() => void purchaseSellerListing('use')}>
               <View style={styles.optionCopy}><Text style={styles.optionTitle}>Use / rent</Text><Text style={styles.optionDescription}>Use access, rental ZIP and buyer files.</Text></View>
               <Text style={styles.optionPrice}>{checkingPurchaseHistory ? 'Checking payment…' : paidOptions.use ? 'Already paid' : busyOption === 'use' ? 'Opening…' : formatNaira(Number(asset.usePrice) || Number(asset.price))}</Text>
             </TouchableOpacity> : null}
             {Number(asset.templatePrice) > 0 ? <TouchableOpacity style={styles.option} disabled={Boolean(busyOption) || checkingPurchaseHistory || paidOptions.template} onPress={() => void purchaseSellerListing('template')}>
-              <View style={styles.optionCopy}><Text style={styles.optionTitle}>Full project template</Text><Text style={styles.optionDescription}>Full source ZIP and legal documents.</Text></View>
+              <View style={styles.optionCopy}><Text style={styles.optionTitle}>Full project template</Text><Text style={styles.optionDescription}>Full source ZIP and any additional ZIP parts.</Text></View>
               <Text style={styles.optionPrice}>{checkingPurchaseHistory ? 'Checking payment…' : paidOptions.template ? 'Already paid' : busyOption === 'template' ? 'Opening…' : formatNaira(Number(asset.templatePrice))}</Text>
             </TouchableOpacity> : null}
             {isOwner ? <View style={styles.promotionBox}>
@@ -482,9 +490,9 @@ export default function DigitalAssetDetailsScreen() {
           {purchaseError ? <Text style={styles.error} accessibilityRole="alert">{purchaseError}</Text> : null}
           {receipt?.purchaseType === 'use' && receipt.accessUrl ? <TouchableOpacity style={styles.accessButton} onPress={() => void openAccess(receipt.accessUrl!)}><Feather name={isApp ? 'download' : 'external-link'} size={16} color="#FFFFFF" /><Text style={styles.accessButtonText}>{isAndroidApp ? 'Download hosted APK' : asset.productType === 'ios_app' ? 'Open iOS app access' : 'Open your website'}</Text></TouchableOpacity> : null}
           {receipt?.purchaseType === 'template' ? <Text style={styles.success}>Template purchase confirmed. Your source archive and files are ready below.</Text> : null}
-          {(receipt?.sourceCodeAvailable || receipt?.templateSourceCodeAvailable || sellerReceipt?.sourceCodeAvailable) ? <TouchableOpacity style={styles.accessButton} disabled={Boolean(downloadingFile)} onPress={() => void downloadPurchasedFile('source-code', 0, `${asset.name}-${sellerReceipt?.purchaseType === 'template' || receipt?.purchaseType === 'template' ? 'full-template' : 'rental'}-source-code.zip`, 'application/zip')}><Feather name="download" size={16} color="#FFFFFF" /><Text style={styles.accessButtonText}>{downloadingFile.includes('source-code') ? 'Downloading source ZIP…' : `Download ${sellerReceipt?.purchaseType === 'template' || receipt?.purchaseType === 'template' ? 'full-template' : 'rental'} source ZIP`}</Text></TouchableOpacity> : null}
+          {sourceArchiveAvailable ? <TouchableOpacity style={styles.accessButton} disabled={Boolean(downloadingFile)} onPress={() => void downloadPurchasedFile('source-code', 0, `${asset.name}-${sellerReceipt?.purchaseType === 'template' || receipt?.purchaseType === 'template' ? 'full-template' : 'rental'}-source-code.zip`, 'application/zip')}><Feather name="download" size={16} color="#FFFFFF" /><Text style={styles.accessButtonText}>{downloadingFile.includes('source-code') ? 'Downloading source ZIP…' : `Download ${sellerReceipt?.purchaseType === 'template' || receipt?.purchaseType === 'template' ? 'full-template' : 'rental'} source ZIP`}</Text></TouchableOpacity> : null}
+          {templateSourceCodeParts.map((part, index) => <TouchableOpacity key={`template-part-${part.name}-${index}`} style={styles.accessButton} disabled={Boolean(downloadingFile)} onPress={() => void downloadPurchasedFile('template-source-code-part', index, part.name, part.mimeType)}><Feather name="download" size={16} color="#FFFFFF" /><Text style={styles.accessButtonText}>{downloadingFile === `template-source-code-part-${index}` ? 'Downloading…' : `Download ZIP part · ${getShortDocumentName(part.name)}`}</Text></TouchableOpacity>)}
           {(sellerReceipt?.documents || receipt?.documents || []).map((document, index) => <TouchableOpacity key={`${document.name}-${index}`} style={styles.accessButton} disabled={Boolean(downloadingFile)} onPress={() => void downloadPurchasedFile('document', index, document.name, document.mimeType)}><Feather name="file-text" size={16} color="#FFFFFF" /><Text style={styles.accessButtonText}>{downloadingFile === `document-${index}` ? 'Downloading…' : `Download ${getShortDocumentName(document.name)}`}</Text></TouchableOpacity>)}
-          {(sellerReceipt?.templateDocuments || receipt?.templateDocuments || []).map((document, index) => <TouchableOpacity key={`legal-${document.name}-${index}`} style={styles.accessButton} disabled={Boolean(downloadingFile)} onPress={() => void downloadPurchasedFile('template-document', index, document.name, document.mimeType)}><Feather name="file-text" size={16} color="#FFFFFF" /><Text style={styles.accessButtonText}>{downloadingFile === `template-document-${index}` ? 'Downloading…' : `Legal · ${getShortDocumentName(document.name)}`}</Text></TouchableOpacity>)}
           {sellerReceipt ? <>
             <Text style={styles.success}>Payment confirmed. The seller received {formatNaira(sellerReceipt.sellerShare)} (70%).</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sellerGallery}>{sellerReceipt.screenshots.map((image, index) => <TouchableOpacity key={`${image}-${index}`} onPress={() => openReceiptImage(index)} accessibilityRole="button" accessibilityLabel={`Zoom purchased screenshot ${index + 1}`}><Image source={{ uri: image }} style={styles.sellerScreenshot} /></TouchableOpacity>)}</ScrollView>

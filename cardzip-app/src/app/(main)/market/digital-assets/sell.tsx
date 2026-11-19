@@ -21,6 +21,8 @@ const MAX_SCREENSHOTS = 20;
 const MAX_IMAGE_SIZE = 8 * 1024 * 1024;
 const MAX_BUYER_DOCUMENTS = 10;
 const MAX_DOCUMENT_SIZE = 20 * 1024 * 1024;
+const MAX_SOURCE_CODE_ARCHIVE_SIZE = 100 * 1024 * 1024;
+const MAX_TEMPLATE_SOURCE_CODE_PARTS = 10;
 type ListingType = 'website' | 'app' | 'ios_app' | 'full_stack' | 'admin';
 const listingTypes: { key: ListingType; label: string }[] = [
   { key: 'website', label: 'Website' },
@@ -50,8 +52,8 @@ export default function SellDigitalAssetScreen() {
   const [photos, setPhotos] = useState<ImagePicker.ImagePickerAsset[]>([]);
   const [sourceCode, setSourceCode] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [templateSourceCode, setTemplateSourceCode] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
+  const [templateSourceCodeParts, setTemplateSourceCodeParts] = useState<DocumentPicker.DocumentPickerAsset[]>([]);
   const [documents, setDocuments] = useState<DocumentPicker.DocumentPickerAsset[]>([]);
-  const [templateDocuments, setTemplateDocuments] = useState<DocumentPicker.DocumentPickerAsset[]>([]);
   const [submissions, setSubmissions] = useState<SellerDigitalAssetSubmission[]>([]);
   const [saving, setSaving] = useState(false);
   const [progress, setProgress] = useState('');
@@ -102,7 +104,7 @@ export default function SellDigitalAssetScreen() {
     });
     if (result.canceled) return;
     const selected = result.assets[0];
-    if (!selected.name.toLowerCase().endsWith('.zip') || (selected.size !== undefined && selected.size > 100 * 1024 * 1024)) {
+    if (!selected.name.toLowerCase().endsWith('.zip') || (selected.size !== undefined && selected.size > MAX_SOURCE_CODE_ARCHIVE_SIZE)) {
       setError('Choose a ZIP source-code archive up to 100 MB.');
       return;
     }
@@ -111,9 +113,28 @@ export default function SellDigitalAssetScreen() {
     setError('');
   };
 
-  const selectDocuments = async (option: 'use' | 'template') => {
-    const current = option === 'use' ? documents : templateDocuments;
-    const remaining = MAX_BUYER_DOCUMENTS - current.length;
+  const selectTemplateSourceCodePart = async () => {
+    if (templateSourceCodeParts.length >= MAX_TEMPLATE_SOURCE_CODE_PARTS) {
+      setError(`You can add up to ${MAX_TEMPLATE_SOURCE_CODE_PARTS} additional ZIP parts.`);
+      return;
+    }
+    const result = await DocumentPicker.getDocumentAsync({
+      type: ['application/zip', 'application/x-zip-compressed'],
+      copyToCacheDirectory: true,
+    });
+    if (result.canceled) return;
+    const selected = result.assets[0];
+    if (!selected.name.toLowerCase().endsWith('.zip')
+      || (selected.size !== undefined && selected.size > MAX_SOURCE_CODE_ARCHIVE_SIZE)) {
+      setError('Each full-template ZIP part must be a ZIP archive up to 100 MB.');
+      return;
+    }
+    setTemplateSourceCodeParts((items) => [...items, selected]);
+    setError('');
+  };
+
+  const selectBuyerDocuments = async () => {
+    const remaining = MAX_BUYER_DOCUMENTS - documents.length;
     if (remaining <= 0) {
       setError(`You can add up to ${MAX_BUYER_DOCUMENTS} files to this option.`);
       return;
@@ -123,13 +144,12 @@ export default function SellDigitalAssetScreen() {
       copyToCacheDirectory: true,
     });
     if (result.canceled) return;
-    if (current.length + result.assets.length > MAX_BUYER_DOCUMENTS
+    if (documents.length + result.assets.length > MAX_BUYER_DOCUMENTS
       || result.assets.some((file) => typeof file.size === 'number' && file.size > MAX_DOCUMENT_SIZE)) {
-      setError('Add no more than 10 buyer/legal documents, up to 20 MB each.');
+      setError('Add no more than 10 buyer guide files, up to 20 MB each.');
       return;
     }
-    if (option === 'use') setDocuments((items) => [...items, ...result.assets]);
-    else setTemplateDocuments((items) => [...items, ...result.assets]);
+    setDocuments((items) => [...items, ...result.assets]);
     setError('');
   };
 
@@ -160,16 +180,12 @@ export default function SellDigitalAssetScreen() {
       setError('Choose a rental/use source-code ZIP for the use option.');
       return;
     }
-    if (prices[1] > 0 && !templateSourceCode) {
-      setError('Choose a full-template source-code ZIP for the template option.');
-      return;
-    }
     if (prices[0] > 0 && documents.length === 0) {
       setError('Add at least one buyer document for the rental/use option.');
       return;
     }
-    if (prices[1] > 0 && templateDocuments.length === 0) {
-      setError('Add at least one legal document for the full-template option.');
+    if (prices[1] > 0 && !templateSourceCode && templateSourceCodeParts.length === 0) {
+      setError('Choose a full-template ZIP or add at least one ZIP part.');
       return;
     }
     setSaving(true);
@@ -198,6 +214,17 @@ export default function SellDigitalAssetScreen() {
       };
       const rentalArchive = await uploadArchive(sourceCode, 'rental');
       const fullTemplateArchive = await uploadArchive(templateSourceCode, 'full-template');
+      const uploadedTemplateSourceCodeParts = [];
+      for (const [index, file] of templateSourceCodeParts.entries()) {
+        const uploaded = await uploadArchive(file, `full-template ZIP part ${index + 1}`);
+        if (!uploaded) throw new Error(`Could not upload full-template ZIP part ${index + 1}.`);
+        uploadedTemplateSourceCodeParts.push({
+          name: file.name,
+          url: uploaded.sourceCodeUrl,
+          cloudinaryUrl: uploaded.sourceCodeCloudinaryUrl || '',
+          mimeType: 'application/zip',
+        });
+      }
       const uploadDocuments = async (files: DocumentPicker.DocumentPickerAsset[], label: string) => {
         const uploaded = [];
         for (const [index, file] of files.entries()) {
@@ -211,7 +238,6 @@ export default function SellDigitalAssetScreen() {
         return uploaded;
       };
       const uploadedDocuments = await uploadDocuments(documents, 'buyer');
-      const uploadedTemplateDocuments = await uploadDocuments(templateDocuments, 'full-template legal');
       setProgress('Submitting your listing…');
       const submission = await createSellerDigitalAssetApi(token, {
         name: name.trim(),
@@ -227,8 +253,8 @@ export default function SellDigitalAssetScreen() {
           templateSourceCodeUrl: fullTemplateArchive.sourceCodeUrl,
           templateSourceCodeCloudinaryUrl: fullTemplateArchive.sourceCodeCloudinaryUrl,
         } : {}),
+        templateSourceCodeParts: uploadedTemplateSourceCodeParts,
         documents: uploadedDocuments,
-        templateDocuments: uploadedTemplateDocuments,
         ...(type === 'website' || type === 'full_stack' || type === 'admin'
           ? { websiteUrl: url.trim() }
           : type === 'app'
@@ -246,8 +272,8 @@ export default function SellDigitalAssetScreen() {
       setPhotos([]);
       setSourceCode(null);
       setTemplateSourceCode(null);
+      setTemplateSourceCodeParts([]);
       setDocuments([]);
-      setTemplateDocuments([]);
       setSubmissions((current) => [submission, ...current]);
       Alert.alert('Submitted for review', 'Admin approval takes 1–3 business days. Your listing will appear in the marketplace after its details and source-code ZIP are reviewed and approved.');
     } catch (requestError) {
@@ -285,15 +311,17 @@ export default function SellDigitalAssetScreen() {
           <Text style={styles.fieldLabel}>Rental / use price (NGN)</Text><TextInput style={styles.input} value={usePrice} onChangeText={setUsePrice} keyboardType="number-pad" placeholder="Optional · minimum ₦100" />
           <Text style={styles.estimate}>{Number(usePrice) >= 100 ? `Your share: ${formatNaira(Math.floor(Number(usePrice) * 0.7))} per purchase.` : 'Optional; your seller share is 70%.'}</Text>
           <Text style={styles.fieldLabel}>Full-template price (NGN)</Text><TextInput style={styles.input} value={templatePrice} onChangeText={setTemplatePrice} keyboardType="number-pad" placeholder="Optional · minimum ₦100" />
-          <Text style={styles.estimate}>{Number(templatePrice) >= 100 ? `Your share: ${formatNaira(Math.floor(Number(templatePrice) * 0.7))} per purchase.` : 'Optional; includes the full project and legal documents.'}</Text>
+          <Text style={styles.estimate}>{Number(templatePrice) >= 100 ? `Your share: ${formatNaira(Math.floor(Number(templatePrice) * 0.7))} per purchase.` : 'Optional; includes the full project and separate ZIP parts.'}</Text>
           {Number(usePrice) > 0 ? <><TouchableOpacity style={styles.uploadButton} disabled={saving} onPress={() => void selectSourceCode('use')}><Feather name="archive" size={16} color="#087A4C" /><Text style={styles.uploadText}>{sourceCode ? sourceCode.name : 'Choose rental / use ZIP (required)'}</Text></TouchableOpacity><Text style={styles.helper}>Rental/use buyers can download this ZIP after successful payment. Up to 100 MB.</Text></> : null}
-          {Number(templatePrice) > 0 ? <><TouchableOpacity style={styles.uploadButton} disabled={saving} onPress={() => void selectSourceCode('template')}><Feather name="archive" size={16} color="#087A4C" /><Text style={styles.uploadText}>{templateSourceCode ? templateSourceCode.name : 'Choose full-template ZIP (required)'}</Text></TouchableOpacity><Text style={styles.helper}>Full-template buyers can download this ZIP after successful payment. Up to 100 MB.</Text></> : null}
-          <TouchableOpacity style={styles.uploadButton} disabled={saving} onPress={() => void selectDocuments('use')}><Feather name="file-text" size={16} color="#087A4C" /><Text style={styles.uploadText}>Add buyer documents · required for rental / use ({documents.length}/{MAX_BUYER_DOCUMENTS})</Text></TouchableOpacity>
-          <Text style={styles.helper}>Add at least one buyer document when you offer rental/use.</Text>
+          {Number(templatePrice) > 0 ? <>
+            <TouchableOpacity style={styles.uploadButton} disabled={saving} onPress={() => void selectSourceCode('template')}><Feather name="archive" size={16} color="#087A4C" /><Text style={styles.uploadText}>{templateSourceCode ? templateSourceCode.name : 'Choose primary full-template ZIP (optional)'}</Text></TouchableOpacity>
+            <Text style={styles.helper}>Each ZIP uploads separately, up to 100 MB per file. Choose a primary ZIP or add ZIP parts below.</Text>
+            {templateSourceCodeParts.map((file, index) => <Text style={styles.helper} key={`template-part-${file.name}-${index}`}>ZIP part {index + 1}: {file.name}</Text>)}
+            <TouchableOpacity style={styles.uploadButton} disabled={saving || templateSourceCodeParts.length >= MAX_TEMPLATE_SOURCE_CODE_PARTS} onPress={() => void selectTemplateSourceCodePart()}><Feather name="plus" size={16} color="#087A4C" /><Text style={styles.uploadText}>Add another ZIP part ({templateSourceCodeParts.length}/{MAX_TEMPLATE_SOURCE_CODE_PARTS})</Text></TouchableOpacity>
+          </> : null}
+          <TouchableOpacity style={styles.uploadButton} disabled={saving} onPress={() => void selectBuyerDocuments()}><Feather name="file-text" size={16} color="#087A4C" /><Text style={styles.uploadText}>Add buyer guide files · required for rental / use ({documents.length}/{MAX_BUYER_DOCUMENTS})</Text></TouchableOpacity>
+          <Text style={styles.helper}>Add at least one buyer guide file when you offer rental/use.</Text>
           {documents.map((file, index) => <Text style={styles.helper} key={`buyer-${file.name}-${index}`}>{file.name}</Text>)}
-          <TouchableOpacity style={styles.uploadButton} disabled={saving} onPress={() => void selectDocuments('template')}><Feather name="file-text" size={16} color="#087A4C" /><Text style={styles.uploadText}>Add template legal documents · required ({templateDocuments.length}/{MAX_BUYER_DOCUMENTS})</Text></TouchableOpacity>
-          <Text style={styles.helper}>Add at least one legal document when you offer the full template.</Text>
-          {templateDocuments.map((file, index) => <Text style={styles.helper} key={`legal-${file.name}-${index}`}>{file.name}</Text>)}
           <TouchableOpacity style={styles.uploadButton} disabled={saving} onPress={() => void selectPhotos()}><Feather name="image" size={17} color="#087A4C" /><Text style={styles.uploadText}>Choose screenshots ({photos.length}/20)</Text></TouchableOpacity>
           <Text style={styles.helper}>Add 10–20 screenshots. Buyers can see the gallery only after they pay. Each image must be 8 MB or smaller.</Text>
           <View style={styles.photoGrid}>{photos.map((photo, index) => <Image key={`${photo.uri}-${index}`} source={{ uri: photo.uri }} style={styles.photo} />)}</View>

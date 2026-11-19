@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, Code2, Download, FileText, Globe2, LifeBuoy, Smartphone, X, ZoomIn } from 'lucide-react'
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, Code2, Download, Globe2, LifeBuoy, Smartphone, X, ZoomIn } from 'lucide-react'
 import { getUserToken, userApi } from '../services/api'
 import { formatNaira } from '../utils/currency'
 import CardzipLoader from '../components/CardzipLoader'
@@ -327,32 +327,32 @@ export default function DigitalAssetDetailsPage({ digitalAssetSlug, onNavigate }
                   ? <a className="digital-access-link" href={paidReceipt.accessUrl} target="_blank" rel="noreferrer">Open iOS app access</a>
                   : <button className="digital-access-link" type="button" onClick={() => setWebsitePreviewOpen(true)}>Open website access in preview</button>
               )}
-              {!receiptLoading && (paidReceipt?.sourceCodeAvailable || paidReceipt?.templateSourceCodeAvailable) && <button className="digital-access-link digital-download-button" type="button" disabled={Boolean(downloadingFile)} onClick={() => void downloadPurchasedFile('source-code', undefined, `${asset.name}-source-code.zip`)}>
+              {!receiptLoading && (paidReceipt?.sourceCodeAvailable || paidReceipt?.sourceCodeUrl) && <button className="digital-access-link digital-download-button" type="button" disabled={Boolean(downloadingFile)} onClick={() => void downloadPurchasedFile('source-code', undefined, `${asset.name}-source-code.zip`)}>
                 <Download size={17} aria-hidden="true" /><span>{downloadingFile === (paidReceipt?.purchaseType === 'template' ? 'template-source-code' : 'rental-source-code') ? 'Downloading source code…' : `Download ${paidReceipt?.purchaseType === 'template' ? 'full-template' : 'rental'} source ZIP`}</span>
               </button>}
+              {!receiptLoading && paidReceipt?.templateSourceCodeParts?.map((part, index) => {
+                const key = `template-source-code-part-${index}`
+                return <button className="digital-access-link digital-download-button" type="button" key={`${part.name}-${index}`} disabled={Boolean(downloadingFile)} onClick={() => void downloadPurchasedFile('template-source-code-part', index, part.name)}>
+                  <Download size={17} aria-hidden="true" /><span>{downloadingFile === key ? `Downloading ${part.name}…` : `Download ZIP part · ${part.name}`}</span>
+                </button>
+              })}
               {!receiptLoading && paidReceipt?.documents?.map((document, index) => {
                 const key = `document-${index}`
                 return <button className="digital-access-link digital-download-button" type="button" key={`${document.name}-${index}`} disabled={Boolean(downloadingFile)} onClick={() => void downloadPurchasedFile('document', index, document.name)}>
                   <Download size={17} aria-hidden="true" /><span>{downloadingFile === key ? `Downloading ${document.name}…` : `Buyer file · ${document.name}`}</span>
                 </button>
               })}
-              {!receiptLoading && paidReceipt?.templateDocuments?.map((document, index) => {
-                const key = `template-document-${index}`
-                return <button className="digital-access-link digital-download-button" type="button" key={`template-${document.name}-${index}`} disabled={Boolean(downloadingFile)} onClick={() => void downloadPurchasedFile('template-document', index, document.name)}>
-                  <FileText size={17} aria-hidden="true" /><span>{downloadingFile === key ? `Downloading ${document.name}…` : `Legal document · ${document.name}`}</span>
-                </button>
-              })}
               {downloadError && <p className="digital-download-unavailable" role="alert">{downloadError}</p>}
             </section>}
             {asset.isSellerListing ? (
               <>
-                <div className="digital-seller-terms"><strong>Choose a purchase from the creator</strong><span>Each option unlocks its own source ZIP and buyer files after payment. Full-template buyers also receive the full-template legal documents.</span><small>Seller receives 70% · Cardzip retains 30% · seller wallet withdrawals take 1–2 business days.</small></div>
+                <div className="digital-seller-terms"><strong>Choose a purchase from the creator</strong><span>Each option unlocks its own source ZIP and buyer guide files after payment. Full-template ZIP parts are provided as separate downloads.</span><small>Seller receives 70% · Cardzip retains 30% · seller wallet withdrawals take 1–2 business days.</small></div>
                 {(Number(asset.usePrice) > 0 || (!Number(asset.usePrice) && !Number(asset.templatePrice) && Number(asset.price) > 0)) && <button type="button" className="digital-purchase-option" disabled={Boolean(purchaseType) || hasPurchased('use')} onClick={() => void purchaseSellerListing('use')}>
                   <span><strong>Use / rent</strong><small>Unlock use access, the rental ZIP and buyer files.</small></span>
                   <b>{hasPurchased('use') ? 'Already purchased' : purchaseType === 'use' || purchaseType === 'seller_listing' ? 'Opening Paystack…' : formatNaira(Number(asset.usePrice) || Number(asset.price))}</b>
                 </button>}
                 {Number(asset.templatePrice) > 0 && <button type="button" className="digital-purchase-option" disabled={Boolean(purchaseType) || hasPurchased('template')} onClick={() => void purchaseSellerListing('template')}>
-                  <span><strong>Full project template</strong><small>Unlock the full source ZIP, backend, setup support and legal files.</small></span>
+                  <span><strong>Full project template</strong><small>Unlock the full source ZIP, additional ZIP parts, backend and setup support.</small></span>
                   <b>{hasPurchased('template') ? 'Already purchased' : purchaseType === 'template' || purchaseType === 'seller_listing' ? 'Opening Paystack…' : formatNaira(asset.templatePrice)}</b>
                 </button>}
               </>
