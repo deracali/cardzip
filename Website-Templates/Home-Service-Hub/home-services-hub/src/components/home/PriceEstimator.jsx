@@ -67,7 +67,7 @@ function PriceEstimator({ selectedRepair, onRepairChange }) {
           <div className="ff-quote-price">${total}<small>${total + 40}</small></div>
           <p>{repair.shortLabel} · {urgency.label.toLowerCase()} visit</p>
           <span className="ff-quote-promise"><CheckCircle2 size={12} /> Price locked for 14 days · No hidden fees</span>
-          <a className="ff-button ff-button-orange ff-quote-button" href="tel:+18005550199">Book this price <ArrowRight size={14} /></a>
+          <a className="ff-button ff-button-orange ff-quote-button" href={`/book-now?service=${encodeURIComponent(repair.id)}&urgency=${encodeURIComponent(urgency.id)}`}>Book this price <ArrowRight size={14} /></a>
         </aside>
       </div>
       <p className="ff-estimate-disclaimer"><Clock3 size={12} /> Estimates are based on the selected repair and visit time. Your technician confirms the flat rate before work begins.</p>

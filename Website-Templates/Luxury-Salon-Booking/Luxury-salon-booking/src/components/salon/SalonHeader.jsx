@@ -30,7 +30,8 @@ function SalonHeader() {
           <a href="#reviews" onClick={closeMenu}>Reviews <span className="salon-nav-rating">4.9</span></a>
           <div className="salon-nav-actions">
             <a className="salon-phone-link" href="tel:+12125550148"><Phone size={13} /> (212) 555-0148</a>
-            <a className="salon-button salon-button-dark" href="#booking" onClick={closeMenu}>Book Appointment <ArrowRight size={14} /></a>
+            <a href="/dashboard" onClick={closeMenu}>My account</a>
+            <a className="salon-button salon-button-dark" href="/book" onClick={closeMenu}>Book Appointment <ArrowRight size={14} /></a>
           </div>
         </nav>
       </div>

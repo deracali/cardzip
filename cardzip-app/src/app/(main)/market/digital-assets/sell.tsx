@@ -71,11 +71,6 @@ export default function SellDigitalAssetScreen() {
   }, [token]);
 
   const selectPhotos = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      setError('Allow photo-library access to add your listing screenshots.');
-      return;
-    }
     const remaining = MAX_SCREENSHOTS - photos.length;
     if (remaining <= 0) {
       setError(`You can add up to ${MAX_SCREENSHOTS} screenshots.`);
@@ -167,6 +162,14 @@ export default function SellDigitalAssetScreen() {
     }
     if (prices[1] > 0 && !templateSourceCode) {
       setError('Choose a full-template source-code ZIP for the template option.');
+      return;
+    }
+    if (prices[0] > 0 && documents.length === 0) {
+      setError('Add at least one buyer document for the rental/use option.');
+      return;
+    }
+    if (prices[1] > 0 && templateDocuments.length === 0) {
+      setError('Add at least one legal document for the full-template option.');
       return;
     }
     setSaving(true);
@@ -285,9 +288,11 @@ export default function SellDigitalAssetScreen() {
           <Text style={styles.estimate}>{Number(templatePrice) >= 100 ? `Your share: ${formatNaira(Math.floor(Number(templatePrice) * 0.7))} per purchase.` : 'Optional; includes the full project and legal documents.'}</Text>
           {Number(usePrice) > 0 ? <><TouchableOpacity style={styles.uploadButton} disabled={saving} onPress={() => void selectSourceCode('use')}><Feather name="archive" size={16} color="#087A4C" /><Text style={styles.uploadText}>{sourceCode ? sourceCode.name : 'Choose rental / use ZIP (required)'}</Text></TouchableOpacity><Text style={styles.helper}>Rental/use buyers can download this ZIP after successful payment. Up to 100 MB.</Text></> : null}
           {Number(templatePrice) > 0 ? <><TouchableOpacity style={styles.uploadButton} disabled={saving} onPress={() => void selectSourceCode('template')}><Feather name="archive" size={16} color="#087A4C" /><Text style={styles.uploadText}>{templateSourceCode ? templateSourceCode.name : 'Choose full-template ZIP (required)'}</Text></TouchableOpacity><Text style={styles.helper}>Full-template buyers can download this ZIP after successful payment. Up to 100 MB.</Text></> : null}
-          <TouchableOpacity style={styles.uploadButton} disabled={saving} onPress={() => void selectDocuments('use')}><Feather name="file-text" size={16} color="#087A4C" /><Text style={styles.uploadText}>Add buyer files ({documents.length}/{MAX_BUYER_DOCUMENTS})</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.uploadButton} disabled={saving} onPress={() => void selectDocuments('use')}><Feather name="file-text" size={16} color="#087A4C" /><Text style={styles.uploadText}>Add buyer documents · required for rental / use ({documents.length}/{MAX_BUYER_DOCUMENTS})</Text></TouchableOpacity>
+          <Text style={styles.helper}>Add at least one buyer document when you offer rental/use.</Text>
           {documents.map((file, index) => <Text style={styles.helper} key={`buyer-${file.name}-${index}`}>{file.name}</Text>)}
-          <TouchableOpacity style={styles.uploadButton} disabled={saving} onPress={() => void selectDocuments('template')}><Feather name="file-text" size={16} color="#087A4C" /><Text style={styles.uploadText}>Add full-template legal documents ({templateDocuments.length}/{MAX_BUYER_DOCUMENTS})</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.uploadButton} disabled={saving} onPress={() => void selectDocuments('template')}><Feather name="file-text" size={16} color="#087A4C" /><Text style={styles.uploadText}>Add template legal documents · required ({templateDocuments.length}/{MAX_BUYER_DOCUMENTS})</Text></TouchableOpacity>
+          <Text style={styles.helper}>Add at least one legal document when you offer the full template.</Text>
           {templateDocuments.map((file, index) => <Text style={styles.helper} key={`legal-${file.name}-${index}`}>{file.name}</Text>)}
           <TouchableOpacity style={styles.uploadButton} disabled={saving} onPress={() => void selectPhotos()}><Feather name="image" size={17} color="#087A4C" /><Text style={styles.uploadText}>Choose screenshots ({photos.length}/20)</Text></TouchableOpacity>
           <Text style={styles.helper}>Add 10–20 screenshots. Buyers can see the gallery only after they pay. Each image must be 8 MB or smaller.</Text>

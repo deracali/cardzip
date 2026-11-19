@@ -1,5 +1,6 @@
 export const services = [
   {
+    id: 'signature-silk-blowout',
     name: 'Signature Silk Blowout',
     category: 'Hair',
     description: 'Cleanse, gloss + sculpted finish with our heat-safe ritual.',
@@ -9,6 +10,7 @@ export const services = [
     badge: 'Most booked',
   },
   {
+    id: 'rose-quartz-manicure',
     name: 'Rose Quartz Manicure',
     category: 'Nails',
     description: 'Sculpt, cuticle care + soft shine in a clean room.',
@@ -17,6 +19,7 @@ export const services = [
     image: '/images/salon/nail-ritual.jpg',
   },
   {
+    id: 'lumiere-glow-facial',
     name: 'Lumière Glow Facial',
     category: 'Skincare',
     description: 'Double cleanse, lymphatic sculpt + LED brightening.',
@@ -26,6 +29,7 @@ export const services = [
     badge: 'New',
   },
   {
+    id: 'deep-calm-massage',
     name: 'Deep Calm Massage',
     category: 'Massage',
     description: 'Warm oil, deep tissue + aromatherapy wind-down.',
@@ -37,6 +41,7 @@ export const services = [
 
 export const stylists = ['Maya R.', 'Jonas K.', 'Sofia M.']
 export const appointmentTimes = ['9:00 AM', '10:30 AM', '12:00 PM', '2:15 PM', '4:00 PM', '5:30 PM']
+export const appointmentStatuses = ['Requested', 'Confirmed', 'Completed', 'Cancelled']
 
 export const appointmentDays = Array.from({ length: 3 }, (_, offset) => {
   const date = new Date()

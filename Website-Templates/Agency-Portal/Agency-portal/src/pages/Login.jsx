@@ -1,16 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Eye, EyeOff, ShieldCheck, Headphones, ArrowRight, Music, Globe, CheckCircle2 } from 'lucide-react';
 import { userApi } from '../services/api';
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const REMEMBERED_EMAIL_KEY = 'cardzip-remembered-email';
 
 export default function AuthPage({ initialMode = 'login', onForgotPassword, onAuthenticated }) {
-  const googleButton = useRef(null);
-  const onAuthenticatedRef = useRef(onAuthenticated);
-  useEffect(() => {
-    onAuthenticatedRef.current = onAuthenticated;
-  }, [onAuthenticated]);
   const [isLogin, setIsLogin] = useState(initialMode === 'login');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -24,58 +18,6 @@ export default function AuthPage({ initialMode = 'login', onForgotPassword, onAu
   }));
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [googleError, setGoogleError] = useState('');
-
-  useEffect(() => {
-    if (!GOOGLE_CLIENT_ID || !googleButton.current) return undefined;
-    let active = true;
-    const initialize = () => {
-      if (!active || !window.google?.accounts?.id || !googleButton.current) return;
-      googleButton.current.replaceChildren();
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: async ({ credential }) => {
-          if (!active) return;
-          setSubmitting(true);
-          setGoogleError('');
-          try {
-            const referralCode = new URLSearchParams(window.location.search).get('ref')
-            const result = await userApi.googleSignIn({ idToken: credential, ...(referralCode ? { referralCode } : {}) });
-            if (!result.token) throw new Error('Google authentication returned no Cardzip session.');
-            onAuthenticatedRef.current?.(result);
-          } catch (requestError) {
-            setGoogleError(requestError.message);
-          } finally {
-            setSubmitting(false);
-          }
-        },
-      });
-      window.google.accounts.id.renderButton(googleButton.current, {
-        type: 'standard',
-        theme: 'outline',
-        size: 'large',
-        text: isLogin ? 'signin_with' : 'signup_with',
-        shape: 'rectangular',
-        width: 320,
-      });
-    };
-    const existing = document.querySelector('#cardzip-google-identity');
-    if (window.google?.accounts?.id) {
-      initialize();
-    } else if (existing) {
-      existing.addEventListener('load', initialize, { once: true });
-    } else {
-      const script = document.createElement('script');
-      script.id = 'cardzip-google-identity';
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.defer = true;
-      script.onload = initialize;
-      script.onerror = () => { if (active) setGoogleError('Could not load Google sign-in. Check your connection and try again.'); };
-      document.head.appendChild(script);
-    }
-    return () => { active = false; };
-  }, [isLogin]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -343,11 +285,7 @@ export default function AuthPage({ initialMode = 'login', onForgotPassword, onAu
             </form>
 
             <div className="google-auth-section">
-              <span className="google-auth-divider">or continue with</span>
-              {GOOGLE_CLIENT_ID
-                ? <div ref={googleButton} className="google-auth-button" aria-label="Continue with Google" />
-                : <p className="wallet-notice error" role="status">Google sign-in is unavailable until VITE_GOOGLE_CLIENT_ID is configured for this website and GOOGLE_OAUTH_CLIENT_IDS is configured on the server.</p>}
-              {googleError && <p className="wallet-notice error" role="alert">{googleError}</p>}
+              <p className="wallet-notice" role="status">Local mode: your account is saved only in this browser and is not synced to other devices.</p>
             </div>
 
             <div className="toggle-auth-mode">

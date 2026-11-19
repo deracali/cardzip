@@ -6,14 +6,21 @@ import ExplorePage from './pages/ExplorePage'
 import HomePage from './pages/HomePage'
 import StayDetailPage from './pages/StayDetailPage'
 import StayListPage from './pages/StayListPage'
+import ClientDashboardPage from './pages/ClientDashboardPage'
+import AdminAuthPage from './pages/AdminAuthPage'
+import AdminDashboardPage from './pages/AdminDashboardPage'
+import PaymentCallbackPage from './pages/PaymentCallbackPage'
 import { stays } from './data/stays'
 import './App.css'
 
 function getPageTitle(pathname, stay) {
   if (pathname === '/stays') return 'Stays in Bali | Escapes'
   if (pathname === '/checkout') return 'Checkout | Escapes'
+  if (pathname === '/payment/callback') return 'Payment result | Escapes'
   if (pathname === '/signin') return 'Sign in | Escapes'
   if (pathname === '/signup') return 'Create an account | Escapes'
+  if (pathname === '/client/dashboard') return 'My trips | Escapes'
+  if (pathname.startsWith('/admin')) return 'Admin portal | Escapes'
   if (stay) return `${stay.name} | Escapes`
   if (pathname === '/destinations') return 'Explore destinations | Escapes'
   if (pathname === '/experiences') return 'Travel experiences | Escapes'
@@ -36,8 +43,13 @@ export default function App() {
   if (pathname === '/') return <HomePage />
   if (pathname === '/stays') return <StayListPage />
   if (pathname === '/checkout') return <CheckoutPage />
+  if (pathname === '/payment/callback') return <PaymentCallbackPage />
   if (pathname === '/signin') return <AuthPage />
   if (pathname === '/signup') return <AuthPage signup />
+  if (pathname === '/client/dashboard') return <ClientDashboardPage />
+  if (pathname === '/admin/login') return <AdminAuthPage />
+  if (pathname === '/admin/signup') return <AdminAuthPage signup />
+  if (pathname === '/admin/dashboard') return <AdminDashboardPage />
   if (pathname.startsWith('/reserve/')) {
     return selectedStay
       ? <BookingPage stay={selectedStay} />

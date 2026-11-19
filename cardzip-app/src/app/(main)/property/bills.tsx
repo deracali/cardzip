@@ -24,6 +24,7 @@ import useFeatureSettings from '../../../hooks/useFeatureSettings';
 
 const API_BASE_URL = `${API_ROOT_URL}/api`;
 const configuredPaymentCallbackUrl = process.env.EXPO_PUBLIC_PAYSTACK_CALLBACK_URL?.trim();
+const createBillRequestId = () => Date.now().toString();
 
 // Category Tabs
 type CategoryType = 'airtime' | 'data' | 'electricity' | 'tv' | 'jamb' | 'waec';
@@ -159,8 +160,24 @@ function BillsScreenContent() {
   };
 
   // Form States
-  const [activeTab, setActiveTab] = useState<CategoryType>(normalizeTab(tab));
-  const [selectedProvider, setSelectedProvider] = useState<string>('mtn');
+  const routeTabKey = String(tab ?? '');
+  const routeTab = normalizeTab(tab);
+  const [activeTabOverride, setActiveTabOverride] = useState<{ routeKey: string; tab: CategoryType } | null>(null);
+  const activeTab = activeTabOverride?.routeKey === routeTabKey ? activeTabOverride.tab : routeTab;
+  const setActiveTab = (nextTab: CategoryType) => setActiveTabOverride({ routeKey: routeTabKey, tab: nextTab });
+  const defaultProviders: Record<CategoryType, string> = {
+    airtime: 'mtn',
+    data: 'mtn',
+    electricity: 'ikeja',
+    tv: 'dstv',
+    jamb: 'jamb-epin',
+    waec: 'waec',
+  };
+  const [providerOverride, setProviderOverride] = useState<{ tab: CategoryType; provider: string } | null>(null);
+  const selectedProvider = providerOverride?.tab === activeTab
+    ? providerOverride.provider
+    : defaultProviders[activeTab];
+  const setSelectedProvider = (provider: string) => setProviderOverride({ tab: activeTab, provider });
   const [phoneNumber, setPhoneNumber] = useState('');
   const [tvPhoneNumber, setTvPhoneNumber] = useState('');
   const [electricityPhoneNumber, setElectricityPhoneNumber] = useState('');
@@ -174,11 +191,20 @@ const [loadingDataVariations, setLoadingDataVariations] = useState(false);
 const [tvVariations, setTvVariations] = useState<DataVariation[]>([]);
 const [loadingTvVariations, setLoadingTvVariations] = useState(false);
 const [tvVariationsError, setTvVariationsError] = useState<string | null>(null);
-const [verifiedCustomer, setVerifiedCustomer] = useState<VerifiedCustomer | null>(null);
-const [verificationLoading, setVerificationLoading] = useState(false);
-const [verificationError, setVerificationError] = useState<string | null>(null);
+const [verificationResult, setVerificationResult] = useState<{
+  key: string;
+  customer: VerifiedCustomer | null;
+  error: string | null;
+} | null>(null);
 const [meterType, setMeterType] = useState<'prepaid' | 'postpaid'>('prepaid');
 const [providerDropdownOpen, setProviderDropdownOpen] = useState(false);
+const verificationKey = `${activeTab}:${selectedProvider}:${meterType}:${meterNumber.replace(/\D/g, '')}`;
+const isVerifiableService = activeTab === 'electricity' || activeTab === 'tv';
+const hasValidVerificationInput = isVerifiableService && meterNumber.replace(/\D/g, '').length >= 8;
+const currentVerification = verificationResult?.key === verificationKey ? verificationResult : null;
+const verifiedCustomer = currentVerification?.customer ?? null;
+const verificationError = currentVerification?.error ?? null;
+const verificationLoading = hasValidVerificationInput && !currentVerification;
 
   // WAEC Integration States
   const [waecVariations, setWaecVariations] = useState<WaecVariation[]>([]);
@@ -211,6 +237,16 @@ const showAlert = (
   type: 'success' | 'error' | 'warning' | 'info' = 'info'
 ) => {
   setAlertConfig({ visible: true, title, message, type });
+};
+
+const handleTabChange = (nextTab: CategoryType) => {
+  if (nextTab === activeTab) return;
+  setActiveTab(nextTab);
+  setProviderOverride({ tab: nextTab, provider: defaultProviders[nextTab] });
+  setAmount('0');
+  setSelectedBundleCode('');
+  setSelectedPlan('');
+  setWaecQuantity(1);
 };
 
 const fetchJambVariations = async () => {
@@ -293,45 +329,6 @@ useEffect(() => {
     clearInterval(retryTimer);
   };
 }, [isSubmitting, pendingBillPaystackReference, token]);
-
-  // Sync activeTab whenever user navigates with a different 'tab' param
-  useEffect(() => {
-    if (tab) {
-      setActiveTab(normalizeTab(tab));
-    }
-  }, [tab]);
-
-  // Sync default selected provider when activeTab changes
- useEffect(() => {
-  setAmount('0');
-  setSelectedBundleCode('');
-  setSelectedPlan('');
-  setWaecQuantity(1);
-
-  if (activeTab === 'airtime') {
-    setSelectedProvider('mtn');
-  } else if (activeTab === 'data') {
-    setSelectedProvider('mtn');
-
-    // Load MTN data variations when Data tab opens
-    fetchDataVariations('mtn');
-  } else if (activeTab === 'electricity') {
-    setSelectedProvider('ikeja');
-  } else if (activeTab === 'tv') {
-    setSelectedProvider('dstv');
-    void fetchTvVariations('dstv');
-  } else if (activeTab === 'jamb') {
-    setSelectedProvider('jamb-epin');
-    void fetchJambVariations();
-  } else if (activeTab === 'waec') {
-    setSelectedProvider('waec');
-    fetchWaecVariations();
-  }
-}, [activeTab]);
-
-
-
-
 
   const detectNetwork = (phone: string): string | null => {
   const number = phone.replace(/\D/g, '');
@@ -501,24 +498,15 @@ const fetchTvVariations = async (serviceID: string) => {
 };
 
 useEffect(() => {
-  const isVerifiableService = activeTab === 'electricity' || activeTab === 'tv';
   const billersCode = meterNumber.replace(/\D/g, '');
   const serviceID = activeTab === 'electricity'
     ? ELECTRICITY_SERVICE_IDS[selectedProvider]
     : selectedProvider;
-  const minimumLength = activeTab === 'tv' ? 8 : 8;
-
-  setVerifiedCustomer(null);
-  setVerificationError(null);
-
-  if (!isVerifiableService || !serviceID || billersCode.length < minimumLength) {
-    setVerificationLoading(false);
-    return;
-  }
+  if (!hasValidVerificationInput || !serviceID) return undefined;
 
   let cancelled = false;
+  const requestKey = verificationKey;
   const timeoutId = setTimeout(async () => {
-    setVerificationLoading(true);
     try {
       const verificationPath = activeTab === 'tv' ? '/tv/verify-card' : '/verify-card';
       const response = await fetch(`${API_BASE_URL}${verificationPath}`, {
@@ -534,21 +522,33 @@ useEffect(() => {
         const reason = typeof details === 'string'
           ? details
           : details?.response_description || details?.message || details?.error;
-        setVerificationError(result?.content?.error || reason || result?.message || result?.response_description || result?.error || 'Could not verify this number.');
+        setVerificationResult({
+          key: requestKey,
+          customer: null,
+          error: result?.content?.error || reason || result?.message || result?.response_description || result?.error || 'Could not verify this number.',
+        });
         return;
       }
 
       const content = result.content as Record<string, unknown>;
       const name = content.Customer_Name ?? content.customerName ?? content.name;
       const address = content.Address ?? content.customerAddress ?? content.address;
-      setVerifiedCustomer({
-        name: typeof name === 'string' && name.trim() ? name.trim() : undefined,
-        address: typeof address === 'string' && address.trim() ? address.trim() : undefined,
+      setVerificationResult({
+        key: requestKey,
+        customer: {
+          name: typeof name === 'string' && name.trim() ? name.trim() : undefined,
+          address: typeof address === 'string' && address.trim() ? address.trim() : undefined,
+        },
+        error: null,
       });
     } catch (error) {
-      if (!cancelled) setVerificationError(error instanceof Error ? error.message : 'Could not verify this number.');
-    } finally {
-      if (!cancelled) setVerificationLoading(false);
+      if (!cancelled) {
+        setVerificationResult({
+          key: requestKey,
+          customer: null,
+          error: error instanceof Error ? error.message : 'Could not verify this number.',
+        });
+      }
     }
   }, 600);
 
@@ -556,7 +556,7 @@ useEffect(() => {
     cancelled = true;
     clearTimeout(timeoutId);
   };
-}, [activeTab, meterNumber, meterType, selectedProvider]);
+}, [activeTab, hasValidVerificationInput, meterNumber, meterType, selectedProvider, verificationKey]);
 
 
 
@@ -637,6 +637,13 @@ const openPhoneContactPicker = async (target: 'phone' | 'electricity' | 'tv') =>
       setLoadingWaecVariations(false);
     }
   };
+
+  useEffect(() => {
+    if (activeTab === 'data') void fetchDataVariations('mtn');
+    if (activeTab === 'tv') void fetchTvVariations('dstv');
+    if (activeTab === 'jamb') void fetchJambVariations();
+    if (activeTab === 'waec') void fetchWaecVariations();
+  }, [activeTab]);
 
   // Handle Purchase Submission
  const submitBillPayment = async (paymentMethod: 'wallet' | 'paystack') => {
@@ -933,7 +940,7 @@ const openPhoneContactPicker = async (target: 'phone' | 'electricity' | 'tv') =>
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          request_id: Date.now().toString(),
+          request_id: createBillRequestId(),
           serviceID: selectedProvider,
           variation_code: selectedBundleCode,
           billersCode: cleanSmartcard,
@@ -1276,7 +1283,7 @@ const variation_code = meterType;
     // STEP 3: PAY ELECTRICITY
     // ==========================================
 
-    const request_id = Date.now().toString();
+    const request_id = createBillRequestId();
 
   const paymentData = {
   request_id,
@@ -1624,27 +1631,27 @@ const getIconBgColor = (type: 'success' | 'error' | 'warning' | 'info') => {
         {/* Category Tabs */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryTabsScroll}>
           <View style={[styles.categoryTabsContainer, { borderRadius: scale(16), marginBottom: verticalScale(16) }]}>
-            <TouchableOpacity style={[styles.categoryTab, activeTab === 'airtime' && styles.activeCategoryTab]} onPress={() => setActiveTab('airtime')}>
+            <TouchableOpacity style={[styles.categoryTab, activeTab === 'airtime' && styles.activeCategoryTab]} onPress={() => handleTabChange('airtime')}>
               <Feather name="phone-call" size={scale(14)} color={activeTab === 'airtime' ? '#FFFFFF' : '#82918B'} />
               <Text style={[styles.categoryTabText, activeTab === 'airtime' && styles.activeCategoryTabText]}>Airtime</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.categoryTab, activeTab === 'data' && styles.activeCategoryTab]} onPress={() => setActiveTab('data')}>
+            <TouchableOpacity style={[styles.categoryTab, activeTab === 'data' && styles.activeCategoryTab]} onPress={() => handleTabChange('data')}>
               <Feather name="wifi" size={scale(14)} color={activeTab === 'data' ? '#FFFFFF' : '#82918B'} />
               <Text style={[styles.categoryTabText, activeTab === 'data' && styles.activeCategoryTabText]}>Data</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.categoryTab, activeTab === 'electricity' && styles.activeCategoryTab]} onPress={() => setActiveTab('electricity')}>
+            <TouchableOpacity style={[styles.categoryTab, activeTab === 'electricity' && styles.activeCategoryTab]} onPress={() => handleTabChange('electricity')}>
               <Feather name="zap" size={scale(14)} color={activeTab === 'electricity' ? '#FFFFFF' : '#82918B'} />
               <Text style={[styles.categoryTabText, activeTab === 'electricity' && styles.activeCategoryTabText]}>Electricity</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.categoryTab, activeTab === 'tv' && styles.activeCategoryTab]} onPress={() => setActiveTab('tv')}>
+            <TouchableOpacity style={[styles.categoryTab, activeTab === 'tv' && styles.activeCategoryTab]} onPress={() => handleTabChange('tv')}>
               <Feather name="tv" size={scale(14)} color={activeTab === 'tv' ? '#FFFFFF' : '#82918B'} />
               <Text style={[styles.categoryTabText, activeTab === 'tv' && styles.activeCategoryTabText]}>TV</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.categoryTab, activeTab === 'waec' && styles.activeCategoryTab]} onPress={() => setActiveTab('waec')}>
+            <TouchableOpacity style={[styles.categoryTab, activeTab === 'waec' && styles.activeCategoryTab]} onPress={() => handleTabChange('waec')}>
               <MaterialCommunityIcons name="book-open-page-variant" size={scale(14)} color={activeTab === 'waec' ? '#FFFFFF' : '#82918B'} />
               <Text style={[styles.categoryTabText, activeTab === 'waec' && styles.activeCategoryTabText]}>WAEC</Text>
             </TouchableOpacity>

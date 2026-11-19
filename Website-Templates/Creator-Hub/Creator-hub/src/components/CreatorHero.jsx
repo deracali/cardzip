@@ -2,12 +2,12 @@ import { useState } from 'react'
 import {
   ArrowUpRight,
   BadgeCheck,
-  Camera,
+  BookOpen,
+  CircleHelp,
   Link2,
-  Mail,
   Play,
   ShoppingBag,
-  Video,
+  Users,
 } from 'lucide-react'
 
 const creatorAvatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=160&h=160&q=85'
@@ -27,9 +27,9 @@ function CreatorHero() {
     <section className="creator-hero" aria-labelledby="creator-hero-title">
       <div className="creator-hero-inner">
         <div className="creator-hero-copy">
-          <span className="creator-live-pill"><span /> Digital storefronts are live — sell in 2 clicks</span>
+          <span className="creator-live-pill"><span /> A clear home for your creative work</span>
           <h1 id="creator-hero-title">One link for your entire creator business</h1>
-          <p>Link-in-bio, newsletter to 50k+ readers, and digital products — all on one creatorhub.com. Free to start.</p>
+          <p>Bring your profile, latest work, audience sign-up and digital products together in one place. Start with the essentials and grow at your own pace.</p>
           <form className="creator-claim-form" onSubmit={claimHandle}>
             <label className="creator-handle-input">
               <span>creatorhub.com/</span>
@@ -44,11 +44,8 @@ function CreatorHero() {
             <button className="creator-button creator-button-primary" type="submit">Claim mine</button>
           </form>
           <div className="creator-social-proof">
-            <div className="creator-avatar-stack" aria-hidden="true">
-              <img src={creatorAvatar} alt="" />
-              <span>J</span><span>A</span><span>M</span>
-            </div>
-            <div className="creator-rating"><strong>★★★★★ 4.9</strong><small>Loved by 120,000+ creators</small></div>
+            <div className="creator-avatar-stack" aria-hidden="true"><Link2 size={16} /></div>
+            <div className="creator-rating"><strong>One creator page</strong><small>Links · content · storefront</small></div>
           </div>
         </div>
 
@@ -56,34 +53,34 @@ function CreatorHero() {
           <div className="creator-preview-card">
             <div className="creator-preview-top">
               <img className="creator-profile-photo" src={creatorAvatar} alt="Maya Chen" />
-              <span className="creator-online-badge">● +214 visits today</span>
+              <span className="creator-online-badge">CREATOR PAGE PREVIEW</span>
               <h2>Maya Chen <BadgeCheck size={15} fill="currentColor" /></h2>
               <p>@mayacreates</p>
               <div className="creator-social-links" aria-label="Maya's social links">
-                <a href="https://instagram.com" aria-label="Instagram"><Camera size={14} /></a>
-                <a href="https://youtube.com" aria-label="YouTube"><Video size={14} /></a>
-                <a href="/maya-chen" aria-label="Maya's profile"><Link2 size={14} /></a>
-                <a href="mailto:hello@creatorhub.example" aria-label="Email Maya"><Mail size={14} /></a>
+                <a href="/creators" aria-label="Browse creators"><Users size={14} /></a>
+                <a href="/resources" aria-label="Read creator resources"><BookOpen size={14} /></a>
+                <a href="/features" aria-label="Explore CreatorHub features"><Link2 size={14} /></a>
+                <a href="/help" aria-label="Open help center"><CircleHelp size={14} /></a>
               </div>
             </div>
-            <form className="creator-newsletter-preview" onSubmit={(event) => event.preventDefault()}>
-              <strong>Join 50k+ Weekly Readers</strong>
-              <small>One critical email every Sunday. Growth, no noise.</small>
-              <div><input aria-label="Your email address" placeholder="you@email.com" type="email" /><button type="submit">Subscribe</button></div>
-            </form>
-            <a className="creator-preview-link" href="/maya-chen"><span className="preview-link-icon lavender"><Mail size={14} /></span><span>Free eBook</span><strong>FREE</strong></a>
-            <a className="creator-preview-link" href="/maya-chen"><span className="preview-link-icon purple"><ShoppingBag size={14} /></span><span>Figma UI Kit — $29</span><ArrowUpRight size={14} /></a>
+            <div className="creator-newsletter-preview">
+              <strong>Keep your audience in the loop</strong>
+              <small>Add a newsletter sign-up to your public creator page.</small>
+              <div><span className="creator-preview-input">you@email.com</span><a href="/creators">Explore</a></div>
+            </div>
+            <a className="creator-preview-link" href="/creators"><span className="preview-link-icon lavender"><BookOpen size={14} /></span><span>Share your latest work</span><ArrowUpRight size={14} /></a>
+            <a className="creator-preview-link" href="/creators"><span className="preview-link-icon purple"><ShoppingBag size={14} /></span><span>Offer a digital product</span><ArrowUpRight size={14} /></a>
           </div>
-          <div className="creator-earnings-badge"><strong>$2,340 this week</strong><span>Digital sales</span></div>
+          <div className="creator-earnings-badge"><strong>Creator storefront</strong><span>Links, content and products</span></div>
           <a className="creator-play-badge" href="#examples" aria-label="See creator examples"><Play size={13} fill="currentColor" /></a>
         </div>
       </div>
       <div className="creator-trust-strip">
-        <span>POWERING TOP CREATORS</span>
-        <strong><b>▰</b> 2M+ subs</strong>
-        <strong><b>◎</b> Top 50 podcasts</strong>
-        <strong><b>▤</b> 500k creators</strong>
-        <strong><b>↗</b> Creator economy</strong>
+        <span>ONE PLACE FOR</span>
+        <strong><b>▰</b> Your profile</strong>
+        <strong><b>◎</b> Your latest work</strong>
+        <strong><b>▤</b> Your audience</strong>
+        <strong><b>↗</b> Your products</strong>
       </div>
     </section>
   )

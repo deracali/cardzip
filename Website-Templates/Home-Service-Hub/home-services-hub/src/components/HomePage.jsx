@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import HomeFooter from './home/HomeFooter'
 import HomeHeader from './home/HomeHeader'
 import HomeHero from './home/HomeHero'
@@ -8,16 +7,14 @@ import ServiceGrid from './home/ServiceGrid'
 import CustomerReviews from './home/CustomerReviews'
 import './HomePage.css'
 
-function HomePage() {
-  const [selectedRepair, setSelectedRepair] = useState('pipe')
-
+function HomePage({ selectedRepair = 'pipe', onRepairChange = () => {} }) {
   return (
     <div className="fixflow-home">
       <HomeHeader />
       <main>
         <HomeHero />
-        <PriceEstimator selectedRepair={selectedRepair} onRepairChange={setSelectedRepair} />
-        <ServiceGrid onSelectRepair={setSelectedRepair} />
+        <PriceEstimator selectedRepair={selectedRepair} onRepairChange={onRepairChange} />
+        <ServiceGrid onSelectRepair={onRepairChange} />
         <CustomerReviews />
         <EmergencyBanner />
       </main>

@@ -1,5 +1,5 @@
 {
-  "name": "realty-ai-studio",
+  "name": "lumiere-salon-vite",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "docs:buyer-guide": "node ../docs/build-buyer-guide.mjs"
   },
   "dependencies": {
     "jspdf": "^4.2.1",

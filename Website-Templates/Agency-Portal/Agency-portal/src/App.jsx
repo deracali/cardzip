@@ -7,6 +7,7 @@ import {
   Check,
   ChevronDown,
   CircleHelp,
+  CreditCard,
   Eye,
   EyeOff,
   FolderKanban,
@@ -15,6 +16,7 @@ import {
   LockKeyhole,
   Mail,
   Menu,
+  MessageSquare,
   MoreHorizontal,
   Play,
   Plus,
@@ -27,6 +29,8 @@ import {
   Zap,
 } from 'lucide-react'
 import './App.css'
+import AdminPortal from './pages/AdminPortal'
+import { agencyApi, clearAgencySession, getAgencySession, saveAgencySession } from './services/agencyApi'
 
 const projects = [
   {
@@ -97,6 +101,8 @@ const pageTitles = {
   '/case-studies': 'Case Studies | NOVA Studio',
   '/about': 'About the Creators | NOVA Studio',
   '/quote': 'Start a Project | NOVA Studio',
+  '/contact': 'Contact NOVA Studio',
+  '/messages': 'Client Messages | NOVA Studio',
 }
 
 function Brand({ compact = false }) {
@@ -110,6 +116,10 @@ function Brand({ compact = false }) {
 
 function Header({ portal = false, active = '' }) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [isClient, setIsClient] = useState(false)
+  useEffect(() => {
+    setIsClient(getAgencySession()?.user?.role === 'client')
+  }, [])
   return (
     <header className="site-header">
       <div className="header-inner">
@@ -123,6 +133,7 @@ function Header({ portal = false, active = '' }) {
               <a href="/work" onClick={() => setMenuOpen(false)}>Work</a>
               <a href="/services" onClick={() => setMenuOpen(false)}>Services</a>
               <a href="/dashboard" onClick={() => setMenuOpen(false)}>Client portal</a>
+              <a href="/messages" onClick={() => setMenuOpen(false)}>Messages</a>
             </>
           ) : (
             <>
@@ -130,6 +141,7 @@ function Header({ portal = false, active = '' }) {
               <a className={active === 'services' ? 'active' : ''} href="/services" onClick={() => setMenuOpen(false)}>Services</a>
               <a className={active === 'case-studies' ? 'active' : ''} href="/case-studies" onClick={() => setMenuOpen(false)}>Case Studies</a>
               <a className={active === 'about' ? 'active' : ''} href="/about" onClick={() => setMenuOpen(false)}>About</a>
+              <a className={active === 'contact' ? 'active' : ''} href="/messages" onClick={() => setMenuOpen(false)}>Messages</a>
             </>
           )}
         </nav>
@@ -167,7 +179,10 @@ function ProjectArtwork({ project, featured = false }) {
   )
 }
 
-function HeroPreview() {
+function HeroPreview({ project = featuredProject }) {
+  const caseStudy = project
+  const caseStudyPath = `/case-studies/${caseStudy.slug || caseStudy.id}`
+
   return (
     <div className="hero-preview" aria-label="Featured NOVA Studio digital commerce project">
       <div className="preview-window">
@@ -176,13 +191,13 @@ function HeroPreview() {
           <span className="preview-kicker">NEW COLLECTION · 2026</span>
           <h2>WE BUILD DIGITAL<br />EXPERIENCES THAT<br /><em>DRIVE GROWTH</em></h2>
           <p>Designed for the next generation of commerce.</p>
-          <a href="/case-studies/aurora-commerce">EXPLORE THE COLLECTION <ArrowRight size={10} /></a>
+          <a href={caseStudyPath}>EXPLORE THE COLLECTION <ArrowRight size={10} /></a>
           <div className="preview-art-shape" />
-          <div className="preview-site-footer"><b>Featured</b><span>3D Motion · WebGL</span><strong>Aurora — Immersive 3D Commerce</strong><small>+372% conversion rate · 05:45</small></div>
+          <div className="preview-site-footer"><b>Featured</b><span>{caseStudy.type}</span><strong>{caseStudy.name}</strong><small>{caseStudy.result}</small></div>
         </div>
       </div>
       <div className="preview-progress"><i /><span /><span /><span /></div>
-      <div className="preview-controls"><a href="/case-studies/lumen-finance" aria-label="Previous featured project"><ArrowLeft size={13} /></a><a href="/case-studies/aurora-commerce" aria-label="View featured project"><ArrowRight size={13} /></a></div>
+      <div className="preview-controls"><a href={caseStudyPath} aria-label="Featured case study"><ArrowLeft size={13} /></a><a href={caseStudyPath} aria-label="View featured case study"><ArrowRight size={13} /></a></div>
     </div>
   )
 }
@@ -190,7 +205,38 @@ function HeroPreview() {
 function HomePage() {
   const [budget, setBudget] = useState('$5k–$15k')
   const [submitted, setSubmitted] = useState(false)
+  const [quoteError, setQuoteError] = useState('')
+  const [quoteBusy, setQuoteBusy] = useState(false)
   const [testimonial, setTestimonial] = useState(0)
+  const [caseStudies, setCaseStudies] = useState([])
+  const [caseStudiesLoaded, setCaseStudiesLoaded] = useState(false)
+  const [caseStudiesError, setCaseStudiesError] = useState(false)
+  const clientSession = getAgencySession()
+  useEffect(() => {
+    agencyApi.publicCaseStudies()
+      .then(({ caseStudies: records }) => setCaseStudies(records))
+      .catch(() => setCaseStudiesError(true))
+      .finally(() => setCaseStudiesLoaded(true))
+  }, [])
+  async function submitHomeInquiry(event) {
+    event.preventDefault()
+    if (!clientSession || clientSession.user?.role !== 'client') {
+      window.location.assign(`/login?redirect=${encodeURIComponent('/quote')}`)
+      return
+    }
+    const form = event.currentTarget
+    const values = Object.fromEntries(new FormData(form))
+    setQuoteBusy(true)
+    setQuoteError('')
+    try {
+      await agencyApi.submitInquiry({ phone: values.phone, project: values.project, budget: values.budget })
+      setSubmitted(true)
+    } catch (requestError) {
+      setQuoteError(requestError.message || 'Your project brief could not be sent.')
+    } finally {
+      setQuoteBusy(false)
+    }
+  }
   const testimonials = [
     { quote: '“Nova took us from template hell to a site that actually sells. Pipeline up 212% in one quarter.”', person: 'Maya Keller, CMO — Vertex', detail: 'Verified client · SaaS project', initials: 'MK' },
     { quote: '“The team understood our brand on day one and shipped an experience our customers love using.”', person: 'Isaac Newton, Founder — Nexora', detail: 'Verified client · Commerce project', initials: 'IN' },
@@ -209,7 +255,7 @@ function HomePage() {
               <div className="hero-buttons"><a className="button button-cyan" href="/quote">Get a Quote <ArrowRight size={14} /></a><a className="button button-outline" href="/work"><Play size={13} fill="currentColor" /> View Showreel</a></div>
               <div className="hero-stats"><div><strong>240+</strong><span>Projects shipped</span></div><div><strong>18 Awards</strong><span>Recognized worldwide</span></div><div><strong>98% Retention</strong><span>Clients stay</span></div></div>
             </div>
-            <HeroPreview />
+            <HeroPreview project={caseStudies[0] || featuredProject} />
           </div>
         </section>
 
@@ -223,13 +269,15 @@ function HomePage() {
             <a className="button button-outline" href="/work">View all work <ArrowRight size={13} /></a>
           </div>
           <div className="project-grid">
-            {projects.map((project) => (
+            {(caseStudies.length ? caseStudies : projects).map((project) => (
               <a className="project-card" href={`/case-studies/${project.id}`} key={project.name}>
                 <ProjectArtwork project={project} />
                 <div className="project-card-copy"><span className="project-type">{project.type}</span><strong>{project.name}</strong><span>{project.client}</span><span className="project-arrow"><ArrowUpRight size={15} /></span></div>
               </a>
             ))}
           </div>
+          {caseStudiesError && <p className="page-loading" role="status">Published case studies could not be loaded. Showing sample work.</p>}
+          {!caseStudiesLoaded && <p className="page-loading" role="status">Loading case studies…</p>}
         </section>
 
         <section className="services-section section-shell" id="services">
@@ -252,12 +300,16 @@ function HomePage() {
             <span className="section-kicker">— PROJECT QUOTE</span><h2>Tell us about your project.</h2><p>Get a scoped proposal + timeline in 48 hours. No fluff.</p>
             {submitted ? (
               <div className="quote-success" role="status"><Check size={18} /><span><strong>Thanks — your brief is in.</strong><small>We’ll follow up within two business days.</small></span></div>
+            ) : clientSession?.user?.role !== 'client' ? (
+              <div><p>Sign in or create a client account to send and track your project inquiry.</p><a className="button button-cyan full-width" href={`/login?redirect=${encodeURIComponent('/quote')}`}>Sign in to send a brief <ArrowRight size={14} /></a><small className="quote-note">New to NOVA? <a href={`/signup?redirect=${encodeURIComponent('/quote')}`}>Create a client account</a>.</small></div>
             ) : (
-              <form onSubmit={(event) => { event.preventDefault(); setSubmitted(true) }}>
-                <div className="quote-fields"><label><span className="visually-hidden">Name</span><input name="name" placeholder="Name" autoComplete="name" required /></label><label><span className="visually-hidden">Work email</span><input name="email" type="email" placeholder="Work email" autoComplete="email" required /></label></div>
+              <form onSubmit={submitHomeInquiry}>
+                <p className="quote-note">{clientSession?.user?.role === 'client' ? `Submitting as ${clientSession.user.name} · ${clientSession.user.email}` : <> <a href={`/login?redirect=${encodeURIComponent('/quote')}`}>Sign in to send a project brief</a>.</>}</p>
+                <label className="quote-form-label">Phone number<input name="phone" type="tel" autoComplete="tel" maxLength={40} required /></label>
                 <label className="quote-message"><span className="visually-hidden">Project details</span><textarea name="project" placeholder="What do you need? e.g. Website, brand, 3D motion..." rows="3" required /></label>
                 <fieldset className="budget-options"><legend>Budget range</legend>{['$2k–$5k', '$5k–$15k', '$15k–$40k', '$40k+'].map((option) => <label className={budget === option ? 'selected' : ''} key={option}><input type="radio" name="budget" value={option} checked={budget === option} onChange={() => setBudget(option)} />{option}</label>)}</fieldset>
-                <button className="button button-cyan full-width" type="submit">Request Quote <ArrowRight size={14} /></button>
+                {quoteError && <p className="auth-notice" role="alert">{quoteError}</p>}
+                <button className="button button-cyan full-width" type="submit" disabled={quoteBusy}>{quoteBusy ? 'Sending…' : 'Request Quote'} <ArrowRight size={14} /></button>
                 <small className="quote-note">Avg. response time: 6 hours · NDA on request</small>
               </form>
             )}
@@ -304,12 +356,22 @@ function ProjectCard({ project }) {
 }
 
 function WorkPage() {
-  const allProjects = [featuredProject, ...projects]
+  const [caseStudies, setCaseStudies] = useState([])
+  const [loaded, setLoaded] = useState(false)
+  const [loadError, setLoadError] = useState(false)
+  useEffect(() => {
+    agencyApi.publicCaseStudies()
+      .then(({ caseStudies: records }) => setCaseStudies(records))
+      .catch(() => setLoadError(true))
+      .finally(() => setLoaded(true))
+  }, [])
+  const allProjects = caseStudies.length ? caseStudies : [featuredProject, ...projects]
   return (
     <PageLayout active="work">
       <div className="route-page">
         <PageIntro label="OUR WORK" title={<>Good work should<br /><em>show its work.</em></>} description="A selection of the digital experiences, brands, and products we’ve made with ambitious teams." action="Start a project" />
-        <div className="route-project-grid">{allProjects.map((project) => <ProjectCard project={project} key={project.id} />)}</div>
+        {loaded ? <div className="route-project-grid">{allProjects.map((project) => <ProjectCard project={project} key={project.id} />)}</div> : <p className="page-loading" role="status">Loading case studies…</p>}
+        {loadError && <p className="page-loading" role="status">Published case studies could not be loaded. Showing sample work.</p>}
         <div className="route-callout"><span><strong>Have a good one in mind?</strong><small>Tell us what you’re building. We’ll bring the right creators.</small></span><a className="button button-cyan" href="/quote">Let’s talk <ArrowRight size={14} /></a></div>
       </div>
     </PageLayout>
@@ -335,12 +397,26 @@ function ServicesPage() {
 }
 
 function CaseStudiesPage() {
+  const [caseStudies, setCaseStudies] = useState([])
+  const [loaded, setLoaded] = useState(false)
+  const [loadError, setLoadError] = useState(false)
+
+  useEffect(() => {
+    agencyApi.publicCaseStudies()
+      .then(({ caseStudies: records }) => setCaseStudies(records))
+      .catch(() => setLoadError(true))
+      .finally(() => setLoaded(true))
+  }, [])
+
+  const displayedProjects = caseStudies.length ? caseStudies : [...projects, featuredProject]
+
   return (
     <PageLayout active="case-studies">
       <div className="route-page">
         <PageIntro label="SELECTED WORK" title={<>Case studies<br /><em>with receipts.</em></>} description="Good taste is the starting point. We care about what happens after launch, too." action="Tell us what you need" />
-        <div className="route-project-grid">{[...projects, featuredProject].map((project) => <ProjectCard project={project} key={project.id} />)}</div>
-        <section className="results-band"><div><strong>240+</strong><span>Projects shipped</span></div><div><strong>18</strong><span>International awards</span></div><div><strong>98%</strong><span>Client retention</span></div><div><strong>212%</strong><span>Pipeline growth</span></div></section>
+        {loaded ? <div className="route-project-grid">{displayedProjects.map((project) => <ProjectCard project={project} key={project.id} />)}</div> : <p className="page-loading" role="status">Loading case studies…</p>}
+        {loadError && <p className="page-loading" role="status">Published case studies could not be loaded. Showing sample work.</p>}
+        {!caseStudies.length && <section className="results-band"><div><strong>240+</strong><span>Projects shipped</span></div><div><strong>18</strong><span>International awards</span></div><div><strong>98%</strong><span>Client retention</span></div><div><strong>212%</strong><span>Pipeline growth</span></div></section>}
       </div>
     </PageLayout>
   )
@@ -365,6 +441,31 @@ function AboutPage() {
 function QuotePage() {
   const [budget, setBudget] = useState('$5k–$15k')
   const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState('')
+  const [sending, setSending] = useState(false)
+  const [client, setClient] = useState(null)
+
+  useEffect(() => {
+    const session = getAgencySession()
+    if (session?.user?.role === 'client') setClient(session.user)
+  }, [])
+
+  async function submitInquiry(event) {
+    event.preventDefault()
+    const form = event.currentTarget
+    const values = Object.fromEntries(new FormData(form))
+    setError('')
+    setSending(true)
+    try {
+      await agencyApi.submitInquiry({ phone: values.phone, project: values.project, budget: values.budget })
+      setSubmitted(true)
+    } catch (requestError) {
+      setError(requestError.message || 'Your project brief could not be sent.')
+    } finally {
+      setSending(false)
+    }
+  }
+
   return (
     <PageLayout>
       <div className="route-page quote-page">
@@ -374,13 +475,16 @@ function QuotePage() {
             <h2>Tell us about your project.</h2><p>More context helps us find the right creative collaborators for your brief.</p>
             {submitted ? (
               <div className="quote-success" role="status"><Check size={18} /><span><strong>Thanks — your brief is in.</strong><small>We’ll follow up within two business days.</small></span></div>
+            ) : !client ? (
+              <div><p>Sign in or create a client account to send and track your project inquiry.</p><a className="button button-cyan" href={`/login?redirect=${encodeURIComponent('/quote')}`}>Client sign in <ArrowRight size={14} /></a><a href={`/signup?redirect=${encodeURIComponent('/quote')}`}> Create an account</a></div>
             ) : (
-              <form onSubmit={(event) => { event.preventDefault(); setSubmitted(true) }}>
-                <div className="quote-fields"><label>Name<input name="name" placeholder="Your name" autoComplete="name" required /></label><label>Work email<input name="email" type="email" placeholder="you@company.com" autoComplete="email" required /></label></div>
-                <label className="quote-form-label">Company or brand<input name="company" placeholder="Your company" autoComplete="organization" /></label>
+              <form onSubmit={submitInquiry}>
+                <p className="quote-note">Submitting as {client.name} · {client.email}</p>
+                <label className="quote-form-label">Phone number<input name="phone" type="tel" autoComplete="tel" maxLength={40} required /></label>
                 <label className="quote-form-label">What are you building?<textarea name="project" placeholder="Tell us about your goals, audience, and what you need help with..." rows="5" required /></label>
                 <fieldset className="budget-options"><legend>Estimated budget</legend>{['$2k–$5k', '$5k–$15k', '$15k–$40k', '$40k+'].map((option) => <label className={budget === option ? 'selected' : ''} key={option}><input type="radio" name="budget" value={option} checked={budget === option} onChange={() => setBudget(option)} />{option}</label>)}</fieldset>
-                <button className="button button-cyan full-width" type="submit">Send project brief <ArrowRight size={14} /></button>
+                {error && <p className="wallet-notice error" role="alert">{error}</p>}
+                <button className="button button-cyan full-width" type="submit" disabled={sending}>{sending ? 'Sending…' : 'Send project brief'} <ArrowRight size={14} /></button>
                 <small className="quote-note">Your project details stay private · NDA available on request</small>
               </form>
             )}
@@ -392,16 +496,98 @@ function QuotePage() {
   )
 }
 
+function ContactPage() {
+  const [client, setClient] = useState(null)
+  const [messages, setMessages] = useState([])
+  const [messagesLoaded, setMessagesLoaded] = useState(false)
+  const [error, setError] = useState('')
+  const [sent, setSent] = useState(false)
+  const [sending, setSending] = useState(false)
+
+  useEffect(() => {
+    const session = getAgencySession()
+    if (!session || session.user?.role !== 'client') {
+      window.location.replace(`/login?redirect=${encodeURIComponent('/messages')}`)
+      return
+    }
+    setClient(session.user)
+    agencyApi.clientDashboard()
+      .then((dashboard) => setMessages(dashboard.messages))
+      .catch((requestError) => setError(requestError.message || 'Unable to load your conversation.'))
+      .finally(() => setMessagesLoaded(true))
+  }, [])
+
+  async function sendMessage(event) {
+    event.preventDefault()
+    const form = event.currentTarget
+    const message = new FormData(form).get('message')
+    setSending(true)
+    setSent(false)
+    setError('')
+    try {
+      const { message: sentMessage } = await agencyApi.sendClientMessage(message)
+      form.reset()
+      setMessages((currentMessages) => [...currentMessages, sentMessage])
+      setSent(true)
+    } catch (requestError) {
+      setError(requestError.message || 'Your message could not be sent.')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <PageLayout active="contact">
+      <div className="route-page quote-page client-messages-page">
+        <PageIntro label="CLIENT MESSAGES" title={<>A direct line to<br /><em>your creative team.</em></>} description="Send a private message to the studio and follow replies in this conversation or your client dashboard." />
+        <div className="quote-route-layout client-messages-layout">
+          <section className="quote-card messages-compose-card">
+            <div className="messages-card-heading"><span className="messages-heading-icon"><MessageSquare size={18} /></span><span><h2>Message the studio</h2><p>We’ll get back to you as soon as we can.</p></span></div>
+            {client ? <p className="messages-account">Sending as <strong>{client.name}</strong> · {client.email}<i>Private</i></p> : <p className="dashboard-notice" role="status">Checking your client account…</p>}
+            <form onSubmit={sendMessage}>
+              <label className="quote-form-label">Your message<textarea name="message" maxLength="2000" rows="6" placeholder="Write your message here…" required /><small>Up to 2,000 characters</small></label>
+              {error && <p className="auth-notice" role="alert">{error}</p>}
+              {sent && <p className="quote-success" role="status"><Check size={18} /> Message sent. We’ll reply in your client portal.</p>}
+              <button className="button button-cyan full-width messages-send-button" type="submit" disabled={sending || !client}>{sending ? 'Sending…' : 'Send message'} <ArrowRight size={14} /></button>
+              <small className="quote-note"><ShieldCheck size={13} /> Only you and the studio can see this conversation.</small>
+            </form>
+          </section>
+          <aside className="quote-aside client-conversation-card"><div className="conversation-heading"><span className="messages-heading-icon"><MessageSquare size={17} /></span><span><strong>Your conversation</strong><small>Messages with NOVA Studio</small></span><i>Private</i></div>
+            <div className="conversation-thread" aria-live="polite">
+              {messagesLoaded ? messages.length ? messages.slice().reverse().map((message) => <article className={`client-record conversation-message ${message.sender === 'client' ? 'from-client' : 'from-studio'}`} key={message.id}><div><strong>{message.sender === 'client' ? 'You' : 'NOVA Studio'}</strong><small>{new Date(message.createdAt).toLocaleString()}</small></div><span>{message.body}</span></article>) : <p className="conversation-empty">Your conversation starts here. Send your first message and the studio’s replies will appear here.</p> : <p className="conversation-empty">Loading your conversation…</p>}
+            </div>
+            <a href="/dashboard">Open client dashboard <ArrowRight size={14} /></a>
+          </aside>
+        </div>
+      </div>
+    </PageLayout>
+  )
+}
+
 function CaseStudyPage({ slug }) {
-  const project = slug === featuredProject.id ? featuredProject : projects.find((item) => item.id === slug)
+  const [caseStudies, setCaseStudies] = useState([])
+  const [loaded, setLoaded] = useState(false)
+  const [loadError, setLoadError] = useState(false)
+  useEffect(() => {
+    agencyApi.publicCaseStudies()
+      .then(({ caseStudies: records }) => setCaseStudies(records))
+      .catch(() => setLoadError(true))
+      .finally(() => setLoaded(true))
+  }, [])
+  const project = caseStudies.length
+    ? caseStudies.find((item) => item.id === slug || item.slug === slug)
+    : slug === featuredProject.id ? featuredProject : projects.find((item) => item.id === slug)
+  if (!loaded) return <main className="page-loading" role="status">Loading case study…</main>
   if (!project) return <NotFound />
   return (
     <PageLayout active="case-studies">
       <div className="route-page case-study-page">
+        {loadError && <p className="page-loading" role="status">Published case studies could not be loaded. Showing sample work.</p>}
         <a className="back-to-work" href="/case-studies"><ArrowLeft size={14} /> All case studies</a>
         <div className="case-study-heading"><span className="section-kicker">{project.type} · {project.client.split(' · ')[0]}</span><h1>{project.name}</h1><p>{project.summary}</p></div>
         <ProjectArtwork project={project} featured />
         <div className="case-study-content"><section><span className="section-kicker">THE CHALLENGE</span><h2>Make the next move matter.</h2><p>{project.description}</p></section><aside><span className="section-kicker">THE IMPACT</span><strong>{project.result}</strong><small>Measured after launch</small><span className="section-kicker deliverables-title">WHAT WE DID</span><ul>{project.deliverables.map((item) => <li key={item}><Check size={13} /> {item}</li>)}</ul></aside></div>
+        {!!project.images?.length && <section className="case-study-gallery" aria-label="More project images">{project.images.map((image, index) => <img src={image} alt={`${project.alt} ${index + 2}`} key={`${image}-${index}`} />)}</section>}
         <div className="case-study-next"><span><strong>Have a project like this?</strong><small>Let’s find the right creators for it.</small></span><a className="button button-cyan" href="/quote">Start a project <ArrowRight size={14} /></a></div>
       </div>
     </PageLayout>
@@ -411,7 +597,35 @@ function CaseStudyPage({ slug }) {
 function AuthPage({ signup = false }) {
   const [showPassword, setShowPassword] = useState(false)
   const [notice, setNotice] = useState('')
-  const [accountType, setAccountType] = useState('client')
+  const [busy, setBusy] = useState(false)
+  const redirectParam = new URLSearchParams(window.location.search).get('redirect')
+  const returnTo = redirectParam?.startsWith('/') && !redirectParam.startsWith('//') && !redirectParam.includes('\\') ? redirectParam : '/dashboard'
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+    const form = event.currentTarget
+    const values = Object.fromEntries(new FormData(form))
+    setNotice('')
+    setBusy(true)
+    try {
+      const session = signup
+        ? await agencyApi.signupClient({
+          name: values.name,
+          company: values.company,
+          email: values.email,
+          password: values.password,
+        })
+        : await agencyApi.login({ email: values.email, password: values.password, expectedRole: 'client' })
+      if (session.user.role !== 'client') throw new Error('This account does not have client portal access.')
+      saveAgencySession(session)
+      window.location.assign(returnTo)
+    } catch (error) {
+      setNotice(error.message || 'Unable to sign in. Please try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="portal-shell">
       <Header portal />
@@ -426,32 +640,29 @@ function AuthPage({ signup = false }) {
           <div className="auth-panel-brand"><Brand compact /></div>
           {signup ? (
             <>
-              <h2>Create Account</h2><p className="auth-subtitle">Join 2,400+ brands managing work with Nova.</p>
-              <div className="account-switch"><button className={accountType === 'client' ? 'selected' : ''} type="button" onClick={() => setAccountType('client')}>Client / Business</button><button className={accountType === 'team' ? 'selected' : ''} type="button" onClick={() => setAccountType('team')}>Team / Freelancer</button></div>
-              <form className="auth-form" onSubmit={(event) => { event.preventDefault(); setNotice('Your account is ready to connect to the NOVA Studio client portal.') }}>
+              <h2>Create Account</h2><p className="auth-subtitle">Create an account to access your studio workspace.</p>
+              <form className="auth-form" onSubmit={handleSubmit}>
                 <div className="auth-fields two-col"><label>Full Name<input name="name" autoComplete="name" placeholder="Maya Keller" required /></label><label>Company / Brand<input name="company" autoComplete="organization" placeholder="Vertex Inc." required /></label></div>
                 <label>Work Email<input name="email" type="email" autoComplete="email" placeholder="maya@vertex.co" required /></label>
                 <label>Create Password<span className="password-field"><input name="password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" minLength={8} placeholder="At least 8 characters" required /><button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? <EyeOff size={15} /> : <Eye size={15} />}</button></span><small className="field-tip">Use at least 8 characters for a stronger password.</small></label>
                 <label className="terms-check"><input type="checkbox" required /> <span>I agree to the <a href="/about">Terms</a> and <a href="/about">Privacy Policy</a></span></label>
-                <button className="button button-cyan full-width" type="submit">Create Account <ArrowRight size={14} /></button>
+                <button className="button button-cyan full-width" type="submit" disabled={busy}>{busy ? 'Creating account…' : 'Create Account'} <ArrowRight size={14} /></button>
               </form>
             </>
           ) : (
             <>
               <h2>Client &amp; Portal Login</h2><p className="auth-subtitle">View active project progress and invoices.</p>
-              <form className="auth-form" onSubmit={(event) => { event.preventDefault(); setNotice('Sign-in is a demo. Use Preview dashboard to view the client portal.') }}>
-                <label>Work Email<span className="input-icon-field"><Mail size={14} /><input name="email" type="email" autoComplete="email" defaultValue="maya@vertex.co" required /></span></label>
-                <label>Password<span className="password-field"><input name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" defaultValue="NovaStudio26!" required /><button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? <EyeOff size={15} /> : <Eye size={15} />}</button></span></label>
-                <div className="login-options"><label className="remember-check"><input type="checkbox" defaultChecked /> Remember Me</label><button type="button" onClick={() => setNotice('Password reset is available once your portal account is connected.')}>Forgot Password?</button></div>
-                <button className="button button-cyan full-width" type="submit">Sign In <ArrowRight size={14} /></button>
+              <form className="auth-form" onSubmit={handleSubmit}>
+                <label>Work Email<span className="input-icon-field"><Mail size={14} /><input name="email" type="email" autoComplete="email" placeholder="you@company.com" required /></span></label>
+                <label>Password<span className="password-field"><input name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" required /><button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? <EyeOff size={15} /> : <Eye size={15} />}</button></span></label>
+                <div className="login-options"><a href="/forgot-password">Forgot Password?</a></div>
+                <button className="button button-cyan full-width" type="submit" disabled={busy}>{busy ? 'Signing in…' : 'Sign In'} <ArrowRight size={14} /></button>
               </form>
             </>
           )}
           {notice && <p className="auth-notice" role="status">{notice}</p>}
-          <div className="auth-divider"><span>or continue with</span></div>
-          <div className="social-login"><button type="button" onClick={() => setNotice('Google sign-in is not connected yet.')}><b>G</b> Google</button><button type="button" onClick={() => setNotice('Dribbble sign-in is not connected yet.')}><b className="dribbble-mark">●</b> Dribbble</button></div>
-          <p className="auth-switch">{signup ? 'Already have an account?' : 'New client?'} <a href={signup ? '/login' : '/signup'}>{signup ? 'Sign in' : 'Register here'}</a></p>
-          {!signup && <a className="preview-dashboard-link" href="/dashboard"><LayoutDashboard size={14} /> Preview the client dashboard</a>}
+          <p className="auth-switch">{signup ? 'Already have an account?' : 'New client?'} <a href={`${signup ? '/login' : '/signup'}?redirect=${encodeURIComponent(returnTo)}`}>{signup ? 'Sign in' : 'Register here'}</a></p>
+          <p className="auth-switch">Studio admin? <a href="/admin/login">Admin sign in</a></p>
         </section>
       </main>
       <footer className="portal-footer"><ShieldCheck size={13} /> Secure client workspace · <a href="/">Nova Studio</a></footer>
@@ -471,44 +682,126 @@ function MetricCard({ label, value, change, icon: Icon, color }) {
 
 function DashboardPage() {
   const [active, setActive] = useState('Overview')
-  const [notice, setNotice] = useState('')
-  const nav = [
-    { name: 'Overview', icon: LayoutDashboard },
-    { name: 'Analytics', icon: Zap },
-    { name: 'Projects', icon: FolderKanban },
-    { name: 'Team Center', icon: Users },
-    { name: 'Reports', icon: Search },
-    { name: 'Integrations', icon: Globe2 },
-    { name: 'Settings', icon: Settings },
+  const [dashboard, setDashboard] = useState(null)
+  const [error, setError] = useState('')
+  const [sending, setSending] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+
+  useEffect(() => {
+    const current = getAgencySession()
+    if (!current || current.user?.role !== 'client') {
+      window.location.replace('/login')
+      return
+    }
+    agencyApi.clientDashboard()
+      .then(setDashboard)
+      .catch((requestError) => setError(requestError.message || 'Unable to load your client dashboard.'))
+  }, [])
+
+  async function sendMessage(event) {
+    event.preventDefault()
+    const form = event.currentTarget
+    const message = new FormData(form).get('message')
+    setSending(true)
+    setError('')
+    try {
+      await agencyApi.sendClientMessage(message)
+      form.reset()
+      setDashboard(await agencyApi.clientDashboard())
+    } catch (requestError) {
+      setError(requestError.message || 'Your message could not be sent.')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const nav = ['Overview', 'Projects', 'Invoices', 'Inquiries', 'Messages']
+  const projects = dashboard?.projects || []
+  const invoices = dashboard?.invoices || []
+  const messages = dashboard?.messages || []
+  const inquiries = dashboard?.inquiries || []
+  const notifications = [
+    ...messages.filter((message) => message.sender === 'admin').slice(0, 4).map((message) => ({
+      id: `message-${message.id}`, section: 'Messages', title: 'New studio message', detail: message.body,
+    })),
+    ...invoices.filter((invoice) => invoice.status !== 'Paid').slice(0, 4).map((invoice) => ({
+      id: `invoice-${invoice.id}`, section: 'Invoices', title: 'Invoice needs attention', detail: `${invoice.id} · ${invoice.status}`,
+    })),
+    ...projects.filter((project) => project.status !== 'Completed').slice(0, 4).map((project) => ({
+      id: `project-${project.id}`, section: 'Projects', title: 'Project update', detail: `${project.name} · ${project.status}`,
+    })),
   ]
+
   return (
     <div className="dashboard-shell">
       <aside className="dashboard-sidebar">
         <Brand compact />
-        <div className="workspace-picker"><span className="workspace-avatar">N</span><span><strong>NEXORA</strong><small>Client workspace</small></span><ChevronDown size={14} /></div>
-        <nav aria-label="Dashboard navigation">{nav.map(({ name, icon: Icon }) => <button className={active === name ? 'active' : ''} type="button" key={name} onClick={() => { setActive(name); setNotice(name === 'Overview' ? '' : `${name} view selected in this dashboard preview.`) }}><Icon size={16} />{name}{name === 'Projects' && <span className="nav-count">8</span>}</button>)}</nav>
-        <div className="sidebar-bottom"><a href="/quote"><CircleHelp size={15} /> Help center</a><a href="/login"><LockKeyhole size={15} /> Sign out</a><div className="user-profile"><span className="user-avatar">IN</span><span><strong>Isaac Newton</strong><small>Administrator</small></span><MoreHorizontal size={16} /></div></div>
+        <div className="workspace-picker"><span className="workspace-avatar">{dashboard?.user?.company?.[0] || 'N'}</span><span><strong>{dashboard?.user?.company || 'Client workspace'}</strong><small>Client workspace</small></span><ChevronDown size={14} /></div>
+        <nav aria-label="Dashboard navigation">{nav.map((name) => <button className={active === name ? 'active' : ''} type="button" key={name} onClick={() => setActive(name)}><FolderKanban size={16} />{name}{name === 'Projects' && <span className="nav-count">{projects.length}</span>}</button>)}</nav>
+        <div className="sidebar-bottom"><a href="/messages"><MessageSquare size={15} /> Message the studio</a><button className="client-signout" type="button" onClick={() => { clearAgencySession(); window.location.assign('/login') }}><LockKeyhole size={15} /> Sign out</button><div className="user-profile"><span className="user-avatar">{dashboard?.user?.name?.slice(0, 2).toUpperCase() || 'CL'}</span><span><strong>{dashboard?.user?.name || 'Client'}</strong><small>{dashboard?.user?.email || 'Client account'}</small></span><MoreHorizontal size={16} /></div></div>
       </aside>
       <main className="dashboard-main">
-        <header className="dashboard-topbar"><div className="mobile-dash-brand"><Brand compact /></div><div className="dashboard-breadcrumb">Workspace <ArrowRight size={12} /> {active}</div><div className="dashboard-top-actions"><label className="dashboard-search"><Search size={14} /><input aria-label="Search dashboard" placeholder="Search anything..." /></label><button className="icon-action" type="button" aria-label="Notifications" onClick={() => setNotice('You’re all caught up on notifications.')}><Bell size={16} /><i /></button><a className="button button-cyan" href="/quote"><Plus size={14} /> New Project</a></div></header>
+        <header className="dashboard-topbar"><div className="mobile-dash-brand"><Brand compact /></div><div className="dashboard-breadcrumb">Workspace <ArrowRight size={12} /> {active}</div><div className="dashboard-top-actions"><div className="dashboard-notification-wrap"><button className="icon-action" type="button" aria-label={`Notifications${notifications.length ? `, ${notifications.length} updates` : ''}`} aria-expanded={notificationsOpen} onClick={() => setNotificationsOpen((open) => !open)}><Bell size={16} />{notifications.length > 0 && <i>{notifications.length > 9 ? '9+' : notifications.length}</i>}</button>{notificationsOpen && <section className="dashboard-notification-popover" aria-label="Notifications"><div className="dashboard-notification-heading"><strong>Updates</strong><span>{notifications.length}</span></div>{notifications.length ? notifications.map((notification) => <button type="button" key={notification.id} onClick={() => { setActive(notification.section); setNotificationsOpen(false) }}><strong>{notification.title}</strong><span>{notification.detail}</span></button>) : <p>You’re all caught up. New project, invoice, and chat updates will appear here.</p>}</section>}</div><a className="button button-cyan" href="/quote"><Plus size={14} /> New Project</a></div></header>
         <div className="dashboard-content">
-          <div className="dashboard-greeting"><div><span className="section-kicker">MONDAY, MAY 26, 2026</span><h1>Welcome back, Isaac</h1><p>Here’s what’s happening with your projects today.</p></div><button className="date-picker" type="button" onClick={() => setNotice('Showing the last 30 days.')}>Last 30 days <ChevronDown size={13} /></button></div>
-          {notice && <p className="dashboard-notice" role="status">{notice}</p>}
-          <section className="metrics-grid" aria-label="Workspace metrics"><MetricCard label="Total Revenue" value="$ 98,642" change="12.4%" icon={Globe2} color="cyan" /><MetricCard label="Active Users" value="24,875" change="8.2%" icon={Users} color="purple" /><MetricCard label="New Projects" value="1,432" change="15.3%" icon={FolderKanban} color="blue" /><MetricCard label="Server Status" value="99.9%" change="Healthy" icon={ShieldCheck} color="green" /></section>
-          <section className="analytics-grid">
-            <article className="dashboard-panel revenue-panel"><div className="panel-title"><h2>Revenue Overview</h2><button className="date-picker" type="button" onClick={() => setNotice('Revenue chart range: This Month.')}>This Month <ChevronDown size={12} /></button></div><div className="revenue-chart"><div className="chart-y-labels"><span>$30K</span><span>$20K</span><span>$10K</span><span>$0</span></div><svg viewBox="0 0 600 200" preserveAspectRatio="none" role="img" aria-label="Revenue trending upward through May"><defs><linearGradient id="revenue-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#0cafff" stopOpacity=".35" /><stop offset="1" stopColor="#0cafff" stopOpacity="0" /></linearGradient></defs><path className="chart-area" d="M0 173 C30 162 44 156 64 159 S90 142 112 127 S139 143 164 119 S191 135 214 102 S238 107 263 116 S286 84 310 94 S333 120 358 98 S380 59 401 75 S424 95 447 62 S474 52 492 72 S520 30 541 42 S568 70 600 27 V200 H0Z" /><path className="chart-line" d="M0 173 C30 162 44 156 64 159 S90 142 112 127 S139 143 164 119 S191 135 214 102 S238 107 263 116 S286 84 310 94 S333 120 358 98 S380 59 401 75 S424 95 447 62 S474 52 492 72 S520 30 541 42 S568 70 600 27" /></svg><div className="chart-x-labels"><span>May 1</span><span>May 8</span><span>May 15</span><span>May 22</span><span>May 29</span></div></div></article>
-            <article className="dashboard-panel distribution-panel"><div className="panel-title"><h2>Project Distribution</h2><button className="icon-action" type="button" aria-label="Project distribution options"><MoreHorizontal size={16} /></button></div><div className="distribution-content"><div className="donut-chart"><div><strong>1,432</strong><small>Total</small></div></div><ul><li><i className="cyan" />Web Application <span>532 (37%)</span></li><li><i className="blue" />Mobile App <span>428 (30%)</span></li><li><i className="purple" />AI &amp; ML <span>289 (20%)</span></li><li><i className="pink" />Dashboard <span>183 (13%)</span></li></ul></div></article>
-          </section>
-          <section className="dashboard-lower-grid">
-            <article className="dashboard-panel activity-panel"><div className="panel-title"><h2>Recent Activity</h2><a href="/case-studies">View all <ArrowRight size={12} /></a></div>{[['AI Model Training', 'Started training “Product Recommendation AI”', '2m ago'], ['New User Registered', 'User “alex@email.com” joined the platform', '5m ago'], ['Project Updated', '“E-Commerce Dashboard” was updated', '1h ago'], ['Server Backup', 'Daily backup completed successfully', '3h ago']].map(([title, detail, time], i) => <div className="activity-row" key={title}><span className={`activity-icon activity-${i}`}><FolderKanban size={14} /></span><span><strong>{title}</strong><small>{detail}</small></span><time>{time}</time></div>)}</article>
-            <article className="dashboard-panel performers-panel"><div className="panel-title"><h2>Top Performing Projects</h2><a href="/case-studies">View all <ArrowRight size={12} /></a></div>{dashboardRows.map((row, i) => <div className="performer-row" key={row.name}><span><strong>{row.name}</strong><small>{row.category}</small><i className={`performer-bar bar-${i}`} /></span><b>{row.amount}</b></div>)}</article>
-            <article className="dashboard-panel performance-panel"><div className="panel-title"><h2>System Performance</h2><button className="icon-action" type="button" aria-label="System performance options"><MoreHorizontal size={16} /></button></div><div className="system-gauges"><div><span className="gauge gauge-cyan">45%</span><small>CPU Usage</small></div><div><span className="gauge gauge-purple">72%</span><small>Memory Usage</small></div><div><span className="gauge gauge-blue">68%</span><small>Disk Usage</small></div></div><svg className="system-chart" viewBox="0 0 330 55" preserveAspectRatio="none" aria-label="System performance history"><path d="M0 38 C24 22 38 55 60 32 S90 12 112 35 S139 48 164 22 S192 10 215 36 S247 49 270 24 S301 19 330 8" /></svg></article>
-          </section>
-          <a className="dashboard-feature" href="/case-studies/lumen-finance"><span><strong>Lumen Finance Dashboard</strong><small>Fintech · 2026</small></span><ArrowRight size={15} /></a>
+          <div className="dashboard-greeting"><div><span className="section-kicker">CLIENT WORKSPACE</span><h1>Welcome back, {dashboard?.user?.name || '…'}</h1><p>Your live project updates, invoices, and messages.</p></div></div>
+          {error && <p className="dashboard-notice" role="alert">{error}</p>}
+          {!dashboard && !error && <p className="dashboard-notice" role="status">Loading your workspace…</p>}
+          {dashboard && active === 'Overview' && <section className="metrics-grid" aria-label="Workspace metrics">
+            <MetricCard label="Projects" value={String(projects.length)} change={`${projects.filter((item) => item.status !== 'Completed').length} active`} icon={FolderKanban} color="cyan" />
+            <MetricCard label="Invoices" value={String(invoices.length)} change={`${invoices.filter((item) => item.status !== 'Paid').length} outstanding`} icon={CreditCard} color="purple" />
+            <MetricCard label="Messages" value={String(messages.length)} change="Live conversation" icon={MessageSquare} color="blue" />
+            <MetricCard label="Inquiries" value={String(inquiries.length)} change={`${inquiries.filter((inquiry) => inquiry.status === 'Accepted').length} accepted`} icon={MessageSquare} color="purple" />
+            <MetricCard label="Account" value="Active" change={dashboard.user.company || 'Client'} icon={ShieldCheck} color="green" />
+          </section>}
+          {dashboard && (active === 'Overview' || active === 'Projects') && <section className="dashboard-panel client-record-panel"><div className="panel-title"><h2>Projects</h2><span>{projects.length} total</span></div>{projects.map((project) => <article className="client-record" key={project.id}><div><strong>{project.name}</strong><small>{project.service} · due {project.due}</small></div><span>{project.status} · {project.progress}%</span></article>)}{projects.length === 0 && <p className="dashboard-notice">Your studio has not added any projects yet.</p>}</section>}
+          {dashboard && (active === 'Overview' || active === 'Invoices') && <section className="dashboard-panel client-record-panel"><div className="panel-title"><h2>Invoices</h2><span>{invoices.length} total</span></div>{invoices.map((invoice) => <article className="client-record" key={invoice.id}><div><strong>{invoice.id}</strong><small>{invoice.date}</small></div><span>{new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(invoice.amount)} · {invoice.status}</span></article>)}{invoices.length === 0 && <p className="dashboard-notice">There are no invoices yet.</p>}</section>}
+          {dashboard && (active === 'Overview' || active === 'Inquiries') && <section className="dashboard-panel client-record-panel"><div className="panel-title"><h2>Project inquiries</h2><span>{inquiries.length} total</span></div>{inquiries.map((inquiry) => <article className="client-record client-inquiry-card" key={inquiry.id}><div className="client-inquiry-details"><strong>{inquiry.company || 'Project inquiry'}</strong><small>{new Date(inquiry.createdAt).toLocaleDateString()} · {inquiry.budget}</small><p>{inquiry.project}</p>{inquiry.response && <div className="client-inquiry-response"><strong>Studio response</strong><p>{inquiry.response}</p></div>}</div><span className={`client-status-badge status-${inquiry.status.toLowerCase()}`}>{inquiry.status}</span></article>)}{inquiries.length === 0 && <p className="dashboard-empty-state">Your project inquiries and studio decisions will appear here.</p>}</section>}
+          {dashboard && active === 'Messages' && <section className="dashboard-panel client-record-panel"><div className="panel-title"><h2>Messages</h2><a href="/messages">Open full message page <ArrowRight size={14} /></a></div>{messages.map((message) => <article className="client-record" key={message.id}><div><strong>{message.sender === 'client' ? 'You' : 'NOVA Studio'}</strong><small>{new Date(message.createdAt).toLocaleString()}</small></div><span>{message.body}</span></article>)}{messages.length === 0 && <p className="dashboard-notice">Send a message to start a conversation with the studio.</p>}<form className="client-message-form" onSubmit={sendMessage}><textarea name="message" aria-label="Message" placeholder="Write a message…" maxLength={2000} required /><button className="button button-cyan" disabled={sending}>{sending ? 'Sending…' : 'Send message'}</button></form></section>}
         </div>
       </main>
     </div>
   )
+}
+
+function ClientRecoveryPage() {
+  const [notice, setNotice] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const token = new URLSearchParams(window.location.search).get('token')
+
+  async function submit(event) {
+    event.preventDefault()
+    const values = Object.fromEntries(new FormData(event.currentTarget))
+    setBusy(true)
+    setError('')
+    setNotice('')
+    try {
+      const result = token
+        ? await agencyApi.resetPassword(token, values.password)
+        : await agencyApi.forgotPassword(values.email)
+      setNotice(result.resetToken
+        ? `Password reset token (development only): ${result.resetToken}`
+        : result.message)
+    } catch (requestError) {
+      setError(requestError.message || 'Unable to complete password recovery.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return <main className="agency-admin-auth">
+    <form className="agency-admin-auth-card" onSubmit={submit}>
+      <a className="agency-admin-back" href="/login">← Back to client sign in</a>
+      <span className="agency-admin-kicker">CLIENT ACCOUNT</span>
+      <h1>{token ? 'Choose a new password' : 'Reset your password'}</h1>
+      <p>{token ? 'Enter a new password for your account.' : 'We will provide reset instructions if the account exists.'}</p>
+      {!token && <label>Email<input name="email" type="email" autoComplete="email" required /></label>}
+      {token && <label>New password<input name="password" type="password" minLength={8} autoComplete="new-password" required /></label>}
+      <button className="agency-admin-primary-button" disabled={busy}>{busy ? 'Please wait…' : token ? 'Update password' : 'Send reset link'}</button>
+      {error && <p className="agency-admin-error" role="alert">{error}</p>}
+      {notice && <p className="agency-admin-notice" role="status">{notice}</p>}
+    </form>
+  </main>
 }
 
 function NotFound() {
@@ -517,6 +810,7 @@ function NotFound() {
 
 export default function App() {
   const path = window.location.pathname
+  const isAdminRoute = path === '/admin' || path.startsWith('/admin/')
   const isSignup = path === '/signup'
   const isLogin = path === '/login'
   const isDashboard = path === '/dashboard'
@@ -532,9 +826,12 @@ export default function App() {
           ? 'Create Your Account | NOVA Studio'
           : isLogin
             ? 'Client Portal Login | NOVA Studio'
-            : pageTitles[path] || (projectSlug ? 'Case Study | NOVA Studio' : 'NOVA Studio | Creative Agency')
-  }, [isDashboard, isHome, isLogin, isSignup, path, projectSlug])
+            : isAdminRoute
+              ? 'Admin Workspace | NOVA Studio'
+              : pageTitles[path] || (projectSlug ? 'Case Study | NOVA Studio' : 'NOVA Studio | Creative Agency')
+  }, [isAdminRoute, isDashboard, isHome, isLogin, isSignup, path, projectSlug])
 
+  if (isAdminRoute) return <AdminPortal />
   if (isHome) return <HomePage />
   if (path === '/work') return <WorkPage />
   if (path === '/services') return <ServicesPage />
@@ -542,6 +839,9 @@ export default function App() {
   if (projectSlug) return <CaseStudyPage slug={projectSlug} />
   if (path === '/about') return <AboutPage />
   if (path === '/quote') return <QuotePage />
+  if (path === '/contact') return <ContactPage />
+  if (path === '/messages') return <ContactPage />
+  if (path === '/forgot-password') return <ClientRecoveryPage />
   if (isLogin) return <AuthPage />
   if (isSignup) return <AuthPage signup />
   if (isDashboard) return <DashboardPage />

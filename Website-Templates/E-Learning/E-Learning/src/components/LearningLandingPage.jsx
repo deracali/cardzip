@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowRight,
   Bookmark,
@@ -149,7 +149,7 @@ export function CourseCard({ course, isFavorite, onToggleFavorite }) {
         <p className="course-instructor">{course.instructor}</p>
         <p className="course-rating"><Star size={13} fill="currentColor" /> {course.rating} <span>({course.students} students)</span></p>
         <div className="course-card-bottom">
-          <p className="course-price"><strong>${course.price}</strong> <del>${course.oldPrice}</del></p>
+          <p className="course-price"><strong>₦{Number(course.price).toLocaleString('en-NG')}</strong> <del>₦{Number(course.oldPrice).toLocaleString('en-NG')}</del></p>
           <a className="button button-primary enroll-button" href={`/checkout?course=${course.id}`}>Enroll Now</a>
         </div>
       </div>
@@ -157,15 +157,31 @@ export function CourseCard({ course, isFavorite, onToggleFavorite }) {
   )
 }
 
-function LearningLandingPage() {
+function LearningLandingPage({ mode = 'local', apiBaseUrl = '' }) {
   const [activeFilter, setActiveFilter] = useState('All')
   const [searchText, setSearchText] = useState('')
   const [searchCategory, setSearchCategory] = useState('All')
   const [favorites, setFavorites] = useState([])
+  const [courseList, setCourseList] = useState(courses)
+
+  useEffect(() => {
+    let active = true
+    if (mode !== 'api') return () => { active = false }
+    fetch(`${apiBaseUrl}/courses`)
+      .then(async (response) => {
+        const result = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(result.error || 'Unable to load courses.')
+        if (active) setCourseList(result.courses.map((course) => ({ ...courses.find((item) => item.id === course.id), ...course })))
+      })
+      .catch(() => {})
+    return () => { active = false }
+  }, [apiBaseUrl, mode])
+
+  const activeCourseCategories = useMemo(() => [...new Set(courseList.map((course) => course.category))], [courseList])
 
   const visibleCourses = useMemo(() => {
     const query = searchText.trim().toLowerCase()
-    return courses.filter((course) => {
+    return courseList.filter((course) => {
       const filterMatches = activeFilter === 'All'
         || course.category.toLowerCase().includes(activeFilter.toLowerCase())
         || (activeFilter === 'Code' && course.id === 'web-development')
@@ -173,7 +189,7 @@ function LearningLandingPage() {
       const categoryMatches = searchCategory === 'All' || course.category === searchCategory
       return filterMatches && queryMatches && categoryMatches
     })
-  }, [activeFilter, searchCategory, searchText])
+  }, [activeFilter, courseList, searchCategory, searchText])
 
   function handleSearch(event) {
     event.preventDefault()
@@ -210,7 +226,7 @@ function LearningLandingPage() {
               <label className="search-category-wrap" htmlFor="course-category-select">
                 <select id="course-category-select" value={searchCategory} onChange={(event) => setSearchCategory(event.target.value)}>
                   <option value="All">Category</option>
-                  {courseCategories.map((category) => <option value={category} key={category}>{category}</option>)}
+                  {activeCourseCategories.map((category) => <option value={category} key={category}>{category}</option>)}
                 </select>
               </label>
               <button className="button button-primary search-submit" type="submit">Search</button>

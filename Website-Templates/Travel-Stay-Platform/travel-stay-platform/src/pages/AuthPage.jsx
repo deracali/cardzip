@@ -2,13 +2,29 @@ import { useState } from 'react'
 import { ArrowLeft, ShieldCheck } from 'lucide-react'
 import Logo from '../components/Logo'
 import { imageUrl } from '../data/stays'
+import { escapesApi, saveSession } from '../services/escapesApi'
 
 export default function AuthPage({ signup = false }) {
-  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault()
-    setMessage(signup ? 'Your account form is ready to connect to a registration service.' : 'Your sign-in form is ready to connect to an account service.')
+    setError('')
+    setSubmitting(true)
+    const form = Object.fromEntries(new FormData(event.currentTarget).entries())
+    try {
+      const session = signup
+        ? await escapesApi.signup(form)
+        : await escapesApi.login({ email: form.email, password: form.password, expectedRole: 'client' })
+      saveSession(session)
+      const next = new URLSearchParams(window.location.search).get('next')
+      window.location.assign(next?.startsWith('/') && !next.startsWith('//') ? next : '/client/dashboard')
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Your account request could not be completed.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -27,8 +43,8 @@ export default function AuthPage({ signup = false }) {
           <label>Email address<input name="email" type="email" autoComplete="email" placeholder="you@example.com" required /></label>
           <label>Password<input name="password" type="password" autoComplete={signup ? 'new-password' : 'current-password'} minLength={signup ? 8 : undefined} placeholder="Enter your password" required /></label>
           {!signup && <a className="forgot-link" href="/support">Forgot password?</a>}
-          <button className="button button-primary full-button" type="submit">{signup ? 'Create account' : 'Sign in'}</button>
-          {message && <p className="checkout-notice" role="status">{message}</p>}
+          {error && <p className="form-error" role="alert">{error}</p>}
+          <button className="button button-primary full-button" type="submit" disabled={submitting}>{submitting ? 'Please wait…' : signup ? 'Create account' : 'Sign in'}</button>
           <p className="auth-switch">{signup ? 'Already have an account?' : 'New to Escapes?'} <a href={signup ? '/signin' : '/signup'}>{signup ? 'Sign in' : 'Create account'}</a></p>
           <div className="auth-safe"><ShieldCheck size={15} /> Your information stays private and secure.</div>
         </form>

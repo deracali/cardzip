@@ -36,6 +36,22 @@ const verticalScale = (size: number) => (height / guidelineBaseHeight) * size;
 const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
 const configuredPaymentCallbackUrl = process.env.EXPO_PUBLIC_PAYSTACK_CALLBACK_URL?.trim();
 
+type DeliveryDetails = {
+  name: string;
+  phone: string;
+  address: string;
+  state: string;
+  loaded: boolean;
+};
+
+const EMPTY_DELIVERY_DETAILS: DeliveryDetails = {
+  name: '',
+  phone: '',
+  address: '',
+  state: '',
+  loaded: false,
+};
+
 export default function SecureCheckoutScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -43,11 +59,7 @@ export default function SecureCheckoutScreen() {
   const { user } = useAppSelector((state) => state.auth);
   const { balance } = useAppSelector((state) => state.wallet);
   const cartItems = useAppSelector((state) => state.cart.items);
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
-  const [state, setState] = useState('');
-  const [deliveryDetailsLoaded, setDeliveryDetailsLoaded] = useState(false);
+  const [deliveryForms, setDeliveryForms] = useState<Record<string, DeliveryDetails>>({});
   const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'card'>('wallet');
   const [successOrder, setSuccessOrder] = useState<StoreOrder | null>(null);
   const [pendingPaymentReference, setPendingPaymentReference] = useState<string | null>(null);
@@ -61,34 +73,55 @@ export default function SecureCheckoutScreen() {
   const total = subtotal + shippingFee;
   const walletBalance = Number(balance ?? 0);
   const deliveryStorageKey = user?.id ? `cardzip.market.delivery.${user.id}` : null;
+  const deliveryFormKey = deliveryStorageKey ?? 'guest';
+  const currentDeliveryDetails = deliveryForms[deliveryFormKey] ?? {
+    ...EMPTY_DELIVERY_DETAILS,
+    loaded: !deliveryStorageKey,
+  };
+  const { name, phone, address, state } = currentDeliveryDetails;
+  const deliveryDetailsLoaded = currentDeliveryDetails.loaded;
+
+  const updateDeliveryField = (field: keyof Omit<DeliveryDetails, 'loaded'>, value: string) => {
+    setDeliveryForms((current) => ({
+      ...current,
+      [deliveryFormKey]: {
+        ...(current[deliveryFormKey] ?? { ...EMPTY_DELIVERY_DETAILS, loaded: !deliveryStorageKey }),
+        [field]: value,
+      },
+    }));
+  };
+  const setName = (value: string) => updateDeliveryField('name', value);
+  const setPhone = (value: string) => updateDeliveryField('phone', value);
+  const setAddress = (value: string) => updateDeliveryField('address', value);
+  const setState = (value: string) => updateDeliveryField('state', value);
 
   useEffect(() => {
+    if (!deliveryStorageKey) return undefined;
     let cancelled = false;
-    setDeliveryDetailsLoaded(false);
-    setName('');
-    setPhone('');
-    setAddress('');
-    setState('');
-
-    if (!deliveryStorageKey) {
-      setDeliveryDetailsLoaded(true);
-      return () => { cancelled = true; };
-    }
-
     AsyncStorage.getItem(deliveryStorageKey)
       .then((savedDetails) => {
-        if (!savedDetails || cancelled) return;
-        const details = JSON.parse(savedDetails) as { name?: string; phone?: string; address?: string; state?: string };
-        setName(details.name ?? '');
-        setPhone(details.phone ?? '');
-        setAddress(details.address ?? '');
-        setState(details.state ?? '');
+        if (cancelled) return;
+        const details = savedDetails
+          ? JSON.parse(savedDetails) as { name?: string; phone?: string; address?: string; state?: string }
+          : {};
+        setDeliveryForms((current) => ({
+          ...current,
+          [deliveryStorageKey]: {
+            name: details.name ?? '',
+            phone: details.phone ?? '',
+            address: details.address ?? '',
+            state: details.state ?? '',
+            loaded: true,
+          },
+        }));
       })
-      .catch(() => undefined)
-      .finally(() => {
-        if (!cancelled) setDeliveryDetailsLoaded(true);
+      .catch(() => {
+        if (cancelled) return;
+        setDeliveryForms((current) => ({
+          ...current,
+          [deliveryStorageKey]: { ...EMPTY_DELIVERY_DETAILS, loaded: true },
+        }));
       });
-
     return () => { cancelled = true; };
   }, [deliveryStorageKey]);
 

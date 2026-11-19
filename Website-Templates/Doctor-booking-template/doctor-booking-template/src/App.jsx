@@ -23,9 +23,11 @@ import DoctorDetailsPage from './pages/DoctorDetailsPage'
 import CarewellAboutPage from './pages/CarewellAboutPage'
 import CarewellSpecialtiesPage from './pages/CarewellSpecialtiesPage'
 import { doctors } from './data/doctors'
+import CarewellAdmin from './admin/CarewellAdmin'
+import CarewellPortal from './admin/CarewellPortal'
 import './App.css'
 
-function AuthPage() {
+function AuthPage({ mode = 'local', apiBaseUrl = '' }) {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [password, setPassword] = useState('')
@@ -40,10 +42,35 @@ function AuthPage() {
     /[^A-Za-z0-9]/.test(password),
   ].filter(Boolean).length
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
     if (isSignUp && password !== confirmPassword) {
       setNotice('Your passwords do not match. Please check and try again.')
+      return
+    }
+    if (mode === 'api') {
+      const formData = new FormData(event.currentTarget)
+      const accountType = formData.get('accountType') === 'provider' ? 'provider' : 'patient'
+      try {
+        const response = await fetch(`${apiBaseUrl}/auth/${isSignUp ? 'register' : 'login'}`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            ...(isSignUp ? { name: formData.get('name'), phone: formData.get('phone'), accountType } : {}),
+            email: formData.get('email'),
+            password,
+          }),
+        })
+        const result = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(result.error || 'Unable to access your Carewell account.')
+        const role = result.user.role
+        const requestedPath = new URLSearchParams(window.location.search).get('next')
+        const safeNextPath = requestedPath?.startsWith('/') && !requestedPath.startsWith('//') ? requestedPath : null
+        window.location.replace(safeNextPath || (role === 'admin' ? '/admin' : role === 'provider' ? '/provider/dashboard' : '/dashboard'))
+      } catch (error) {
+        setNotice(error.message)
+      }
       return
     }
     setNotice(isSignUp
@@ -258,7 +285,7 @@ function AuthPage() {
   )
 }
 
-function App() {
+function App({ mode = 'local', apiBaseUrl = '' }) {
   const { pathname } = window.location
   const doctorProfile = pathname.match(/^\/doctors\/([^/]+)$/)
   const selectedDoctor = doctors.find((doctor) => doctor.slug === doctorProfile?.[1])
@@ -283,13 +310,16 @@ function App() {
     }
   }, [doctorProfile, pathname, selectedDoctor])
 
+  if (pathname === '/admin' || pathname === '/admin/login') return <CarewellAdmin mode={mode} apiBaseUrl={apiBaseUrl} />
+  if (pathname === '/dashboard' && mode === 'api') return <CarewellPortal role="patient" apiBaseUrl={apiBaseUrl} />
+  if (pathname === '/provider/dashboard' && mode === 'api') return <CarewellPortal role="provider" apiBaseUrl={apiBaseUrl} />
   if (pathname === '/') return <HomePage />
   if (pathname === '/book-now') return <BookNowPage />
   if (pathname === '/about') return <CarewellAboutPage />
   if (pathname === '/specialties') return <CarewellSpecialtiesPage />
-  if (pathname === '/doctors') return <DoctorsPage />
-  if (doctorProfile) return <DoctorDetailsPage slug={doctorProfile[1]} />
-  if (pathname === '/login' || pathname === '/signup') return <AuthPage />
+  if (pathname === '/doctors') return <DoctorsPage mode={mode} apiBaseUrl={apiBaseUrl} />
+  if (doctorProfile) return <DoctorDetailsPage slug={doctorProfile[1]} mode={mode} apiBaseUrl={apiBaseUrl} />
+  if (pathname === '/login' || pathname === '/signup') return <AuthPage mode={mode} apiBaseUrl={apiBaseUrl} />
 
   return <HomePage />
 }

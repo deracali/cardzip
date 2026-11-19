@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import CreatorProfilePage from "../../src/pages/CreatorProfilePage";
+import CreatorPublicPage from "../../src/pages/CreatorPublicPage";
 
 export const metadata: Metadata = {
   title: "Maya Chen — CreatorHub",
 };
 
 export default function Page() {
-  return <CreatorProfilePage />;
+  return <CreatorPublicPage handle="maya-chen" />;
 }

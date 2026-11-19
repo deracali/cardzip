@@ -198,30 +198,112 @@ function DemoPage() {
   return <><main className="page-main demo-page"><SectionHeading eyebrow="PRODUCT TOUR" title="See Nexara in action." copy="A quick look at how an AI agent can turn a repetitive task into a workflow that runs itself." /><div className="demo-window"><div className="demo-window-bar"><i /><i /><i /><span>nexara.ai / product-tour</span></div><div className="demo-screen"><span className="demo-play"><Play size={25} fill="currentColor" /></span><span className="eyebrow">THE NEXARA WORKSPACE</span><h2>From busywork to done.</h2><p>See how teams connect their tools, build agents, and get hours back every week.</p><a className="button" href="/signup">Try it for yourself <ArrowRight size={15} /></a></div></div><div className="demo-points"><span><Check /> Connect your favorite apps</span><span><Check /> Build without code</span><span><Check /> Stay in control</span></div><div className="page-cta"><h2>Ready to build your first workflow?</h2><a className="button" href="/signup">Start free trial <ArrowRight size={15} /></a></div></main><Footer /></>
 }
 
+const LOCAL_USERS_KEY = 'nexara-local-users'
+const LOCAL_INQUIRIES_KEY = 'nexara-local-inquiries'
+
+function readLocalRecords(key) {
+  const value = localStorage.getItem(key)
+  if (!value) return []
+  const records = JSON.parse(value)
+  if (!Array.isArray(records)) throw new Error('Saved browser data is invalid. Clear this site’s local storage and try again.')
+  return records
+}
+
+function toBase64(bytes) {
+  return btoa(String.fromCharCode(...new Uint8Array(bytes)))
+}
+
+async function hashLocalPassword(password, salt) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits'])
+  const result = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: new TextEncoder().encode(salt), iterations: 120000, hash: 'SHA-256' }, key, 256)
+  return toBase64(result)
+}
+
 function FormPage({ mode }) {
   const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState('')
   const isContact = mode === 'contact'
   const isLogin = mode === 'login'
   const title = isContact ? 'Let’s talk about your team.' : isLogin ? 'Welcome back.' : 'Your next workflow starts here.'
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault()
-    setSubmitted(true)
+    setError('')
+    const values = new FormData(event.currentTarget)
+    const name = String(values.get('name') || '').trim()
+    const email = String(values.get('email') || '').trim().toLowerCase()
+    try {
+      if (isContact) {
+        const inquiries = readLocalRecords(LOCAL_INQUIRIES_KEY)
+        inquiries.unshift({
+          id: crypto.randomUUID(),
+          type: 'contact',
+          name,
+          email,
+          company: String(values.get('company') || '').trim(),
+          message: String(values.get('message') || '').trim(),
+          createdAt: new Date().toISOString(),
+        })
+        localStorage.setItem(LOCAL_INQUIRIES_KEY, JSON.stringify(inquiries))
+      } else {
+        const users = readLocalRecords(LOCAL_USERS_KEY)
+        const password = String(values.get('password') || '')
+        if (isLogin) {
+          const user = users.find((entry) => entry.email === email)
+          const passwordHash = user ? await hashLocalPassword(password, user.passwordSalt) : ''
+          if (!user || user.passwordHash !== passwordHash) throw new Error('Email or password is incorrect.')
+          localStorage.setItem('nexara-local-session', JSON.stringify({ id: user.id, name: user.name, email: user.email }))
+        } else {
+          if (users.some((entry) => entry.email === email)) throw new Error('An account with this email already exists in this browser.')
+          const passwordSalt = toBase64(crypto.getRandomValues(new Uint8Array(16)))
+          users.unshift({ id: crypto.randomUUID(), name, email, passwordSalt, passwordHash: await hashLocalPassword(password, passwordSalt), createdAt: new Date().toISOString() })
+          localStorage.setItem(LOCAL_USERS_KEY, JSON.stringify(users))
+          localStorage.setItem('nexara-local-session', JSON.stringify({ id: users[0].id, name, email }))
+        }
+      }
+      setSubmitted(true)
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : 'Could not save your information in this browser.')
+    }
   }
-  return <><main className="form-page"><div className="form-card"><Logo /><span className="eyebrow">{isContact ? 'CONTACT SALES' : isLogin ? 'YOUR WORKSPACE' : 'FREE 14-DAY PRO TRIAL'}</span><h1>{title}</h1><p>{isContact ? 'Tell us a little about what you need and our team will be in touch.' : isLogin ? 'Log in to continue to your Nexara workspace.' : 'No credit card required. Get started in less than a minute.'}</p>{submitted ? <div className="form-success"><Check size={20} /><div><b>{isContact ? 'Thanks for reaching out.' : isLogin ? 'Login preview complete.' : 'You’re on your way.'}</b><span>{isContact ? 'This demo form does not send messages. Connect a form service to receive inquiries.' : 'This is a front-end preview. Connect your authentication service to enable accounts.'}</span></div></div> : <form onSubmit={submit}>{!isLogin && <label>{isContact ? 'Your name' : 'Name'}<input required autoComplete="name" placeholder="Alex Morgan" /></label>}<label>Work email<input required type="email" autoComplete="email" placeholder="you@company.com" /></label>{isContact ? <><label>Company<input required autoComplete="organization" placeholder="Your company" /></label><label>What can we help with?<textarea required rows="4" placeholder="Tell us about your team and goals..." /></label></> : isLogin ? <label>Password<input required type="password" autoComplete="current-password" minLength="8" placeholder="At least 8 characters" /></label> : <label>Create a password<input required type="password" autoComplete="new-password" minLength="8" placeholder="At least 8 characters" /></label>}<button className="button form-submit" type="submit">{isContact ? 'Send inquiry' : isLogin ? 'Log in' : 'Create free account'} <ArrowRight size={15} /></button></form>}{!isContact && <p className="form-switch">{isLogin ? 'New to Nexara?' : 'Already have an account?'} <a href={isLogin ? '/signup' : '/login'}>{isLogin ? 'Start free' : 'Log in'}</a></p>}{isContact && <a className="back-link" href="/">Back to home</a>}</div></main><Footer /></>
+  return <><main className="form-page"><div className="form-card"><Logo /><span className="eyebrow">{isContact ? 'CONTACT SALES' : isLogin ? 'YOUR WORKSPACE' : 'FREE 14-DAY PRO TRIAL'}</span><h1>{title}</h1><p>{isContact ? 'Save an inquiry locally in this browser. It will not be sent to Nexara.' : isLogin ? 'Log in to the local demo account saved in this browser.' : 'Create a local demo account. Your information stays in this browser.'}</p>{submitted ? <div className="form-success"><Check size={20} /><div><b>{isContact ? 'Inquiry saved in this browser.' : isLogin ? 'You’re signed in.' : 'Your local account is ready.'}</b><span>{isContact ? 'No data was sent to a server. This inquiry is only available in this browser.' : 'This is a browser-only demo account and is not connected to the Nexara backend.'}</span></div></div> : <form onSubmit={submit}>{!isLogin && <label>{isContact ? 'Your name' : 'Name'}<input name="name" required autoComplete="name" placeholder="Alex Morgan" /></label>}<label>Work email<input name="email" required type="email" autoComplete="email" placeholder="you@company.com" /></label>{isContact ? <><label>Company<input name="company" required autoComplete="organization" placeholder="Your company" /></label><label>What can we help with?<textarea name="message" required rows="4" placeholder="Tell us about your team and goals..." /></label></> : <label>{isLogin ? 'Password' : 'Create a password'}<input name="password" required type="password" autoComplete={isLogin ? 'current-password' : 'new-password'} minLength="8" placeholder="At least 8 characters" /></label>}{error && <p className="local-form-error" role="alert">{error}</p>}<button className="button form-submit" type="submit">{isContact ? 'Save inquiry' : isLogin ? 'Log in' : 'Create local account'} <ArrowRight size={15} /></button></form>}{!isContact && <p className="form-switch">{isLogin ? 'New to Nexara?' : 'Already have an account?'} <a href={isLogin ? '/signup' : '/login'}>{isLogin ? 'Start free' : 'Log in'}</a></p>}{isContact && <a className="back-link" href="/">Back to home</a>}</div></main><Footer /></>
 }
 
 function CheckoutPage() {
   const [completed, setCompleted] = useState(false)
+  const [error, setError] = useState('')
   const params = new URLSearchParams(window.location.search)
   const selectedPlan = plans.find((plan) => plan.slug === params.get('plan')) || plans[1]
   const billing = params.get('billing') === 'monthly' ? 'monthly' : 'annual'
   const amount = selectedPlan.price[billing]
-  return <><main className="checkout-page"><div className="checkout-wrap"><div className="checkout-head"><a href="/pricing" className="back-link"><ArrowDownRight size={15} /> Back to pricing</a><span className="secure-label"><LockKeyhole size={13} /> Secure checkout</span></div><div className="checkout-grid"><section className="checkout-form"><span className="eyebrow">YOUR PLAN</span><h1>Start your {selectedPlan.name} plan.</h1><p>One last step before your team can get to work.</p><div className="checkout-plan"><div><b>{selectedPlan.name} {billing === 'annual' ? 'annual' : 'monthly'}</b><span>{billing === 'annual' ? 'Billed annually' : 'Billed monthly'} · Cancel anytime</span></div><b>${amount}<small> / month</small></b></div>{completed ? <div className="form-success"><Check size={20} /><div><b>Checkout preview complete.</b><span>No payment was taken. Connect a server-side Stripe Checkout session to accept real payments.</span></div></div> : <form onSubmit={(event) => { event.preventDefault(); setCompleted(true) }}><label>Work email<input required type="email" autoComplete="email" placeholder="you@company.com" /></label><label>Company name<input required autoComplete="organization" placeholder="Your company" /></label><button className="button form-submit" type="submit">Continue to payment <ArrowRight size={15} /></button><p className="checkout-disclaimer"><LockKeyhole size={13} /> Demo checkout only. No card details are collected and no payment is processed.</p></form>}</section><aside className="checkout-summary"><span className="eyebrow">WHAT'S INCLUDED</span><h2>More time for great work.</h2><ul>{selectedPlan.features.map((feature) => <li key={feature}><Check size={15} />{feature}</li>)}</ul><div className="summary-total"><span>Due today</span><b>$0.00</b></div><p>Your 14-day trial begins today. You won't be charged in this demo.</p></aside></div></div></main><Footer /></>
+  function submit(event) {
+    event.preventDefault()
+    setError('')
+    const values = new FormData(event.currentTarget)
+    try {
+      const inquiries = readLocalRecords(LOCAL_INQUIRIES_KEY)
+      inquiries.unshift({
+        id: crypto.randomUUID(),
+        type: 'plan-request',
+        name: '',
+        email: String(values.get('email') || '').trim().toLowerCase(),
+        company: String(values.get('company') || '').trim(),
+        message: 'Plan details requested; no payment was processed.',
+        plan: selectedPlan.slug,
+        billing,
+        createdAt: new Date().toISOString(),
+      })
+      localStorage.setItem(LOCAL_INQUIRIES_KEY, JSON.stringify(inquiries))
+      setCompleted(true)
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : 'Could not save your plan request in this browser.')
+    }
+  }
+  return <><main className="checkout-page"><div className="checkout-wrap"><div className="checkout-head"><a href="/pricing" className="back-link"><ArrowDownRight size={15} /> Back to pricing</a><span className="secure-label"><LockKeyhole size={13} /> Local demo</span></div><div className="checkout-grid"><section className="checkout-form"><span className="eyebrow">YOUR PLAN</span><h1>Start your {selectedPlan.name} plan.</h1><p>Request plan details. No payment is collected in this browser-only demo.</p><div className="checkout-plan"><div><b>{selectedPlan.name} {billing === 'annual' ? 'annual' : 'monthly'}</b><span>{billing === 'annual' ? 'Billed annually' : 'Billed monthly'} · Cancel anytime</span></div><b>${amount}<small> / month</small></b></div>{completed ? <div className="form-success"><Check size={20} /><div><b>Plan request saved locally.</b><span>Your information stays in this browser and has not been sent to the Nexara backend.</span></div></div> : <form onSubmit={submit}><label>Work email<input name="email" required type="email" autoComplete="email" placeholder="you@company.com" /></label><label>Company name<input name="company" required autoComplete="organization" placeholder="Your company" /></label>{error && <p className="local-form-error" role="alert">{error}</p>}<button className="button form-submit" type="submit">Save plan request <ArrowRight size={15} /></button><p className="checkout-disclaimer"><LockKeyhole size={13} /> No card details are collected and no payment is processed.</p></form>}</section><aside className="checkout-summary"><span className="eyebrow">WHAT'S INCLUDED</span><h2>More time for great work.</h2><ul>{selectedPlan.features.map((feature) => <li key={feature}><Check size={15} />{feature}</li>)}</ul><div className="summary-total"><span>Due today</span><b>$0.00</b></div><p>This is a local product demo, not an active subscription.</p></aside></div></div></main><Footer /></>
 }
 
 function LegalPage({ type }) {
   const title = type === 'privacy' ? 'Privacy at Nexara' : 'Terms of service'
-  return <><main className="page-main legal-page"><SectionHeading eyebrow="NEXARA AI" title={title} copy="This product preview does not collect or store personal information submitted through its forms." /><article><h2>About this preview</h2><p>This website is a front-end demonstration. Forms do not submit information to a server, accounts are not created, and the checkout does not process payments.</p><h2>Before launch</h2><p>Replace this sample page with policies reviewed for your business, jurisdiction, data practices, and payment provider. Do not rely on this preview as legal advice.</p><a className="text-link" href="/contact">Questions? Contact our team <ArrowRight size={14} /></a></article></main><Footer /></>
+  return <><main className="page-main legal-page"><SectionHeading eyebrow="NEXARA AI" title={title} copy="This frontend demo stores form data in your browser and does not send it to a server." /><article><h2>About this preview</h2><p>Contact inquiries, demo accounts, and plan requests are stored only in this browser’s local storage. They are not accessible to the Nexara backend or admin area. The checkout does not process payments.</p><h2>Before launch</h2><p>Replace this sample page with policies reviewed for your business, jurisdiction, data practices, and payment provider. Do not rely on this preview as legal advice.</p><a className="text-link" href="/contact">Questions? Contact our team <ArrowRight size={14} /></a></article></main><Footer /></>
 }
 
 function NotFoundPage() {

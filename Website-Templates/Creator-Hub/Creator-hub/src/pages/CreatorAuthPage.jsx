@@ -49,17 +49,15 @@ function CreatorAuthPage({ signUp = false }) {
             <span>Password</span>
             <div className="creator-auth-input"><LockKeyhole size={15} /><input type={showPassword ? 'text' : 'password'} autoComplete={signUp ? 'new-password' : 'current-password'} placeholder={signUp ? 'At least 8 characters' : 'Your password'} minLength={signUp ? 8 : undefined} required /><button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword((visible) => !visible)}>{showPassword ? <EyeOff size={15} /> : <Eye size={15} />}</button></div>
           </label>
-          {!signUp && <div className="creator-auth-options"><label><input type="checkbox" defaultChecked /> Keep me logged in</label><a href="mailto:support@creatorhub.example">Forgot password?</a></div>}
-          {signUp && <label className="creator-auth-terms"><input type="checkbox" required /> <span>I agree to the <a href="#terms">Terms</a> and <a href="#privacy">Privacy Policy</a>.</span></label>}
+          {!signUp && <p className="creator-auth-preview-note">This Vite edition is a visual preview. Account sign-in is available in the connected Next.js edition.</p>}
+          {signUp && <label className="creator-auth-terms"><input type="checkbox" required /> <span>I agree to the <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</span></label>}
           <button className="creator-button creator-button-primary creator-auth-submit" type="submit">{signUp ? 'Create my hub' : 'Sign in to dashboard'} <ArrowRight size={15} /></button>
         </form>
 
         {notice && <p className="creator-auth-notice" role="status">{notice}</p>}
-        <div className="creator-auth-divider"><span>or continue with</span></div>
-        <div className="creator-auth-social"><button type="button" onClick={() => setNotice('Google sign-in is not configured yet.')}>G&nbsp; Google</button><button type="button" onClick={() => setNotice('Apple sign-in is not configured yet.')}>●&nbsp; Apple</button></div>
         <p className="creator-auth-switch">{signUp ? 'Already registered?' : 'Don’t have an account?'} <a href={signUp ? '/login' : '/signup'}>{signUp ? 'Sign in' : 'Sign up'}</a></p>
       </section>
-      <p className="creator-auth-security"><LockKeyhole size={13} /> Secured with 256-bit encryption · SOC 2 compliant</p>
+      <p className="creator-auth-security"><LockKeyhole size={13} /> The Vite edition is a preview and does not create an account.</p>
     </main>
   )
 }

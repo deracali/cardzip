@@ -1,0 +1,152 @@
+.agency-admin-shell {
+  --admin-bg: #080d13;
+  --admin-panel: #101823;
+  --admin-line: #202c3b;
+  --admin-text: #f2f6fb;
+  --admin-muted: #93a2b6;
+  --admin-accent: #04bed3;
+  display: flex;
+  min-height: 100vh;
+  color: var(--admin-text);
+  background: var(--admin-bg);
+  font: 14px/1.5 Inter, system-ui, sans-serif;
+}
+.agency-admin-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  display: flex;
+  width: 230px;
+  flex-direction: column;
+  padding: 24px 14px;
+  border-right: 1px solid var(--admin-line);
+  background: #0c131d;
+}
+.agency-admin-wordmark { padding: 5px 8px 26px; color: var(--admin-text); font-size: 19px; font-weight: 800; letter-spacing: .08em; }
+.agency-admin-wordmark small { margin-left: 8px; padding: 3px 5px; border: 1px solid #263648; border-radius: 4px; color: var(--admin-muted); font-size: 9px; }
+.agency-admin-sidebar nav { display: grid; gap: 5px; }
+.agency-admin-sidebar nav a, .agency-admin-signout { display: flex; min-height: 40px; align-items: center; gap: 10px; padding: 0 10px; border: 0; border-radius: 6px; color: var(--admin-muted); background: transparent; font: inherit; text-align: left; cursor: pointer; }
+.agency-admin-sidebar nav a:hover, .agency-admin-signout:hover { color: white; background: #172332; }
+.agency-admin-sidebar nav a.active { color: #eafcff; background: #102a32; box-shadow: inset 2px 0 var(--admin-accent); }
+.agency-admin-sidebar nav a.active svg { color: var(--admin-accent); }
+.agency-admin-signout { margin-top: auto; cursor: pointer; }
+.agency-admin-main { width: calc(100% - 230px); min-height: 100vh; margin-left: 230px; }
+.agency-admin-topbar { position: sticky; z-index: 1; top: 0; display: flex; min-height: 72px; align-items: center; justify-content: space-between; gap: 20px; padding: 10px clamp(20px, 4vw, 48px); border-bottom: 1px solid var(--admin-line); background: rgba(8, 13, 19, .96); }
+.agency-admin-topbar small, .agency-admin-auth-card > .agency-admin-kicker { color: var(--admin-muted); font-size: 10px; font-weight: 700; letter-spacing: .14em; }
+.agency-admin-topbar h1 { margin: 3px 0 0; font-size: 22px; }
+.agency-admin-topbar > div:last-child { display: flex; align-items: center; gap: 18px; color: #dce5ef; font-size: 12px; }
+.agency-admin-topbar input, .agency-admin-auth-card input, .agency-admin-create-form input, .agency-admin-create-form textarea, .agency-admin-settings input, .agency-admin-settings textarea, .agency-admin-status-label select {
+  width: 100%;
+  min-height: 38px;
+  padding: 9px 11px;
+  border: 1px solid #29394c;
+  border-radius: 6px;
+  outline: 0;
+  color: var(--admin-text);
+  background: #0d1520;
+  font: inherit;
+}
+.agency-admin-topbar input { width: min(250px, 34vw); min-height: 34px; font-size: 12px; }
+.agency-admin-content { max-width: 1440px; margin: auto; padding: 30px clamp(20px, 4vw, 48px) 48px; }
+.agency-admin-primary-button { display: inline-flex; min-height: 39px; align-items: center; justify-content: center; gap: 8px; padding: 0 14px; border: 0; border-radius: 6px; color: #041419; background: var(--admin-accent); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.agency-admin-primary-button:disabled { opacity: .65; cursor: wait; }
+.agency-admin-reply-toggle { padding: 5px 8px; border: 1px solid #29394c; border-radius: 5px; color: #dce5ef; background: #111a26; cursor: pointer; }
+.agency-admin-reply-form { display: grid; width: 100%; gap: 10px; padding-top: 12px; border-top: 1px solid var(--admin-line); }
+.agency-admin-reply-form label { display: grid; gap: 6px; color: #9eacbf; font-size: 11px; }
+.agency-admin-reply-form textarea { min-height: 76px; padding: 9px 10px; border: 1px solid #29394c; border-radius: 6px; color: #edf4fa; background: #0d1520; font: inherit; resize: vertical; }
+.agency-admin-reply-form .agency-admin-primary-button { justify-self: end; }
+.agency-admin-create-form, .agency-admin-settings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 20px; padding: 22px; border: 1px solid var(--admin-line); border-radius: 10px; background: linear-gradient(145deg, #121d2a, #101823 65%); }
+.agency-admin-create-form label, .agency-admin-settings label, .agency-admin-auth-card label { display: grid; min-width: 0; gap: 7px; color: #c5cfdd; font-size: 11px; font-weight: 600; }
+.agency-admin-create-form input, .agency-admin-create-form textarea, .agency-admin-settings input, .agency-admin-settings textarea { transition: border-color .16s ease, box-shadow .16s ease, background .16s ease; }
+.agency-admin-create-form input:focus, .agency-admin-create-form textarea:focus, .agency-admin-settings input:focus, .agency-admin-settings textarea:focus { border-color: #168394; background: #101b28; box-shadow: 0 0 0 3px #04bed31c; }
+.agency-admin-create-form textarea, .agency-admin-settings textarea { min-height: 108px; resize: vertical; }
+.agency-admin-create-form button, .agency-admin-settings button { align-self: end; }
+.agency-admin-create-form > .agency-admin-primary-button { grid-column: 1 / -1; justify-self: start; min-width: 170px; }
+.agency-admin-field-wide, .agency-admin-form-heading, .agency-admin-upload-panel { grid-column: 1 / -1; }
+.agency-admin-form-heading h2 { margin: 0; color: var(--admin-text); font-size: 17px; }
+.agency-admin-form-heading p { margin: 5px 0 0; color: var(--admin-muted); font-size: 11px; }
+.agency-admin-case-study-form .agency-admin-upload-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 14px; padding: 16px; border: 1px solid #263749; border-radius: 8px; background: #0c141e; }
+.agency-admin-upload-panel > div:first-child { grid-column: 1 / -1; display: grid; gap: 4px; }
+.agency-admin-upload-panel > div:first-child strong { color: #eaf1f8; font-size: 12px; }
+.agency-admin-upload-panel > div:first-child small, .agency-admin-upload-field > small { color: var(--admin-muted); font-size: 10px; font-weight: 400; }
+.agency-admin-upload-field input[type="file"] { min-height: 42px; padding: 7px; border-style: dashed; background: #101a26; font-size: 10px; }
+.agency-admin-upload-field input[type="file"]::file-selector-button { margin-right: 10px; padding: 7px 10px; border: 1px solid #31465b; border-radius: 5px; color: #dce8f4; background: #1a2938; font: inherit; cursor: pointer; }
+.agency-admin-image-preview { display: flex; min-width: 0; align-items: center; gap: 10px; }
+.agency-admin-image-preview img { width: 76px; height: 58px; object-fit: cover; border: 1px solid #2b3a4b; border-radius: 5px; }
+.agency-admin-image-preview button, .agency-admin-gallery-previews button { border: 0; color: #ffaaa5; background: transparent; font: inherit; font-size: 10px; cursor: pointer; }
+.agency-admin-gallery-previews { display: flex; grid-column: 1 / -1; flex-wrap: wrap; gap: 10px; }
+.agency-admin-gallery-previews > div { display: grid; gap: 5px; justify-items: start; }
+.agency-admin-gallery-previews img { width: 86px; height: 66px; object-fit: cover; border: 1px solid #2b3a4b; border-radius: 5px; }
+.agency-admin-list { display: grid; gap: 10px; }
+.agency-admin-record { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 16px; padding: 15px 16px; border: 1px solid var(--admin-line); border-radius: 8px; background: var(--admin-panel); }
+.agency-admin-record > div:first-child { min-width: 0; }
+.agency-admin-record strong { display: block; color: #f5f8fc; }
+.agency-admin-record p { margin: 4px 0; color: #b5c2d2; overflow-wrap: anywhere; }
+.agency-admin-record small, .agency-admin-message-actions { color: var(--admin-muted); font-size: 11px; }
+.agency-admin-status-label { display: grid; min-width: 135px; gap: 5px; color: var(--admin-muted); font-size: 10px; }
+.agency-admin-status-label select { min-height: 34px; padding: 5px 8px; font-size: 11px; }
+.agency-admin-status-label select, .agency-admin-create-form select, .agency-admin-settings select {
+  appearance: none;
+  padding-right: 30px;
+  border-color: #33465d;
+  background-color: #111b27;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='m2 4 4 4 4-4' fill='none' stroke='%2304bed3' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  cursor: pointer;
+}
+.agency-admin-status-label select:focus-visible, .agency-admin-create-form select:focus-visible, .agency-admin-settings select:focus-visible { outline: 2px solid #04bed3; outline-offset: 2px; }
+.agency-admin-status-label select, .agency-admin-create-form select, .agency-admin-settings select { color-scheme: dark; }
+.agency-admin-status-label option, .agency-admin-create-form option, .agency-admin-settings option { color: #f2f6fb; background: #101823; }
+.agency-admin-message-actions { display: grid; gap: 6px; justify-items: end; }
+.agency-admin-message-actions button { padding: 6px 9px; border: 1px solid #29394c; border-radius: 5px; color: #dce5ef; background: #111a26; cursor: pointer; }
+.agency-admin-overview .agency-admin-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.agency-admin-metrics article, .agency-admin-overview-grid section { padding: 17px; border: 1px solid var(--admin-line); border-radius: 8px; background: var(--admin-panel); }
+.agency-admin-metrics article small { display: block; color: var(--admin-muted); }
+.agency-admin-metrics article strong { display: block; margin-top: 12px; font-size: 25px; }
+.agency-admin-overview-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+.agency-admin-overview-grid h2 { margin: 0 0 12px; font-size: 16px; }
+.agency-admin-overview-grid p { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--admin-line); color: var(--admin-muted); }
+.agency-admin-overview-grid p strong { color: var(--admin-text); }
+.agency-admin-empty { padding: 20px; color: var(--admin-muted); text-align: center; }
+.agency-admin-inquiry-detail { display: grid; max-width: 860px; gap: 14px; }
+.agency-admin-back-link, .agency-admin-inquiry-open { display: inline-flex; align-items: center; gap: 7px; color: #6de0e8; font-size: 11px; }
+.agency-admin-inquiry-card { display: grid; gap: 20px; padding: 20px; border: 1px solid var(--admin-line); border-radius: 8px; background: var(--admin-panel); }
+.agency-admin-inquiry-card h2 { margin: 4px 0; color: var(--admin-text); font-size: 22px; }
+.agency-admin-inquiry-card > div > p, .agency-admin-inquiry-card section p { color: #b5c2d2; white-space: pre-wrap; overflow-wrap: anywhere; }
+.agency-admin-inquiry-card dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0; }
+.agency-admin-inquiry-card dl div { padding: 12px; border: 1px solid var(--admin-line); border-radius: 6px; background: #0c131d; }
+.agency-admin-inquiry-card dt, .agency-admin-inquiry-card section h3 { margin: 0 0 5px; color: var(--admin-muted); font-size: 11px; }
+.agency-admin-inquiry-card dd { margin: 0; overflow-wrap: anywhere; }
+.agency-admin-inquiry-card dd a { color: #6de0e8; }
+.agency-admin-inquiry-card section { padding-top: 15px; border-top: 1px solid var(--admin-line); }
+.agency-admin-inquiry-reply { display: grid; gap: 9px; }
+.agency-admin-inquiry-reply label { color: #c4cfdd; font-size: 12px; font-weight: 700; }
+.agency-admin-inquiry-reply textarea { min-height: 110px; padding: 10px; border: 1px solid #29394c; border-radius: 6px; color: var(--admin-text); background: #0d1520; font: inherit; resize: vertical; }
+.agency-admin-inquiry-reply .agency-admin-primary-button { justify-self: start; }
+.agency-admin-error { margin: 0 0 15px; padding: 11px 13px; border: 1px solid #683d47; border-radius: 6px; color: #ffd5dc; background: #2b171d; }
+.agency-admin-notice { padding: 11px; border: 1px solid #195260; border-radius: 6px; color: #b6edf3; background: #0d252c; overflow-wrap: anywhere; }
+.agency-admin-auth { --admin-accent: #04bed3; display: grid; min-height: 100vh; place-items: center; padding: 24px; color: var(--admin-text); background: var(--admin-bg); font: 14px/1.5 Inter, system-ui, sans-serif; }
+.agency-admin-auth-card { display: grid; width: min(430px, 100%); gap: 14px; padding: clamp(24px, 5vw, 38px); border: 1px solid var(--admin-line); border-radius: 12px; background: var(--admin-panel); }
+.agency-admin-auth-card > button[type="submit"] { display: inline-flex; min-height: 39px; visibility: visible; opacity: 1; color: #041419; background: var(--admin-accent); }
+.agency-admin-auth-card h1 { margin: 0; font-size: 27px; }
+.agency-admin-auth-card > p { margin: -7px 0 5px; color: var(--admin-muted); }
+.agency-admin-auth-card .agency-admin-back, .agency-admin-auth-card > a { color: #6de0e8; font-size: 12px; }
+.agency-admin-loading { display: grid; min-height: 100vh; place-items: center; color: #c8d3e0; background: var(--admin-bg); }
+@media (max-width: 800px) {
+  .agency-admin-create-form, .agency-admin-settings { grid-template-columns: minmax(0, 1fr); padding: 16px; }
+  .agency-admin-field-wide, .agency-admin-form-heading, .agency-admin-upload-panel, .agency-admin-create-form > .agency-admin-primary-button { grid-column: 1; }
+  .agency-admin-case-study-form .agency-admin-upload-panel { grid-template-columns: minmax(0, 1fr); padding: 12px; }
+  .agency-admin-upload-panel > div:first-child, .agency-admin-gallery-previews { grid-column: 1; }
+  .agency-admin-sidebar { width: 62px; align-items: center; padding-inline: 8px; }
+  .agency-admin-wordmark { font-size: 0; padding: 7px 0 26px; }
+  .agency-admin-wordmark::before { content: 'N'; color: var(--admin-accent); font-size: 20px; }
+  .agency-admin-wordmark small, .agency-admin-sidebar nav a:not(.active) { font-size: 0; }
+  .agency-admin-sidebar nav a { width: 42px; justify-content: center; padding: 0; font-size: 0; }
+  .agency-admin-signout { justify-content: center; width: 42px; padding: 0; font-size: 0; }
+  .agency-admin-main { width: calc(100% - 62px); margin-left: 62px; }
+  .agency-admin-overview .agency-admin-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .agency-admin-overview-grid { grid-template-columns: 1fr; }
+  .agency-admin-record { align-items: flex-start; flex-direction: column; }
+  .agency-admin-status-label { width: 100%; }
+  .agency-admin-inquiry-card dl { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,149 @@
+.nexara-admin,.nexara-admin-login{--admin-bg:#f5f7fb;--admin-card:#fff;--admin-text:#182338;--admin-muted:#7b879a;--admin-line:#e7ebf2;--admin-purple:#6d5ce8;min-height:100vh;background:var(--admin-bg);color:var(--admin-text);font-family:Arial,Helvetica,sans-serif}
+.nexara-admin button,.nexara-admin input,.nexara-admin textarea,.nexara-admin select,.nexara-admin-login button,.nexara-admin-login input{font:inherit}
+.nexara-admin button,.nexara-admin a,.nexara-admin-login button,.nexara-admin-login a{-webkit-tap-highlight-color:transparent}
+.nexara-admin :focus-visible,.nexara-admin-login :focus-visible{outline:3px solid #aa9fff;outline-offset:2px}
+.nexara-admin{display:grid;grid-template-columns:252px minmax(0,1fr)}
+.nexara-admin-sidebar{position:sticky;top:0;display:flex;height:100vh;min-height:560px;flex-direction:column;padding:26px 17px 18px;background:#111b30;color:#d4dced}
+.nexara-admin-brand{display:flex;align-items:center;gap:11px;padding:2px 6px;color:#f8faff;text-decoration:none;font-size:14px;font-weight:800;letter-spacing:.08em}
+.nexara-admin-brand small{display:block;margin-top:4px;color:#8593ad;font-size:8px;font-weight:700;letter-spacing:.14em}
+.nexara-admin-brand-mark{display:grid;width:36px;height:36px;place-items:center;border:1px solid #7168e6;border-radius:11px;background:linear-gradient(145deg,#786df5,#5543c9);box-shadow:0 6px 16px #473bb04a;color:#fff;font-size:17px}
+.nexara-admin-nav-label{margin:38px 9px 10px;color:#7988a4;font-size:9px;font-weight:700;letter-spacing:.15em}
+.nexara-admin-nav{display:grid;gap:5px}
+.nexara-admin-nav button{display:flex;min-height:43px;align-items:center;gap:11px;padding:0 11px;border:1px solid transparent;border-radius:8px;background:transparent;color:#aab7ca;text-align:left;font-size:12px;cursor:pointer}
+.nexara-admin-nav button:hover{background:#ffffff0b;color:#fff}
+.nexara-admin-nav button.active{border-color:#ffffff12;background:#2c3450;color:#fff;box-shadow:inset 3px 0 #8e82ff}
+.nexara-admin-nav button.active>svg{color:#aaa2ff}
+.nexara-admin-nav-count{display:grid;min-width:21px;height:21px;place-items:center;margin-left:auto;border-radius:11px;background:#654e68;color:#ffe1b3;font-size:10px;font-weight:700}
+.nexara-admin-sidebar-bottom{display:grid;gap:13px;margin-top:auto;padding:17px 8px 0;border-top:1px solid #ffffff16}
+.nexara-admin-online{display:flex;align-items:center;gap:8px;color:#aab7ca;font-size:10px}
+.nexara-admin-online i{width:7px;height:7px;border-radius:50%;background:#42cf97;box-shadow:0 0 9px #42cf9770}
+.nexara-admin-site-link{display:flex;align-items:center;gap:8px;color:#c0cae0;text-decoration:none;font-size:11px}
+.nexara-admin-site-link:hover{color:#fff}
+.nexara-admin-main{min-width:0}
+.nexara-admin-header{position:sticky;z-index:3;top:0;display:flex;min-height:79px;align-items:center;justify-content:space-between;gap:20px;padding:13px clamp(22px,4vw,54px);border-bottom:1px solid var(--admin-line);background:#ffffffed;backdrop-filter:blur(14px)}
+.nexara-admin-breadcrumb{margin:0 0 6px;color:#8a95a7;font-size:10px}
+.nexara-admin-breadcrumb span{padding:0 6px;color:#c3cad4}
+.nexara-admin-header h1{margin:0;font-size:17px;letter-spacing:-.02em}
+.nexara-admin-top-actions{display:flex;align-items:center;gap:10px}
+.nexara-admin-updated{margin-right:5px;color:var(--admin-muted);font-size:10px}
+.nexara-admin-refresh,.nexara-admin-logout{display:inline-flex;min-height:36px;align-items:center;justify-content:center;gap:7px;padding:0 11px;border:1px solid #e1e6ef;border-radius:7px;background:#fff;color:#45526a;font-size:10px;font-weight:700;cursor:pointer}
+.nexara-admin-refresh:hover{background:#f6f7fb}
+.nexara-admin-refresh:disabled{opacity:.6;cursor:wait}
+.nexara-admin-spinning{animation:nexara-admin-spin .9s linear infinite}
+.nexara-admin-logout{border-color:#f0dde1;background:#fffafa;color:#a14454}
+.nexara-admin-logout:hover{background:#fff0f2}
+@keyframes nexara-admin-spin{to{transform:rotate(360deg)}}
+.nexara-admin-content{width:min(1400px,100%);margin:0 auto;padding:33px clamp(22px,4vw,54px) 55px}
+.nexara-admin-title{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:23px}
+.nexara-admin-eyebrow{margin:0 0 7px;color:var(--admin-purple);font-size:9px;font-weight:800;letter-spacing:.13em}
+.nexara-admin-title>div>p:not(.nexara-admin-eyebrow){margin:0;color:var(--admin-muted);font-size:12px;line-height:1.55}
+.nexara-admin-count{padding:6px 10px;border:1px solid #e0e5ef;border-radius:20px;background:#fff;color:#59667b;font-size:10px;font-weight:700}
+.nexara-admin-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px;margin-bottom:19px}
+.nexara-admin-metric{position:relative;display:grid;min-height:140px;align-content:start;padding:17px;border:1px solid var(--admin-line);border-radius:11px;background:var(--admin-card);box-shadow:0 2px 5px #1c2b4310}
+.nexara-admin-metric-icon,.nexara-admin-quick-icon{display:grid;width:34px;height:34px;place-items:center;border-radius:9px}
+.nexara-admin-metric-icon.violet,.nexara-admin-quick-icon.violet{background:#f0edff;color:#6955dd}
+.nexara-admin-metric-icon.amber{background:#fff5e3;color:#b1761b}
+.nexara-admin-metric-icon.blue{background:#eaf3ff;color:#3b73c4}
+.nexara-admin-metric-icon.green,.nexara-admin-quick-icon.green{background:#e9f8f0;color:#20865a}
+.nexara-admin-metric-label{position:absolute;top:26px;left:62px;color:#69758a;font-size:10px;font-weight:700}
+.nexara-admin-metric>strong{margin-top:17px;color:#202b40;font-size:28px;letter-spacing:-.04em}
+.nexara-admin-metric>small{margin-top:4px;color:#929bad;font-size:9px}
+.nexara-admin-overview-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(230px,.8fr);gap:16px}
+.nexara-admin-panel{min-width:0;border:1px solid var(--admin-line);border-radius:11px;background:#fff;box-shadow:0 2px 5px #1c2b4308}
+.nexara-admin-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:17px 18px;border-bottom:1px solid #eef0f5}
+.nexara-admin-panel-head h2{margin:0;font-size:12px}
+.nexara-admin-panel-head p{margin:5px 0 0;color:#929bad;font-size:9px}
+.nexara-admin-text-action{display:inline-flex;align-items:center;gap:5px;border:0;background:transparent;color:#6454d4;font-size:10px;font-weight:700;white-space:nowrap;cursor:pointer}
+.nexara-admin-recent-row{display:flex;width:100%;min-height:59px;align-items:center;gap:11px;padding:9px 17px;border:0;border-bottom:1px solid #f0f2f6;background:#fff;text-align:left;cursor:pointer}
+.nexara-admin-recent-row:last-child{border-bottom:0}
+.nexara-admin-recent-row:hover{background:#fafaff}
+.nexara-admin-avatar{display:grid;width:31px;height:31px;flex:none;place-items:center;border-radius:9px;background:#f0edff;color:#6654d4;font-size:10px;font-weight:800}
+.nexara-admin-recent-person{display:grid;min-width:0;flex:1;gap:4px}
+.nexara-admin-recent-person strong{overflow:hidden;color:#28334a;font-size:10px;text-overflow:ellipsis;white-space:nowrap}
+.nexara-admin-recent-person small{overflow:hidden;color:#8994a6;font-size:9px;text-overflow:ellipsis;white-space:nowrap}
+.nexara-admin-recent-row time{color:#8994a6;font-size:9px;white-space:nowrap}
+.nexara-admin-recent-row>svg{color:#9aa3b1}
+.nexara-admin-status{display:inline-flex;padding:4px 7px;border-radius:20px;background:#f0f2f6;color:#677387;font-size:8px;font-weight:700;text-transform:capitalize;white-space:nowrap}
+.nexara-admin-status.new{background:#fff4df;color:#a46713}
+.nexara-admin-status.contacted{background:#eaf2ff;color:#3668ac}
+.nexara-admin-status.qualified{background:#e9f7ef;color:#328056}
+.nexara-admin-status.closed{background:#eef0f4;color:#757f90}
+.nexara-admin-overview-empty{padding:19px;color:#8c97a8;font-size:10px}
+.nexara-admin-quick-panel{align-self:start}
+.nexara-admin-quick-panel>button{display:flex;width:100%;align-items:center;gap:10px;padding:14px 15px;border:0;border-bottom:1px solid #eef0f5;background:#fff;text-align:left;cursor:pointer}
+.nexara-admin-quick-panel>button:last-child{border-bottom:0}
+.nexara-admin-quick-panel>button:hover{background:#fafaff}
+.nexara-admin-quick-panel>button>span:nth-child(2){display:grid;flex:1;gap:4px}
+.nexara-admin-quick-panel>button strong{color:#29354a;font-size:10px}
+.nexara-admin-quick-panel>button small{color:#8994a6;font-size:9px}
+.nexara-admin-quick-panel>button>svg{color:#929bad}
+.nexara-admin-quick-icon{width:31px;height:31px;flex:none}
+.nexara-admin-tabs{display:flex;gap:5px;overflow-x:auto;margin:0 0 15px;padding:3px 3px 0;border-bottom:1px solid #e1e6ef}
+.nexara-admin-tabs button{display:inline-flex;min-height:40px;align-items:center;gap:7px;padding:0 13px;border:0;border-bottom:2px solid transparent;background:transparent;color:#738095;font-size:10px;font-weight:700;white-space:nowrap;cursor:pointer}
+.nexara-admin-tabs button:hover{color:#5146b9}
+.nexara-admin-tabs button.active{border-bottom-color:var(--admin-purple);color:#5949ca}
+.nexara-admin-filters{display:flex;min-height:41px;justify-content:space-between;gap:10px;margin-bottom:13px}
+.nexara-admin-search{display:flex;min-width:260px;max-width:560px;flex:1;align-items:center;gap:9px;padding-left:12px;border:1px solid #e2e7ef;border-radius:8px;background:#fff;color:#919bac}
+.nexara-admin-search input{width:100%;min-width:0;border:0;background:transparent;color:#344058;font-size:11px;outline:0}
+.nexara-admin-search select,.nexara-admin-table-wrap select{padding:8px;border:1px solid #e4e8ef;border-radius:6px;background:#fff;color:#536075;font-size:10px}
+.nexara-admin-primary-action{display:inline-flex;min-height:37px;align-items:center;gap:7px;padding:0 13px;border:1px solid var(--admin-purple);border-radius:7px;background:var(--admin-purple);color:#fff;font-size:10px;font-weight:700;cursor:pointer}
+.nexara-admin-primary-action:hover{background:#5849d0}
+.nexara-admin-error{margin:0 0 14px;padding:11px 13px;border:1px solid #f0cbd2;border-radius:8px;background:#fff3f5;color:#a53248;font-size:11px;line-height:1.5}
+.nexara-admin-table-wrap{position:relative;overflow:auto;border:1px solid var(--admin-line);border-radius:10px;background:#fff;box-shadow:0 2px 5px #1c2b4308}
+.nexara-admin-table-wrap table{width:100%;border-collapse:collapse;text-align:left}
+.nexara-admin-table-wrap th,.nexara-admin-table-wrap td{padding:12px 14px;border-bottom:1px solid #edf0f5;vertical-align:top}
+.nexara-admin-table-wrap th{background:#fafbfc;color:#8490a2;font-size:8px;font-weight:800;letter-spacing:.09em;white-space:nowrap}
+.nexara-admin-table-wrap td{color:#566177;font-size:10px;line-height:1.55}
+.nexara-admin-table-wrap td:first-child strong,.nexara-admin-table-wrap td:first-child a,.nexara-admin-table-wrap td:nth-child(3) strong,.nexara-admin-table-wrap td:nth-child(3) span{display:block}
+.nexara-admin-table-wrap td:first-child strong{color:#303b50;font-size:10px}
+.nexara-admin-table-wrap td:first-child a{margin-top:3px;color:#6654d4;font-size:9px;text-decoration:none}
+.nexara-admin-table-wrap td:nth-child(3) span:not(.nexara-admin-type){max-width:380px;margin-top:4px;color:#7e899b;white-space:pre-wrap}
+.nexara-admin-table-wrap tr:last-child td{border-bottom:0}
+.nexara-admin-type{display:inline-block;padding:4px 7px;border:1px solid #e5e2ff;border-radius:12px;background:#f5f3ff;color:#6654d4;font-size:8px;font-weight:700;text-transform:capitalize}
+.nexara-admin-type.contact{border-color:#d6eee0;background:#eff9f3;color:#328056}
+.nexara-admin-type.checkout{border-color:#f5e5c7;background:#fff8ec;color:#9b6b1f}
+.nexara-admin-type.demo{border-color:#daebfa;background:#eff7ff;color:#4173ab}
+.nexara-admin-type.signup{border-color:#e4e8ef;background:#f4f6f8;color:#606d80}
+.nexara-admin-table-wrap select{padding:6px;text-transform:capitalize}
+.nexara-admin-table-wrap td button,.nexara-admin-editor button{margin:0 4px 4px 0;padding:7px 10px;border:1px solid #e1e5ed;border-radius:6px;background:#fff;color:#526078;font-size:9px;font-weight:700;cursor:pointer}
+.nexara-admin-table-wrap td button:hover,.nexara-admin-editor button:hover{border-color:#c8c0fa;background:#faf9ff;color:#5849ca}
+.nexara-admin-table-wrap .nexara-admin-empty{padding:46px!important;color:#8e99a9!important;text-align:center}
+.nexara-admin-table-loading{position:absolute;inset:0;display:grid;place-items:center;background:#ffffffb8;color:#5546c1;font-size:12px;font-weight:700;backdrop-filter:blur(2px)}
+.nexara-admin-response{display:grid;min-width:190px;gap:7px;margin-top:10px;padding:10px;border:1px solid #e9ebf2;border-radius:8px;background:#fafbfe}
+.nexara-admin-response label{color:#647188;font-size:9px;font-weight:700}
+.nexara-admin-response textarea{width:100%;resize:vertical;min-height:64px;border:1px solid #e0e5ee;border-radius:6px;background:#fff;color:#344058;padding:9px;font:10px/1.5 Arial,sans-serif}
+.nexara-admin-response textarea::placeholder{color:#a6afbd}
+.nexara-admin-response button{justify-self:start;margin:0!important;border-color:#dbd6fa!important;background:#f3f1ff!important;color:#5949ca!important}
+.nexara-admin-response button:disabled{opacity:.55;cursor:wait}
+.nexara-admin-response small{color:#8994a6;font-size:8px}
+.nexara-admin-editor{display:grid;gap:13px;margin:0 0 16px;padding:19px;border:1px solid #e5e8f0;border-radius:10px;background:#fff;box-shadow:0 3px 10px #1d2b4309}
+.nexara-admin-editor h2{margin:0;color:#28344a;font-size:15px}
+.nexara-admin-editor p{margin:0;color:#788499;font-size:10px;line-height:1.6}
+.nexara-admin-editor textarea,.nexara-admin-editor input{width:100%;border:1px solid #dfe4ec;border-radius:7px;background:#fbfcfe;color:#313e54;padding:12px;font:11px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace}
+.nexara-admin-editor textarea{min-height:230px;resize:vertical}
+.nexara-admin-editor label{display:grid;gap:7px;color:#526078;font-size:10px;font-weight:700}
+.nexara-admin-editor>div{display:flex;gap:8px}
+.nexara-admin-editor button{padding:9px 13px}
+.nexara-admin-editor button[type=submit]{border-color:var(--admin-purple);background:var(--admin-purple);color:#fff}
+.nexara-admin-editor button[type=submit]:hover{background:#5849d0;color:#fff}
+.nexara-admin-login{position:relative;display:grid;min-height:100vh;place-items:center;overflow:hidden;padding:24px;background:radial-gradient(ellipse at 12% 0,#e4eaff 0,transparent 36%),radial-gradient(ellipse at 100% 100%,#e9e5ff 0,transparent 38%),#f5f7fb}
+.nexara-admin-login-card{width:min(430px,100%);display:grid;gap:15px;padding:35px;border:1px solid #e8ebf3;border-radius:16px;background:#ffffffed;box-shadow:0 24px 70px #25365718}
+.nexara-admin-login-card .nexara-admin-brand{margin-bottom:13px;padding:0;color:#202b40}
+.nexara-admin-login-card .nexara-admin-brand small{color:#8892a4}
+.nexara-admin-login-icon{display:grid;width:47px;height:47px;place-items:center;border:1px solid #e2defd;border-radius:13px;background:#f3f1ff;color:#6755db}
+.nexara-admin-login-card>p{margin:0}
+.nexara-admin-login-card .nexara-admin-eyebrow{color:#6957da}
+.nexara-admin-login-card h1{margin:-7px 0 0;color:#1c2940;font-size:26px;letter-spacing:-.04em}
+.nexara-admin-login-copy{margin:-7px 0 2px!important;color:#7b879a;font-size:11px;line-height:1.7}
+.nexara-admin-login-card label{display:grid;gap:7px;color:#49566d;font-size:10px;font-weight:700}
+.nexara-admin-login-card input{width:100%;height:41px;border:1px solid #dfe4ed;border-radius:7px;background:#fbfcfe;color:#29364c;padding:0 11px;font-size:11px}
+.nexara-admin-login-card button[type=submit]{min-height:42px;border:1px solid var(--admin-purple);border-radius:7px;background:var(--admin-purple);color:#fff;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 5px 12px #6958e12e}
+.nexara-admin-login-card button[type=submit]:hover{background:#5849d0}
+.nexara-admin-login-card button:disabled{opacity:.6;cursor:wait}
+.nexara-admin-loading{justify-items:center;min-height:180px;align-content:center}
+.nexara-admin-loading .nexara-admin-brand-mark{margin-bottom:4px}
+.nexara-admin-back{color:#6e7c91;text-align:center;text-decoration:none;font-size:10px}
+.nexara-admin-back:hover{color:#5a4acd}
+@media(max-width:1120px){.nexara-admin{grid-template-columns:214px minmax(0,1fr)}.nexara-admin-sidebar{padding-right:12px;padding-left:12px}.nexara-admin-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.nexara-admin{grid-template-columns:1fr}.nexara-admin-sidebar{position:static;height:auto;min-height:0;padding:12px 15px}.nexara-admin-brand{padding:0 3px}.nexara-admin-brand-mark{width:31px;height:31px}.nexara-admin-nav-label,.nexara-admin-sidebar-bottom{display:none}.nexara-admin-nav{display:flex;overflow-x:auto;gap:5px;margin-top:13px;padding-bottom:2px}.nexara-admin-nav button{min-height:36px;flex:none;gap:7px;padding:0 9px;font-size:9px}.nexara-admin-nav button>svg{width:14px}.nexara-admin-nav-count{min-width:17px;height:17px}.nexara-admin-header{position:static;min-height:66px;padding:11px 16px}.nexara-admin-updated{display:none}.nexara-admin-content{padding:24px 16px 38px}.nexara-admin-overview-grid{grid-template-columns:1fr}.nexara-admin-title{align-items:flex-start}.nexara-admin-tabs{gap:0}.nexara-admin-tabs button{padding:0 10px;font-size:9px}}
+@media(max-width:460px){.nexara-admin-header{align-items:flex-start}.nexara-admin-header h1{font-size:14px}.nexara-admin-top-actions{gap:6px}.nexara-admin-refresh,.nexara-admin-logout{min-height:33px;padding:0 8px;font-size:9px}.nexara-admin-refresh svg,.nexara-admin-logout svg{width:13px}.nexara-admin-metrics{gap:9px}.nexara-admin-metric{min-height:128px;padding:12px}.nexara-admin-metric-label{top:22px;left:52px;font-size:9px}.nexara-admin-metric>strong{font-size:24px}.nexara-admin-metric>small{font-size:8px;line-height:1.4}.nexara-admin-search{min-width:100%;flex-wrap:wrap;padding:9px 10px}.nexara-admin-search input{min-height:24px}.nexara-admin-search select{width:100%}.nexara-admin-filters{flex-wrap:wrap}.nexara-admin-recent-row{gap:7px;padding:8px}.nexara-admin-recent-row time{display:none}.nexara-admin-status{font-size:7px}.nexara-admin-panel-head{padding:14px}.nexara-admin-login-card{padding:27px 22px}}

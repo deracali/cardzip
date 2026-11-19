@@ -13,13 +13,13 @@ function BookingSection() {
       <div className="salon-booking-copy">
         <span className="salon-kicker">INSTANT PRICING & SLOTS</span>
         <h2 id="booking-title">See price &amp; time before you commit</h2>
-        <p>Explore a ritual, compare starting prices and choose a preferred time. Call the studio to confirm your stylist and appointment.</p>
+        <p>Explore a ritual, compare starting prices and send an appointment request. The studio will confirm availability.</p>
         <ul className="salon-booking-benefits">
-          <li><span><Check size={14} /></span><div><strong>Current openings</strong><small>Call to confirm the latest availability at either studio</small></div></li>
+          <li><span><Check size={14} /></span><div><strong>Appointment requests</strong><small>Choose a preferred date and time online</small></div></li>
           <li><span><Check size={14} /></span><div><strong>Upfront service pricing</strong><small>See starting prices before speaking with your stylist</small></div></li>
-          <li><span><Check size={14} /></span><div><strong>Flexible scheduling</strong><small>Call us to ask about changing an appointment</small></div></li>
+          <li><span><Check size={14} /></span><div><strong>Studio confirmation</strong><small>Your visit is confirmed after the team reviews your request</small></div></li>
         </ul>
-        <a className="salon-button salon-button-dark" href="tel:+12125550148">Call to check availability <ArrowRight size={14} /></a>
+        <a className="salon-button salon-button-dark" href="/book">Start a booking request <ArrowRight size={14} /></a>
       </div>
 
       <div className="salon-booking-card">
@@ -58,8 +58,8 @@ function BookingSection() {
           ))}
         </div>
         <div className="salon-booking-total"><span>{selectedService.name}<small>{selectedDay}, {selectedTime} · {selectedStylist}</small></span><strong>${selectedService.price}.00</strong></div>
-        <a className="salon-button salon-button-primary salon-confirm-button" href="tel:+12125550148">Call to book this slot <ArrowRight size={14} /></a>
-        <small className="salon-booking-note">Call to confirm your selected appointment time.</small>
+        <a className="salon-button salon-button-primary salon-confirm-button" href="/book">Continue to appointment request <ArrowRight size={14} /></a>
+        <small className="salon-booking-note">Sign in is required to send a request. No payment is taken online.</small>
       </div>
     </section>
   )

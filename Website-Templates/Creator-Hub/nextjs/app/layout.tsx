@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "../src/index.css";
 import "../src/components/CreatorHub.css";
+import "../src/CreatorPages.css";
 
 export const metadata: Metadata = {
   title: "CreatorHub — One link for your entire creator business",

@@ -3,37 +3,28 @@ import {
   ArrowDownToLine,
   ArrowRight,
   BadgeCheck,
-  Camera,
+  BookOpen,
+  CircleHelp,
   ExternalLink,
-  Mail,
-  Play,
+  Link2,
   ShoppingBag,
-  Video,
+  Users,
 } from 'lucide-react'
+import { resourceArticles } from './creatorPageContent'
 import '../components/CreatorHub.css'
 
-const creatorAvatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=240&h=240&q=85'
-
-const drops = [
-  {
-    type: 'BLOG · 6 MIN',
-    title: 'My $0 to $10k newsletter playbook',
-    image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=800&q=85',
-  },
-  {
-    type: 'VIDEO · 12 MIN',
-    title: 'I redesigned my link page live',
-    image: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=800&q=85',
-  },
+const dropImages = [
+  'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=800&q=85',
+  'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=800&q=85',
 ]
 
-function CreatorProfilePage() {
-  const [subscribed, setSubscribed] = useState(false)
+function CreatorProfilePage({ creator }) {
+  const [notice, setNotice] = useState('')
   const [email, setEmail] = useState('')
 
   const subscribe = (event) => {
     event.preventDefault()
-    setSubscribed(true)
+    setNotice('This Vite profile is a preview. Subscriber sign-up is connected in the Next.js edition.')
   }
 
   return (
@@ -45,39 +36,39 @@ function CreatorProfilePage() {
       <div className="creator-public-layout">
         <section className="creator-public-intro">
           <div className="creator-public-identity">
-            <img src={creatorAvatar} alt="Maya Chen" />
+            <img src={creator.avatarUrl} alt={creator.displayName} />
             <span className="creator-verified"><BadgeCheck size={15} fill="currentColor" /></span>
           </div>
-          <p className="creator-public-kicker">CREATOR · WRITER · DESIGNER</p>
-          <h1>Maya Chen <BadgeCheck size={18} fill="currentColor" /></h1>
-          <p className="creator-public-handle">@mayacreates</p>
-          <p className="creator-public-bio">Designing digital products, helping 50k+ creators build profitable digital businesses.</p>
+          <p className="creator-public-kicker">{creator.category}</p>
+          <h1>{creator.displayName} <BadgeCheck size={18} fill="currentColor" /></h1>
+          <p className="creator-public-handle">@{creator.handle}</p>
+          <p className="creator-public-bio">{creator.bio}</p>
           <div className="creator-public-socials">
-            <a href="https://instagram.com" aria-label="Instagram"><Camera size={16} /></a>
-            <a href="https://youtube.com" aria-label="YouTube"><Video size={16} /></a>
-            <a href="/maya-chen" aria-label="Maya's website"><ExternalLink size={16} /></a>
-            <a href="mailto:maya@example.com" aria-label="Email Maya"><Mail size={16} /></a>
+            <a href="/creators" aria-label="Explore creator profiles"><Users size={16} /></a>
+            <a href="/resources" aria-label="Read creator resources"><BookOpen size={16} /></a>
+            <a href="/features" aria-label="CreatorHub features"><ExternalLink size={16} /></a>
+            <a href="/help" aria-label="Get help"><CircleHelp size={16} /></a>
           </div>
         </section>
 
         <section className="creator-profile-newsletter">
-          <div><span className="creator-eyebrow">FREE WEEKLY NEWSLETTER</span><h2>Join 50k+ Weekly Readers</h2><p>One critical email every Sunday. Growth, no noise.</p></div>
-          <form onSubmit={subscribe}><input aria-label="Your email address" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@email.com" required /><button className="creator-button creator-button-primary" type="submit">{subscribed ? 'You’re in!' : 'Subscribe'}</button></form>
-          <small>{subscribed ? 'Thanks for joining Maya’s weekly letter.' : 'No spam. Unsubscribe anytime.'}</small>
+          <div><span className="creator-eyebrow">STAY IN THE LOOP</span><h2>Follow {creator.displayName}’s latest work</h2><p>Use this preview to see how a creator newsletter could fit on the page.</p></div>
+          <form onSubmit={subscribe}><input aria-label="Your email address" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@email.com" required /><button className="creator-button creator-button-primary" type="submit">Preview sign-up</button></form>
+          <small>{notice || 'The connected Next.js edition saves subscriber sign-ups to the backend.'}</small>
         </section>
 
-        <section className="creator-profile-links" aria-label="Maya's links and products">
-          <a href="#latest-drops"><span className="profile-link-symbol"><ArrowDownToLine size={17} /></span><span><strong>Download my free eBook</strong><small>5 habits that changed my creative career</small></span><b>FREE</b></a>
-          <a href="#latest-drops"><span className="profile-link-symbol product"><ShoppingBag size={17} /></span><span><strong>Buy Figma UI Kit — $29</strong><small>320+ components · 4.9 ★ (890)</small></span><b className="profile-link-cta">View</b></a>
-          <a href="#latest-drops"><span className="profile-link-symbol podcast"><Play size={16} fill="currentColor" /></span><span><strong>Latest podcast episode</strong><small>#142 · How I hit $20k MRR</small></span><ArrowRight size={17} /></a>
+        <section className="creator-profile-links" aria-label={`${creator.displayName}'s links and products`}>
+          <a href="/resources/creator-bio-that-connects"><span className="profile-link-symbol"><ArrowDownToLine size={17} /></span><span><strong>Read the profile guide</strong><small>A clear introduction and useful next step</small></span><ArrowRight size={17} /></a>
+          <a href="/features"><span className="profile-link-symbol product"><ShoppingBag size={17} /></span><span><strong>Explore the creator toolkit</strong><small>Profiles, content, audience and products</small></span><ArrowRight size={17} /></a>
+          <a href="/creators"><span className="profile-link-symbol podcast"><Link2 size={16} /></span><span><strong>Discover other creators</strong><small>Browse example creator pages</small></span><ArrowRight size={17} /></a>
         </section>
 
         <section className="creator-profile-feature" id="latest-drops">
-          <div className="creator-section-heading creator-stories-heading"><div><span className="creator-eyebrow">LATEST DROPS</span><h2>Notes, ideas & new work</h2></div><a href="#latest-drops">View all <ArrowRight size={14} /></a></div>
+          <div className="creator-section-heading creator-stories-heading"><div><span className="creator-eyebrow">LATEST DROPS</span><h2>Notes, ideas & new work</h2></div><a href="/resources">View all <ArrowRight size={14} /></a></div>
           <div className="creator-profile-drops">
-            {drops.map((drop) => <a className="creator-profile-drop" href="#latest-drops" key={drop.title}><img src={drop.image} alt="" /><span className="creator-eyebrow">{drop.type}</span><strong>{drop.title}</strong><small>Read Maya’s latest thoughts <ArrowRight size={12} /></small></a>)}
+            {resourceArticles.slice(0, 2).map((drop, index) => <a className="creator-profile-drop" href={`/resources/${drop.slug}`} key={drop.slug}><img src={dropImages[index]} alt="" /><span className="creator-eyebrow">{drop.category} · {drop.readTime}</span><strong>{drop.title}</strong><small>Read this creator guide <ArrowRight size={12} /></small></a>)}
           </div>
-          <div className="creator-profile-community"><strong>✨ 11 Coaching — 2 spots left</strong><span>Book a portfolio review call</span><ArrowRight size={15} /></div>
+          <div className="creator-profile-community"><strong>Built with CreatorHub</strong><span>Explore the tools for your own creator page</span><ArrowRight size={15} /></div>
         </section>
       </div>
       <footer className="creator-public-footer">Made with <a href="/">CreatorHub</a></footer>

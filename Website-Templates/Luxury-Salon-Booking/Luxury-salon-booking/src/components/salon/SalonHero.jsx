@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowRight, BadgeCheck, Clock3, MapPin, Sparkles } from 'lucide-react'
+import { ArrowRight, BadgeCheck, MapPin, Sparkles } from 'lucide-react'
 
 function SalonHero() {
   const [zipCode, setZipCode] = useState('')
@@ -22,7 +22,7 @@ function SalonHero() {
         <h1 id="salon-hero-title">Elevate Your<br /><em>Beauty</em> Experience</h1>
         <p>Precision cuts, restorative rituals and skin science — thoughtfully tailored to you. Call us to ask about today's openings.</p>
         <div className="salon-hero-actions">
-          <a className="salon-button salon-button-primary" href="#booking">Book Appointment <ArrowRight size={14} /></a>
+          <a className="salon-button salon-button-primary" href="/book">Book Appointment <ArrowRight size={14} /></a>
           <a className="salon-text-link" href="#services">Explore packages</a>
         </div>
         <div className="salon-hero-trust"><span className="salon-avatar-stack" aria-hidden="true"><i>M</i><i>A</i><i>S</i></span><strong>48 stylists online</strong><i /><BadgeCheck size={14} /> Certified clean studio</div>

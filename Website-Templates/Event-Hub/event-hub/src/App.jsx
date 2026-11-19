@@ -19,6 +19,8 @@ import {
   Users,
   X,
 } from 'lucide-react'
+import EventHubAdmin from './admin/EventHubAdmin'
+import EventHubPortals from './admin/EventHubPortals'
 import './App.css'
 
 const events = [
@@ -204,14 +206,14 @@ function EventGrid({ items }) {
   return <div className="event-grid">{items.map((event) => <EventCard key={event.slug} event={event} />)}</div>
 }
 
-function HomePage() {
+function HomePage({ eventList = events }) {
   const [category, setCategory] = useState('All Events')
   const [search, setSearch] = useState('')
-  const featured = useMemo(() => events.filter((event) => {
+  const featured = useMemo(() => eventList.filter((event) => {
     const matchesCategory = category === 'All Events' || event.category === category
     const term = search.trim().toLowerCase()
     return matchesCategory && (!term || `${event.title} ${event.location} ${event.category}`.toLowerCase().includes(term))
-  }), [category, search])
+  }), [category, eventList, search])
 
   const submitSearch = (event) => {
     event.preventDefault()
@@ -283,12 +285,12 @@ function HomePage() {
   )
 }
 
-function EventsPage() {
+function EventsPage({ eventList = events }) {
   const params = new URLSearchParams(window.location.search)
   const initialCategory = categories.includes(params.get('category')) ? params.get('category') : 'All Events'
   const [category, setCategory] = useState(initialCategory)
   const [search, setSearch] = useState(params.get('q') || '')
-  const filtered = events.filter((event) => {
+  const filtered = eventList.filter((event) => {
     const term = search.trim().toLowerCase()
     return (category === 'All Events' || event.category === category) && (!term || `${event.title} ${event.location} ${event.category} ${event.lineup}`.toLowerCase().includes(term))
   })
@@ -349,7 +351,7 @@ function SchedulePage() {
   )
 }
 
-function CheckoutPage({ event }) {
+function CheckoutPage({ event, mode = 'local', apiBaseUrl = '' }) {
   const [quantity, setQuantity] = useState(1)
   const [ticketType, setTicketType] = useState('General Admission')
   const [confirmed, setConfirmed] = useState(false)
@@ -360,9 +362,31 @@ function CheckoutPage({ event }) {
   const serviceFee = Math.round(subtotal * 0.08 * 100) / 100
   const total = subtotal + serviceFee
 
-  const submitOrder = (formEvent) => {
+  const submitOrder = async (formEvent) => {
     formEvent.preventDefault()
     setError('')
+    if (mode === 'api') {
+      try {
+        const response = await fetch(`${apiBaseUrl}/bookings`, {
+          method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ eventSlug: selectedEvent.slug, ticketType, quantity }),
+        })
+        const result = await response.json().catch(() => ({}))
+        if (response.status === 401) {
+          const next = encodeURIComponent(`${window.location.pathname}${window.location.search}`)
+          window.location.replace(`/login?next=${next}`)
+          return
+        }
+        if (!response.ok) throw new Error(result.error || 'Unable to record the booking request.')
+        setConfirmed(true)
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      } catch (requestError) { setError(requestError.message) }
+      return
+    }
+    const key = 'pulselive-admin-demo-v1'
+    const data = JSON.parse(localStorage.getItem(key) || 'null') || { events, bookings: [], organizers: [], attendees: [], settings: { platformName: 'PulseLive', supportEmail: 'help@pulselive.example', announcement: '', organizerApplications: true } }
+    data.bookings.unshift({ id: `booking-${Date.now()}`, reference: `PL-${String(Date.now()).slice(-6)}`, attendeeName: new FormData(formEvent.currentTarget).get('name'), attendeeEmail: new FormData(formEvent.currentTarget).get('email'), eventSlug: selectedEvent.slug, eventTitle: selectedEvent.title, ticketType, quantity, total, status: 'requested', paymentStatus: 'not-integrated', createdAt: new Date().toISOString() })
+    localStorage.setItem(key, JSON.stringify(data))
     setConfirmed(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -371,7 +395,7 @@ function CheckoutPage({ event }) {
     return (
       <>
         <Header />
-        <main className="confirmation-page"><div className="confirmation-card"><span className="confirmation-icon"><Check size={30} /></span><span className="eyebrow">YOU’RE ON THE LIST</span><h1>It’s going to be a good one.</h1><p>Your demo booking for <strong>{selectedEvent.title}</strong> is confirmed. Your tickets are ready to view below.</p><div className="confirmation-ticket"><Ticket size={20} /><div><strong>{quantity} × {ticketType}</strong><span>{selectedEvent.date} · {selectedEvent.location}</span></div><strong>{money(total)}</strong></div><p className="demo-notice">Demo checkout only: no payment was collected and no ticket was issued.</p><a className="button button-primary" href="/events">Keep exploring <ArrowRight size={15} /></a></div></main>
+        <main className="confirmation-page"><div className="confirmation-card"><span className="confirmation-icon"><Check size={30} /></span><span className="eyebrow">{mode === 'api' ? 'BOOKING REQUEST RECEIVED' : 'DEMO REQUEST SAVED'}</span><h1>It’s going to be a good one.</h1><p>Your request for <strong>{selectedEvent.title}</strong> is recorded. {mode === 'api' ? 'It is awaiting organizer review.' : 'It is saved in this browser demo.'}</p><div className="confirmation-ticket"><Ticket size={20} /><div><strong>{quantity} × {ticketType}</strong><span>{selectedEvent.date} · {selectedEvent.location}</span></div><strong>{money(total)}</strong></div><p className="demo-notice">No payment was collected and no ticket was issued. Ticketing requires a payment provider.</p><a className="button button-primary" href={mode === 'api' ? '/dashboard' : '/events'}>Continue <ArrowRight size={15} /></a></div></main>
         <Footer />
       </>
     )
@@ -400,19 +424,36 @@ function CheckoutPage({ event }) {
   )
 }
 
-function AuthPage({ page }) {
+function AuthPage({ page, mode = 'local', apiBaseUrl = '' }) {
   const [message, setMessage] = useState('')
+  const [accountType, setAccountType] = useState('attendee')
   const isSignup = page === 'signup'
   const isForgot = page === 'forgot-password'
   const title = isForgot ? 'Reset your password' : isSignup ? 'Create your account' : 'Welcome back'
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault()
+    if (mode === 'api' && !isForgot) {
+      const form = new FormData(event.currentTarget)
+      try {
+        const response = await fetch(`${apiBaseUrl}/auth/${isSignup ? 'register' : 'login'}`, {
+          method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ ...(isSignup ? { name: form.get('name'), accountType } : {}), email: form.get('email'), password: form.get('password') }),
+        })
+        const result = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(result.error || 'Unable to access your PulseLive account.')
+        const next = new URLSearchParams(window.location.search).get('next')
+        const nextPath = next?.startsWith('/') && !next.startsWith('//') ? next : null
+        const target = result.user.role === 'admin' ? '/admin' : result.user.role === 'organizer' ? '/organizer/dashboard' : '/dashboard'
+        window.location.replace(nextPath || target)
+      } catch (requestError) { setMessage(requestError.message) }
+      return
+    }
     setMessage(isForgot ? 'If that email is registered, reset instructions are on their way.' : isSignup ? 'Your demo account is ready. Welcome to PulseLive!' : 'You’re signed in for this demo session.')
   }
   return (
     <main className="auth-page">
       <section className="auth-art"><div className="auth-art-image" /><a className="brand" href="/"><img className="brand-mark" src="/favicon.svg" alt="" /><span>Pulse<span>Live</span></span></a><div className="auth-art-copy"><span className="eyebrow">THE SHOW DOESN’T END HERE</span><h1>Access your event passes, saved shows &amp; more.</h1><p>Your next favorite memory is just around the corner.</p><div className="hero-pills"><span><Ticket size={13} /> 2M+ tickets</span><span><Users size={13} /> 40k organizers</span><span><Check size={13} /> Instant entry</span></div></div></section>
-      <section className="auth-area"><div className="auth-card"><a className="auth-back" href="/"><ArrowLeft size={15} /> Back to PulseLive</a><span className="eyebrow">{isForgot ? 'A FRESH START' : isSignup ? 'JOIN THE CROWD' : 'GOOD TO SEE YOU'}</span><h2>{title}</h2><p>{isForgot ? 'Enter your email and we’ll help you get back in.' : isSignup ? 'Create an account to keep your tickets and favorite events together.' : 'Sign in to find your tickets and event schedule.'}</p><form onSubmit={submit}>{isSignup && <label>Full name<input name="name" autoComplete="name" placeholder="Your name" required /></label>}<label>Email address<input name="email" type="email" autoComplete="email" placeholder="you@example.com" required /></label>{!isForgot && <label>Password<input name="password" type="password" autoComplete={isSignup ? 'new-password' : 'current-password'} minLength={isSignup ? 8 : undefined} placeholder={isSignup ? 'At least 8 characters' : 'Your password'} required /></label>}{!isSignup && !isForgot && <a className="forgot-link" href="/forgot-password">Forgot password?</a>}<button className="button button-primary button-full" type="submit">{isForgot ? 'Send reset link' : isSignup ? 'Create account' : 'Sign in'} <ArrowRight size={15} /></button></form>{message && <p className="form-success" role="status">{message}</p>}<p className="auth-switch">{isForgot ? 'Remembered your password? ' : isSignup ? 'Already have an account? ' : 'New to PulseLive? '}<a href={isForgot ? '/login' : isSignup ? '/login' : '/signup'}>{isForgot ? 'Sign in' : isSignup ? 'Sign in' : 'Create an account'}</a></p><span className="secure-note"><ShieldCheck size={13} />Your information stays private and secure.</span></div></section>
+      <section className="auth-area"><div className="auth-card"><a className="auth-back" href="/"><ArrowLeft size={15} /> Back to PulseLive</a><span className="eyebrow">{isForgot ? 'A FRESH START' : isSignup ? 'JOIN THE CROWD' : 'GOOD TO SEE YOU'}</span><h2>{title}</h2><p>{isForgot ? 'Enter your email and we’ll help you get back in.' : isSignup ? 'Create an account to keep your tickets and favorite events together.' : 'Sign in to find your tickets and event schedule.'}</p><form onSubmit={submit}>{isSignup && <><div className="event-account-type" role="group" aria-label="Choose account type"><button className={accountType === 'attendee' ? 'is-selected' : ''} type="button" onClick={() => setAccountType('attendee')}>Attendee</button><button className={accountType === 'organizer' ? 'is-selected' : ''} type="button" onClick={() => setAccountType('organizer')}>Organizer</button></div><label>Full name<input name="name" autoComplete="name" placeholder="Your name" required /></label></>}<label>Email address<input name="email" type="email" autoComplete="email" placeholder="you@example.com" required /></label>{!isForgot && <label>Password<input name="password" type="password" autoComplete={isSignup ? 'new-password' : 'current-password'} minLength={isSignup ? 8 : undefined} placeholder={isSignup ? 'At least 8 characters' : 'Your password'} required /></label>}{!isSignup && !isForgot && <a className="forgot-link" href="/forgot-password">Forgot password?</a>}<button className="button button-primary button-full" type="submit">{isForgot ? 'Send reset link' : isSignup ? 'Create account' : 'Sign in'} <ArrowRight size={15} /></button></form>{message && <p className="form-success" role="status">{message}</p>}<p className="auth-switch">{isForgot ? 'Remembered your password? ' : isSignup ? 'Already have an account? ' : 'New to PulseLive? '}<a href={isForgot ? '/login' : isSignup ? '/login' : '/signup'}>{isForgot ? 'Sign in' : isSignup ? 'Sign in' : 'Create an account'}</a></p><span className="secure-note"><ShieldCheck size={13} />Your information stays private and secure.</span></div></section>
     </main>
   )
 }
@@ -446,24 +487,38 @@ function NotFoundPage() {
   return <><Header /><main className="not-found"><span className="eyebrow">THIS ONE’S A MYSTERY</span><h1>We can’t find that event.</h1><p>It may have moved, sold out, or never made the set list.</p><a className="button button-primary" href="/events">Explore all events <ArrowRight size={15} /></a></main><Footer /></>
 }
 
-function App() {
+function App({ mode = 'local', apiBaseUrl = '' }) {
   const { pathname } = window.location
+  const [eventList, setEventList] = useState(events)
+  useEffect(() => {
+    let active = true
+    if (mode !== 'api') return () => { active = false }
+    fetch(`${apiBaseUrl}/events`).then(async (response) => {
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(result.error || 'Unable to load events.')
+      if (active) setEventList(result.events.map((event) => ({ ...events.find((item) => item.slug === event.slug), ...event })))
+    }).catch(() => {})
+    return () => { active = false }
+  }, [apiBaseUrl, mode])
   const eventMatch = pathname.match(/^\/events\/([^/]+)\/?$/)
   const checkoutMatch = pathname.match(/^\/checkout(?:\/([^/]+))?\/?$/)
-  const detail = eventMatch ? eventBySlug(decodeURIComponent(eventMatch[1])) : null
-  const checkoutEvent = checkoutMatch?.[1] ? eventBySlug(decodeURIComponent(checkoutMatch[1])) : events[0]
+  const detail = eventMatch ? eventList.find((event) => event.slug === decodeURIComponent(eventMatch[1])) : null
+  const checkoutEvent = checkoutMatch?.[1] ? eventList.find((event) => event.slug === decodeURIComponent(checkoutMatch[1])) : eventList[0]
   useEffect(() => {
     document.title = detail ? `${detail.title} — PulseLive` : checkoutMatch ? `Tickets — ${checkoutEvent?.title || 'PulseLive'}` : pageTitles[pathname] || 'PulseLive — Live experiences'
   }, [checkoutEvent, checkoutMatch, detail, pathname])
 
-  if (pathname === '/') return <HomePage />
-  if (pathname === '/events') return <EventsPage />
+  if (pathname === '/admin' || pathname === '/admin/login') return <EventHubAdmin mode={mode} apiBaseUrl={apiBaseUrl} />
+  if (pathname === '/dashboard' && mode === 'api') return <EventHubPortals mode="attendee" apiBaseUrl={apiBaseUrl} />
+  if (pathname === '/organizer/dashboard' && mode === 'api') return <EventHubPortals mode="organizer" apiBaseUrl={apiBaseUrl} />
+  if (pathname === '/') return <HomePage eventList={eventList} />
+  if (pathname === '/events') return <EventsPage eventList={eventList} />
   if (pathname === '/schedule') return <SchedulePage />
   if (eventMatch) return <EventDetailPage event={detail} />
-  if (checkoutMatch) return <CheckoutPage event={checkoutEvent} />
-  if (pathname === '/host') return <HostPage />
+  if (checkoutMatch) return <CheckoutPage event={checkoutEvent} mode={mode} apiBaseUrl={apiBaseUrl} />
+  if (pathname === '/host') return <HostPage mode={mode} apiBaseUrl={apiBaseUrl} />
   if (pathname === '/about') return <AboutPage />
-  if (pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password') return <AuthPage page={pathname.slice(1)} />
+  if (pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password') return <AuthPage page={pathname.slice(1)} mode={mode} apiBaseUrl={apiBaseUrl} />
   return <NotFoundPage />
 }
 

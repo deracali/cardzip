@@ -1,0 +1,47 @@
+.portalPage { min-height:100vh; background:#f7f7fb; color:#26263e; font-family:'Inter',sans-serif; }
+.header { display:flex; height:62px; align-items:center; gap:30px; padding:0 max(calc((100vw - 1180px)/2),24px); border-bottom:1px solid #e8e8f0; background:#fff; }
+.brand { display:flex; align-items:center; gap:8px; color:#38365f; text-decoration:none; }
+.brand > span { display:grid; width:29px; height:29px; place-items:center; border-radius:8px; background:#6257d9; color:#fff; }
+.brand strong { font-family:'Space Grotesk',sans-serif; font-size:17px; }
+.header nav { display:flex; flex:1; gap:20px; }
+.header nav a { color:#73738a; font-size:9px; text-decoration:none; }
+.header nav a:hover { color:#6257d9; }
+.header button { display:flex; align-items:center; gap:6px; padding:7px 9px; border:1px solid #e5e5ee; border-radius:4px; background:#fff; color:#68687e; cursor:pointer; font-size:9px; }
+.portalContent { width:min(calc(100% - 40px),1020px); margin:0 auto; padding:34px 0 30px; }
+.kicker { color:#716bb1; font-size:8px; font-weight:800; letter-spacing:.1em; }
+.portalContent > h1 { margin:7px 0 5px; font-family:'Space Grotesk',sans-serif; font-size:26px; font-weight:600; }
+.portalContent > p { margin:0 0 20px; color:#838397; font-size:10px; }
+.stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-bottom:13px; }
+.stats article { display:grid; min-height:85px; align-content:center; gap:5px; padding:13px; border:1px solid #e7e7ef; border-radius:5px; background:white; }
+.stats small { color:#818196; font-size:8px; }
+.stats strong { font-family:'Space Grotesk',sans-serif; color:#373653; font-size:21px; }
+.panel { margin-bottom:13px; padding:17px; border:1px solid #e7e7ef; border-radius:5px; background:white; }
+.panelHeading { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
+.panelHeading small { color:#86869a; font-size:8px; font-weight:800; letter-spacing:.09em; }
+.panelHeading h2 { margin:4px 0 0; font-family:'Space Grotesk',sans-serif; color:#42425c; font-size:14px; }
+.panelHeading > a { display:flex; align-items:center; gap:5px; color:#6058c2; font-size:9px; text-decoration:none; }
+.studentCourse { display:grid; grid-template-columns:106px 1fr 30px; align-items:center; gap:12px; min-height:84px; padding:10px 0; border-top:1px solid #f0f0f5; }
+.studentCourse > img { width:106px; height:63px; border-radius:4px; background:#eeedf6; object-fit:cover; }
+.studentCourse > div { display:grid; gap:4px; min-width:0; }
+.studentCourse > div small { color:#86869b; font-size:8px; }
+.studentCourse > div b { overflow:hidden; color:#41415b; font-size:9px; text-overflow:ellipsis; white-space:nowrap; }
+.studentCourse > div span { color:#8b8b9e; font-size:8px; }
+.progress { height:4px; overflow:hidden; border-radius:4px; background:#ececf3; }
+.progress i { display:block; height:100%; border-radius:4px; background:#6257d9; }
+.studentCourse > a { display:grid; width:29px; height:29px; place-items:center; border:1px solid #e6e5f1; border-radius:50%; color:#645dc2; }
+.courseRow,.enrollmentRow { display:flex; min-height:49px; align-items:center; gap:10px; border-top:1px solid #f0f0f5; color:#54546b; text-decoration:none; }
+.courseRow > span,.enrollmentRow > span { display:grid; width:29px; height:29px; place-items:center; border-radius:6px; background:#f0efff; color:#635bc8; }
+.courseRow > div,.enrollmentRow > div { flex:1; min-width:0; }
+.courseRow b,.courseRow small,.enrollmentRow b,.enrollmentRow small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.courseRow b,.enrollmentRow b { font-size:9px; }
+.courseRow small,.enrollmentRow small { margin-top:3px; color:#89899d; font-size:8px; }
+.enrollmentRow > strong { color:#5f58bc; font-size:9px; }
+.empty { display:grid; min-height:130px; place-content:center; justify-items:center; gap:8px; color:#86869a; font-size:9px; }
+.empty a { color:#5e57bd; text-decoration:none; }
+.pending,.error { display:flex; gap:9px; margin-bottom:12px; padding:11px 12px; border:1px solid #f0e2c7; border-radius:4px; background:#fff8e9; color:#8a703a; }
+.pending b,.pending small { display:block; }
+.pending b { font-size:9px; }
+.pending small { margin-top:4px; font-size:8px; line-height:1.5; }
+.error { border-color:#eed7d3; background:#fff4f2; color:#984b42; font-size:9px; }
+.loading { display:grid; min-height:100vh; place-content:center; color:#6f6f85; font-size:10px; }
+@media(max-width:600px) { .header { height:55px; gap:15px; padding:0 12px; } .header nav { gap:9px; } .header nav a { font-size:8px; } .header button { font-size:0; } .header button svg { flex:0 0 auto; } .portalContent { width:calc(100% - 26px); padding-top:24px; } .portalContent > h1 { font-size:22px; } .stats { gap:6px; } .stats article { min-height:75px; padding:9px; } .stats small { font-size:7px; } .studentCourse { grid-template-columns:76px 1fr 26px; gap:8px; } .studentCourse > img { width:76px; height:56px; } .studentCourse > div b { white-space:normal; line-height:1.35; } .panel { padding:13px; } }

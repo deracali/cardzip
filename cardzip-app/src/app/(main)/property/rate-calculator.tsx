@@ -17,11 +17,8 @@ export default function RateCalculatorScreen() {
     if (!catalog.length && !catalogLoading) dispatch(fetchGiftCards({ page: 1 }));
   }, [catalog.length, catalogLoading, dispatch]);
 
-  useEffect(() => {
-    if (!selectedCardId && catalog.length) setSelectedCardId(catalog[0].id);
-  }, [catalog, selectedCardId]);
-
-  const selectedCard = catalog.find((card) => card.id === selectedCardId);
+  const activeCardId = selectedCardId || catalog[0]?.id || '';
+  const selectedCard = catalog.find((card) => card.id === activeCardId);
   const selectedRate = selectedCard?.types[0];
   const numericAmount = Number(amount.replace(/,/g, '')) || 0;
   const payout = numericAmount * (selectedRate?.rate ?? 0);
@@ -44,7 +41,7 @@ export default function RateCalculatorScreen() {
             <TouchableOpacity
               key={card.id}
               onPress={() => setSelectedCardId(card.id)}
-              style={[styles.cardChoice, selectedCardId === card.id && styles.selectedCard]}
+              style={[styles.cardChoice, activeCardId === card.id && styles.selectedCard]}
             >
               <Text style={styles.cardName}>{card.name}</Text>
               <Text style={styles.cardRate}>{card.types[0] ? `₦${card.types[0].rate.toLocaleString()} / ${card.types[0].currency}` : 'Rate unavailable'}</Text>

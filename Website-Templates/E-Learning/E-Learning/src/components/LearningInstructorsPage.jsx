@@ -69,7 +69,7 @@ export function InstructorProfilePage({ instructorId }) {
         </section>
         <div className="section-heading profile-courses-heading"><div><span className="section-kicker">Learn with {instructor.name.split(' ')[0]}</span><h2>Courses by this instructor</h2></div></div>
         <div className="course-grid">
-          {courses.map((course) => <article className="profile-course-card" key={course.id}><img src={course.image} alt="" /><span>{course.category}</span><h3>{course.title}</h3><div><span><Star size={13} fill="currentColor" /> {course.rating}</span><strong>${course.price}</strong></div><a href={`/checkout?course=${course.id}`}>Enroll now <ArrowRight size={13} /></a></article>)}
+          {courses.map((course) => <article className="profile-course-card" key={course.id}><img src={course.image} alt="" /><span>{course.category}</span><h3>{course.title}</h3><div><span><Star size={13} fill="currentColor" /> {course.rating}</span><strong>₦{Number(course.price).toLocaleString('en-NG')}</strong></div><a href={`/checkout?course=${course.id}`}>Enroll now <ArrowRight size={13} /></a></article>)}
           {!courses.length && <p className="empty-courses">New courses are coming soon.</p>}
         </div>
       </main>

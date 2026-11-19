@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 
 import { StyleSheet,
   View,
@@ -57,8 +57,8 @@ const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
 const [selectedPaymentMethod, setSelectedPaymentMethod] =
   useState<'wallet' | 'bank' | 'card' | 'crypto'>('wallet');
 
-const paymentSlideAnim = useRef(new Animated.Value(0)).current;
-const paymentOverlayAnim = useRef(new Animated.Value(0)).current;
+const [paymentSlideAnim] = useState(() => new Animated.Value(0));
+const [paymentOverlayAnim] = useState(() => new Animated.Value(0));
 
 
 

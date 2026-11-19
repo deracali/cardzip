@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ArrowDownLeft, ArrowRight, ArrowUpRight, BadgeCheck, Banknote, Bitcoin, Check, ChevronDown, CreditCard, Globe2, LockKeyhole, Mail, Menu, ShieldCheck, Smartphone, Wallet, X, Zap } from 'lucide-react'
+import AdminConsole from './admin/AdminConsole.jsx'
 import './Portal.css'
 
 const nav = [['Exchange', '/'], ['Rates', '/rates'], ['Utility bills', '/bills'], ['Virtual cards', '/virtual-cards'], ['API', '/api']]
@@ -55,7 +56,8 @@ function NotFound() { return <><Header /><main className="shell not-found"><span
 
 export default function App() {
   const path = location.pathname.replace(/\/$/, '') || '/'
-  useEffect(() => { const titles = { '/': 'Digital Asset Hub | Digital money, made simple', '/rates': 'Live exchange rates | Digital Asset Hub', '/bills': 'Pay utility bills | Digital Asset Hub', '/virtual-cards': 'Virtual cards | Digital Asset Hub', '/api': 'Payments API | Digital Asset Hub', '/checkout': 'Secure checkout | Digital Asset Hub', '/login': 'Sign in | Digital Asset Hub', '/signup': 'Create account | Digital Asset Hub' }; document.title = titles[path] || 'Page not found | Digital Asset Hub' }, [path])
+  useEffect(() => { const titles = { '/': 'Digital Asset Hub | Digital money, made simple', '/rates': 'Live exchange rates | Digital Asset Hub', '/bills': 'Pay utility bills | Digital Asset Hub', '/virtual-cards': 'Virtual cards | Digital Asset Hub', '/api': 'Payments API | Digital Asset Hub', '/checkout': 'Secure checkout | Digital Asset Hub', '/login': 'Sign in | Digital Asset Hub', '/signup': 'Create account | Digital Asset Hub', '/admin': 'Admin console | Digital Asset Hub', '/admin/login': 'Admin sign in | Digital Asset Hub' }; document.title = titles[path] || 'Page not found | Digital Asset Hub' }, [path])
+  if (path === '/admin' || path === '/admin/login') return <AdminConsole mode="local" />
   if (path === '/') return <Home />
   if (path === '/rates') return <Rates />
   if (path === '/bills') return <Bills />

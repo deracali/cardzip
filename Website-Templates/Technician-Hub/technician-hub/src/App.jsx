@@ -27,7 +27,14 @@ import {
   X,
   Zap,
 } from 'lucide-react'
+import {
+  clearTechnicianSession,
+  getTechnicianSession,
+  saveTechnicianSession,
+  technicianApi,
+} from './services/technicianApi.js'
 import './App.css'
+import './Portal.css'
 
 const services = [
   {
@@ -179,7 +186,7 @@ function SiteFooter() {
           <p>Local HVAC experts, here to keep your home comfortable through every season.</p>
         </div>
         <div className="footer-column"><strong>Explore</strong><a href="/services">All services</a><a href="/maintenance">Maintenance plans</a><a href="/about">About us</a></div>
-        <div className="footer-column"><strong>Get help</strong><a href="/contact">Contact</a><a href="/portal/login">Customer portal</a><a href="/warranty">Our warranty</a></div>
+        <div className="footer-column"><strong>Get help</strong><a href="/contact">Contact</a><a href="/portal/login">Customer portal</a><a href="/admin/login">Admin portal</a><a href="/buyer-guide.pdf">Buyer guide (PDF)</a><a href="/warranty">Our warranty</a></div>
         <div className="footer-column"><strong>Call anytime</strong><a href="tel:+18005550147">(800) 555-0147</a><span>24/7 emergency dispatch</span></div>
       </div>
       <div className="container footer-bottom">
@@ -212,7 +219,9 @@ function ServiceCard({ service }) {
       <h3>{service.name}</h3>
       <p>{service.description}</p>
       <div className="service-card-bottom"><span>From <strong>{money(service.price)}</strong></span><span className="duration"><Clock3 size={13} /> {service.duration}</span></div>
-      <a className="service-card-link" href={`/services/${service.id}`}>View details <ArrowRight size={14} /></a>
+      <a className="service-card-link" href={service.id === 'maintenance-plan' ? '/membership/checkout' : `/services/${service.id}`}>
+        {service.id === 'maintenance-plan' ? 'Join the plan' : 'View details'} <ArrowRight size={14} />
+      </a>
     </article>
   )
 }
@@ -356,7 +365,7 @@ function ServiceDetailPage({ serviceId }) {
             <div className="detail-benefits"><h2>What to expect</h2><p><Check size={16} /> A certified technician arrives within your selected time window.</p><p><Check size={16} /> We explain the diagnosis and price before starting any work.</p><p><Check size={16} /> Workmanship is backed by our 5-year service warranty.</p></div>
             <a className="text-link" href="/warranty">Read about our warranty <ArrowRight size={14} /></a>
           </div>
-          <aside className="detail-book-card"><span className="eyebrow">Upfront flat-rate pricing</span><div className="detail-price">{money(service.price)}<small>+ tax</small></div><p>Starting price. Final quote is confirmed before work begins.</p><div className="detail-meta"><span><Clock3 size={15} /> {service.duration}</span><span><ShieldCheck size={15} /> EPA-certified pros</span></div><a className="button button-primary full-button" href={`/book?service=${service.id}&estimate=${service.price}`}>Book this service <ArrowRight size={15} /></a><a className="detail-phone" href="tel:+18005550147"><Phone size={14} /> Need help? (800) 555-0147</a></aside>
+          <aside className="detail-book-card"><span className="eyebrow">{service.id === 'maintenance-plan' ? 'Annual membership' : 'Upfront flat-rate pricing'}</span><div className="detail-price">{money(service.price)}{service.id === 'maintenance-plan' ? <small> / year</small> : <small>+ tax</small>}</div><p>{service.id === 'maintenance-plan' ? 'Pay once for a year of scheduled tune-ups and priority scheduling. No automatic renewal.' : 'Starting price. Final quote is confirmed before work begins.'}</p><div className="detail-meta"><span><Clock3 size={15} /> {service.duration}</span><span><ShieldCheck size={15} /> EPA-certified pros</span></div><a className="button button-primary full-button" href={service.id === 'maintenance-plan' ? '/membership/checkout' : `/book?service=${service.id}&estimate=${service.price}`}>{service.id === 'maintenance-plan' ? 'Enroll securely' : 'Book this service'} <ArrowRight size={15} /></a><a className="detail-phone" href="tel:+18005550147"><Phone size={14} /> Need help? (800) 555-0147</a></aside>
         </section>
         <section className="container page-section"><SectionHeading eyebrow="More ways to get comfortable" title="You might also need" link="/services" linkLabel="All services" /><div className="services-grid related-services">{services.filter((item) => item.id !== service.id).slice(0, 3).map((item) => <ServiceCard service={item} key={item.id} />)}</div></section>
       </main>
@@ -366,7 +375,7 @@ function ServiceDetailPage({ serviceId }) {
 
 function BookingPage({ navigate }) {
   const query = new URLSearchParams(window.location.search)
-  const initialService = serviceById[query.get('service')] ? query.get('service') : 'ac-tune-up'
+  const initialService = serviceById[query.get('service')] && query.get('service') !== 'maintenance-plan' ? query.get('service') : 'ac-tune-up'
   const [serviceId, setServiceId] = useState(initialService)
   const [urgency, setUrgency] = useState(query.get('urgency') === 'emergency' ? 'emergency' : 'standard')
   const [formError, setFormError] = useState('')
@@ -410,7 +419,7 @@ function BookingPage({ navigate }) {
             {formError && <p className="form-error" role="alert">{formError}</p>}
             <div className="form-section-title"><span>01</span><div><h2>Your service</h2><p>Choose the help you need.</p></div></div>
             <div className="field-grid">
-              <label className="field-label full-span">Service<select name="service" value={serviceId} onChange={(event) => setServiceId(event.target.value)}>{services.map((item) => <option value={item.id} key={item.id}>{item.name} — from {money(item.price)}</option>)}</select></label>
+              <label className="field-label full-span">Service<select name="service" value={serviceId} onChange={(event) => setServiceId(event.target.value)}>{services.filter((item) => item.id !== 'maintenance-plan').map((item) => <option value={item.id} key={item.id}>{item.name} — from {money(item.price)}</option>)}</select></label>
               <label className="field-label">ZIP code<input name="zip" value={zip} onChange={(event) => setZip(event.target.value.replace(/\D/g, '').slice(0, 5))} inputMode="numeric" autoComplete="postal-code" placeholder="78704" required /></label>
               <label className="field-label">Appointment date<input name="date" type="date" min={minBookingDate} required /></label>
               <label className="field-label full-span">Arrival window<select name="time" defaultValue="" required><option value="" disabled>Select a time window</option><option>8:00 AM – 10:00 AM</option><option>10:00 AM – 12:00 PM</option><option>12:00 PM – 2:00 PM</option><option>2:00 PM – 4:00 PM</option><option>4:00 PM – 6:00 PM</option></select></label>
@@ -464,13 +473,24 @@ function readBooking() {
 function CheckoutPage({ navigate }) {
   const [booking] = useState(readBooking)
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
   const service = booking ? serviceById[booking.serviceId] : null
-  const confirmBooking = () => {
+  const confirmBooking = async () => {
     if (!booking || !service) {
       setError('Your booking details are missing. Please schedule your visit again.')
       return
     }
-    navigate('/booking-confirmation')
+    setSaving(true)
+    setError('')
+    try {
+      const result = await technicianApi.createBooking(booking)
+      window.localStorage.removeItem('polarflow-booking')
+      navigate(`/booking-confirmation?reference=${encodeURIComponent(result.booking.reference)}`)
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'We could not submit your service request.')
+    } finally {
+      setSaving(false)
+    }
   }
   if (!booking || !service) {
     return <SiteShell><main className="empty-state container"><div className="service-icon"><CalendarDays size={22} /></div><h1>No booking to review yet</h1><p>Choose a service and appointment time before continuing to checkout.</p><a className="button button-primary" href="/book">Schedule a service <ArrowRight size={15} /></a></main></SiteShell>
@@ -490,9 +510,9 @@ function CheckoutPage({ navigate }) {
               <div className="payment-panel-icon"><CreditCard size={19} /></div>
               <div><h3>Payment after service</h3><p>Pay your technician once you’ve approved the completed work. We don’t collect card details here.</p><span><LockKeyhole size={13} /> No payment due today</span></div>
             </div>
-            <p className="checkout-disclaimer">Online card payments and appointment dispatch aren’t connected on this demo site. Save your request on this device, then call our team to confirm a real appointment.</p>
+            <p className="checkout-disclaimer">Your appointment request is sent to the PolarFlow team for confirmation. No payment is collected today; the final service price is approved before work begins.</p>
             {error && <p className="form-error" role="alert">{error}</p>}
-            <button type="button" className="button button-primary full-button form-submit" onClick={confirmBooking}>Save request and view next steps <ArrowRight size={16} /></button>
+            <button type="button" className="button button-primary full-button form-submit" disabled={saving} onClick={confirmBooking}>{saving ? 'Sending request…' : 'Send appointment request'} <ArrowRight size={16} /></button>
             <a className="checkout-back" href="/book"><ArrowLeft size={14} /> Back to appointment details</a>
           </div>
           <aside className="booking-summary">
@@ -512,13 +532,15 @@ function CheckoutPage({ navigate }) {
 function BookingConfirmationPage() {
   const [booking] = useState(readBooking)
   const service = booking ? serviceById[booking.serviceId] : null
+  const reference = new URLSearchParams(window.location.search).get('reference')
   return (
     <SiteShell>
       <main className="confirmation-wrap container">
         <div className="confirmation-card">
           <div className="confirmation-icon"><CheckCircle2 size={32} /></div>
-          <span className="eyebrow">{booking ? 'Saved on this device' : 'Appointment request'}</span><h1>{booking ? 'Your request is saved.' : 'No appointment found.'}</h1>
-          <p>{booking ? `Thanks, ${booking.name}. Your request is saved in this browser only; this demo does not send it to a dispatch team. Call (800) 555-0147 to confirm a real appointment.` : 'Schedule a service to see your appointment confirmation here.'}</p>
+          <span className="eyebrow">{reference ? 'Request sent' : booking ? 'Appointment request' : 'Appointment request'}</span><h1>{reference ? 'Your request is with our team.' : booking ? 'Your request is ready.' : 'No appointment found.'}</h1>
+          <p>{reference ? 'A PolarFlow team member will contact you to confirm your arrival window and service details. No service payment was collected online.' : booking ? `Thanks, ${booking.name}. Review your appointment details and submit the request to PolarFlow.` : 'Schedule a service to see your appointment confirmation here.'}</p>
+          {reference && <p className="request-reference">Request number <strong>{reference}</strong></p>}
           {booking && service && <div className="confirmation-details"><span>Request number<strong>{booking.reference}</strong></span><span>Service<strong>{service.name}</strong></span><span>Appointment<strong>{booking.date} · {booking.time}</strong></span><span>Estimate<strong>{money(booking.estimate)} + tax</strong></span></div>}
           <div className="confirmation-actions"><a className="button button-primary" href="tel:+18005550147"><Phone size={15} /> Call to confirm appointment</a><a className="text-link" href="/portal/login">Customer portal</a><a className="text-link" href="/">Back to home</a></div>
         </div>
@@ -527,8 +549,30 @@ function BookingConfirmationPage() {
   )
 }
 
-function PortalPage({ isSignUp }) {
+function PortalPage({ isSignUp, navigate }) {
   const [notice, setNotice] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [formError, setFormError] = useState('')
+  const submitPortalForm = async (event) => {
+    event.preventDefault()
+    setSubmitting(true)
+    setFormError('')
+    setNotice('')
+    const values = new FormData(event.currentTarget)
+    const body = Object.fromEntries(values.entries())
+    try {
+      const result = isSignUp
+        ? await technicianApi.signupClient(body)
+        : await technicianApi.login({ email: body.email, password: body.password, expectedRole: 'client' })
+      saveTechnicianSession(result)
+      const requestedPath = new URLSearchParams(window.location.search).get('next')
+      navigate(requestedPath?.startsWith('/') ? requestedPath : '/portal/dashboard')
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Your account request could not be completed.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
   return (
     <main className="portal-page">
       <section className="portal-promo">
@@ -548,14 +592,15 @@ function PortalPage({ isSignUp }) {
           <span className="service-icon"><Snowflake size={20} /></span>
           <h2>{isSignUp ? 'Create your account' : 'HVAC portal sign in'}</h2>
           <p className="portal-subtitle">{isSignUp ? 'Book faster, track history, and manage your home’s comfort.' : 'View upcoming service appointments and maintenance logs.'}</p>
-          <form onSubmit={(event) => { event.preventDefault(); setNotice(isSignUp ? 'Account creation is not connected yet. Please call us and we’ll help you get set up.' : 'Portal sign-in is not connected yet. Please call (800) 555-0147 for help.') }}>
-            {isSignUp && <label className="field-label">Full name<input autoComplete="name" placeholder="Jordan Mitchell" required /></label>}
-            {isSignUp && <label className="field-label">Phone number<input type="tel" autoComplete="tel" placeholder="(512) 555-0100" required /></label>}
-            <label className="field-label">Email address<input type="email" autoComplete="email" placeholder="you@example.com" required /></label>
-            <label className="field-label">Password<input type="password" autoComplete={isSignUp ? 'new-password' : 'current-password'} minLength={8} placeholder="Enter your password" required /></label>
+          <form onSubmit={submitPortalForm}>
+            {isSignUp && <label className="field-label">Full name<input name="name" autoComplete="name" placeholder="Jordan Mitchell" required /></label>}
+            {isSignUp && <label className="field-label">Phone number<input name="phone" type="tel" autoComplete="tel" placeholder="(512) 555-0100" required /></label>}
+            <label className="field-label">Email address<input name="email" type="email" autoComplete="email" placeholder="you@example.com" required /></label>
+            <label className="field-label">Password<input name="password" type="password" autoComplete={isSignUp ? 'new-password' : 'current-password'} minLength={10} placeholder="Enter your password" required /></label>
             <div className="portal-form-options">{!isSignUp && <label><input type="checkbox" defaultChecked /> Remember me</label>}{!isSignUp && <a href="/portal/reset-password">Forgot password?</a>}</div>
-            <button className="button button-primary full-button" type="submit">{isSignUp ? 'Create account' : 'Sign in'} <ArrowRight size={15} /></button>
+            <button className="button button-primary full-button" type="submit" disabled={submitting}>{submitting ? 'Please wait…' : isSignUp ? 'Create account' : 'Sign in'} <ArrowRight size={15} /></button>
           </form>
+          {formError && <p className="form-error" role="alert">{formError}</p>}
           {notice && <p className="form-notice" role="status">{notice}</p>}
           {!isSignUp && <><div className="portal-divider"><span>or continue with</span></div><div className="social-buttons"><button type="button" onClick={() => setNotice('Google sign-in is not configured for this site.')}>G&nbsp; Google</button><button type="button" onClick={() => setNotice('Apple sign-in is not configured for this site.')}>&nbsp; Apple</button></div></>}
           <p className="portal-switch">{isSignUp ? 'Already have an account?' : 'Need a customer account?'} <a href={isSignUp ? '/portal/login' : '/portal/signup'}>{isSignUp ? 'Sign in' : 'Sign up'}</a></p>
@@ -603,7 +648,7 @@ const information = {
     sections: [
       ['Estimates', 'Online estimates are starting prices and may exclude tax or additional work. Your technician will review the final price with you before beginning.'],
       ['Appointments', 'Online requests are not confirmed until a PolarFlow team member contacts you. We’ll do our best to accommodate your preferred time.'],
-      ['Payment', 'Payment is due after completed service. This website demo does not process payments or collect credit card information.'],
+      ['Payment', 'Service invoices are paid after completed work. The separate Home Comfort Plan membership is paid online through a secure hosted checkout.'],
     ],
   },
   warranty: {
@@ -623,7 +668,7 @@ const information = {
     sections: [
       ['Two seasonal tune-ups', 'Get a spring cooling check and a fall heating check to help catch small issues before they become bigger repairs.'],
       ['Priority scheduling', 'Plan members get priority when booking routine service and access to our 24/7 emergency dispatch team.'],
-      ['Member estimate', 'Home Comfort Plan membership starts at $199 per year. We’ll confirm the plan details with you before enrollment.'],
+      ['Member price', 'Home Comfort Plan membership is $199 for one year. Payment is collected at enrollment; the plan does not automatically renew.'],
     ],
   },
 }
@@ -636,7 +681,7 @@ function InformationPage({ page }) {
       <main><PageIntro eyebrow={content.eyebrow} title={content.title} description={content.description} />
         <section className="container info-content">
           {content.sections.map(([title, text]) => <article className="info-card" key={title}><span className="service-icon"><Check size={18} /></span><div><h2>{title}</h2><p>{text}</p></div></article>)}
-          {page === 'maintenance' && <a className="button button-primary" href="/book?service=maintenance-plan&estimate=199">Ask about a maintenance plan <ArrowRight size={15} /></a>}
+          {page === 'maintenance' && <a className="button button-primary" href="/membership/checkout">Enroll in the Home Comfort Plan <ArrowRight size={15} /></a>}
           {page === 'contact' && <div className="contact-actions"><a className="button button-primary" href="tel:+18005550147"><Phone size={15} /> Call (800) 555-0147</a></div>}
           {page !== 'privacy' && page !== 'terms' && page !== 'warranty' && page !== 'contact' && <a className="button button-primary" href="/services">Explore our services <ArrowRight size={15} /></a>}
         </section>
@@ -654,6 +699,279 @@ function NotFoundPage() {
   return <SiteShell><main className="empty-state container"><div className="service-icon"><Wrench size={22} /></div><span className="eyebrow">404 · Page not found</span><h1>Looks like this page needs a tune-up.</h1><p>The page may have moved. Head home or browse our HVAC services.</p><div className="not-found-actions"><a className="button button-primary" href="/">Back to home <ArrowRight size={15} /></a><a className="text-link" href="/services">Browse services</a></div></main></SiteShell>
 }
 
+function MembershipCheckoutPage() {
+  const [session] = useState(getTechnicianSession)
+  const [providers, setProviders] = useState([])
+  const [membership, setMembership] = useState(null)
+  const [error, setError] = useState('')
+  const [notice] = useState(() => new URLSearchParams(window.location.search).get('cancelled') === '1' ? 'Checkout was cancelled. No payment was taken.' : '')
+  const [loading, setLoading] = useState(() => session?.user.role === 'client')
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (!session || session.user.role !== 'client') return
+
+    let active = true
+    const search = new URLSearchParams(window.location.search)
+    Promise.all([
+      technicianApi.membershipProviders(),
+      (async () => {
+        const provider = search.get('provider')
+        const membershipId = search.get('membershipId')
+        const reference = provider === 'stripe' ? search.get('session_id') : search.get('reference')
+        if (!provider || !membershipId || !reference) return null
+        return technicianApi.verifyMembership({ provider, membershipId, reference })
+      })(),
+    ]).then(([available, verification]) => {
+      if (!active) return
+      setProviders(available.providers || [])
+      if (verification?.verified) setMembership(verification.membership)
+      else if (verification) setError('Payment is not confirmed yet. Refresh this page in a moment or contact support.')
+    }).catch((requestError) => {
+      if (active) setError(requestError instanceof Error ? requestError.message : 'Membership checkout could not be loaded.')
+    }).finally(() => {
+      if (active) setLoading(false)
+    })
+    return () => { active = false }
+  }, [session])
+
+  const startCheckout = async (provider) => {
+    setSubmitting(true)
+    setError('')
+    try {
+      const checkout = await technicianApi.createMembershipCheckout(provider)
+      window.location.assign(checkout.redirectUrl)
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Secure checkout could not be started.')
+      setSubmitting(false)
+    }
+  }
+
+  const accessError = session && session.user.role !== 'client' ? 'Administrator accounts cannot enroll in the customer membership.' : ''
+  return (
+    <SiteShell>
+      <main>
+        <PageIntro eyebrow="Secure membership checkout" title="A year of comfort, covered." description="Enroll in the Home Comfort Plan with two seasonal tune-ups and priority scheduling." />
+        <section className="container membership-checkout-layout">
+          <div className="form-card membership-checkout-card">
+            <span className="eyebrow">Annual Home Comfort Plan</span>
+            <h2>$199 <small>/ year</small></h2>
+            <ul className="membership-benefits">
+              <li><Check size={16} /> Two seasonal heating and cooling tune-ups</li>
+              <li><Check size={16} /> Priority scheduling for routine service</li>
+              <li><Check size={16} /> 24/7 emergency dispatch access</li>
+              <li><Check size={16} /> One year of membership from confirmed payment</li>
+            </ul>
+            <p className="checkout-disclaimer">One-time annual payment. This plan does not automatically renew. Online service appointments are still paid after completed work.</p>
+            {!session && <p className="membership-auth-note">Sign in or create a customer account to continue. <a href="/portal/login?next=%2Fmembership%2Fcheckout">Sign in</a> · <a href="/portal/signup?next=%2Fmembership%2Fcheckout">Create account</a></p>}
+            {membership && <p className="form-notice" role="status">Payment verified. Your membership is active until {new Date(membership.expiresAt).toLocaleDateString()}.</p>}
+            {notice && <p className="form-notice" role="status">{notice}</p>}
+            {(error || accessError) && <p className="form-error" role="alert">{error || accessError}</p>}
+            {session?.user.role === 'client' && !membership && (
+              <div className="membership-provider-actions">
+                {loading && <p>Checking available payment methods…</p>}
+                {!loading && providers.length === 0 && <p>Secure payment methods are not configured yet. Contact the site administrator to finish payment setup.</p>}
+                {providers.includes('paystack') && <button className="button button-primary full-button" type="button" disabled={submitting} onClick={() => startCheckout('paystack')}>Pay with Paystack <ArrowRight size={15} /></button>}
+                {providers.includes('stripe') && <button className="button button-secondary full-button" type="button" disabled={submitting} onClick={() => startCheckout('stripe')}>Pay with Stripe <ArrowRight size={15} /></button>}
+              </div>
+            )}
+            {loading && <p className="form-footnote">Loading membership checkout…</p>}
+            <a className="checkout-back" href="/maintenance"><ArrowLeft size={14} /> Back to membership details</a>
+          </div>
+          <aside className="booking-summary">
+            <span className="eyebrow">Payment details</span>
+            <h2>Home Comfort Plan</h2>
+            <div className="summary-row"><span>Annual membership</span><strong>$199.00</strong></div>
+            <div className="summary-row"><span>Renewal</span><strong>Manual, not automatic</strong></div>
+            <div className="summary-total"><span>Due today</span><strong>$199.00</strong></div>
+            <p className="summary-note"><LockKeyhole size={15} /> Card details are entered only on the payment provider’s hosted checkout.</p>
+          </aside>
+        </section>
+      </main>
+    </SiteShell>
+  )
+}
+
+function PortalDashboardPage() {
+  const [session] = useState(getTechnicianSession)
+  const [dashboard, setDashboard] = useState(null)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(() => session?.user.role === 'client')
+
+  useEffect(() => {
+    if (!session || session.user.role !== 'client') return
+    technicianApi.clientDashboard()
+      .then(setDashboard)
+      .catch((requestError) => setError(requestError instanceof Error ? requestError.message : 'Customer dashboard could not be loaded.'))
+      .finally(() => setLoading(false))
+  }, [session])
+  const accessError = session && session.user.role !== 'client' ? 'This account does not have customer portal access.' : ''
+
+  const signOut = () => {
+    clearTechnicianSession()
+    window.location.assign('/portal/login')
+  }
+
+  return (
+    <SiteShell>
+      <main className="container account-dashboard">
+        <div className="dashboard-heading">
+          <div><span className="eyebrow">Customer portal</span><h1>Your home comfort, at a glance.</h1><p>{session?.user.name || 'Sign in to view your account.'}</p></div>
+          {session && <button className="button button-secondary" type="button" onClick={signOut}>Sign out</button>}
+        </div>
+        {!session && <div className="form-card"><p>Please sign in to access your private customer dashboard.</p><a className="button button-primary" href="/portal/login">Customer sign in <ArrowRight size={15} /></a></div>}
+        {(error || accessError) && <p className="form-error" role="alert">{error || accessError} <a href="/portal/login">Sign in to the customer portal</a></p>}
+        {loading && <p>Loading your account…</p>}
+        {dashboard && <>
+          <div className="dashboard-metrics">
+            <article><span>Service requests</span><strong>{dashboard.bookings.length}</strong></article>
+            <article><span>Plan membership</span><strong>{dashboard.activeMembership ? 'Active' : 'Not enrolled'}</strong></article>
+          </div>
+          <div className="dashboard-grid">
+            <section className="form-card">
+              <div className="dashboard-section-heading"><h2>Service requests</h2><a className="text-link" href="/book">Schedule a technician <ArrowRight size={14} /></a></div>
+              {dashboard.bookings.length === 0 ? <p className="small-muted">Your submitted requests will appear here.</p> : dashboard.bookings.map((booking) => (
+                <article className="dashboard-record" key={booking.id}>
+                  <div><strong>{serviceById[booking.serviceId]?.name || booking.serviceId}</strong><span>{booking.date} · {booking.time} · {booking.zip}</span><small>{booking.reference}</small></div>
+                  <span className={`status-pill status-${booking.status}`}>{booking.status}</span>
+                </article>
+              ))}
+            </section>
+            <section className="form-card">
+              <div className="dashboard-section-heading"><h2>Membership</h2><a className="text-link" href="/membership/checkout">View plan <ArrowRight size={14} /></a></div>
+              {dashboard.activeMembership ? <div className="dashboard-record"><div><strong>Home Comfort Plan</strong><span>Active through {new Date(dashboard.activeMembership.expiresAt).toLocaleDateString()}</span></div><span className="status-pill status-active">active</span></div> : <><p className="small-muted">Enroll for two seasonal tune-ups and priority scheduling.</p><a className="button button-primary" href="/membership/checkout">Join for $199 / year</a></>}
+            </section>
+          </div>
+        </>}
+      </main>
+    </SiteShell>
+  )
+}
+
+function AdminAuthPage({ isSignUp, navigate }) {
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  const submit = async (event) => {
+    event.preventDefault()
+    setSubmitting(true)
+    setError('')
+    const values = Object.fromEntries(new FormData(event.currentTarget).entries())
+    try {
+      const result = isSignUp
+        ? await technicianApi.signupAdmin(values)
+        : await technicianApi.login({ email: values.email, password: values.password, expectedRole: 'admin' })
+      saveTechnicianSession(result)
+      navigate('/admin/dashboard')
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Administrator access could not be verified.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <main className="simple-form-page container">
+      <div className="form-card admin-auth-card">
+        <a className="text-link" href="/"><ArrowLeft size={14} /> Back to PolarFlow</a>
+        <span className="service-icon"><ShieldCheck size={20} /></span>
+        <h1>{isSignUp ? 'Create administrator account' : 'Administrator sign in'}</h1>
+        <p>Administrator access is limited to accounts registered with the private invitation code.</p>
+        <form onSubmit={submit}>
+          {isSignUp && <label className="field-label">Full name<input name="name" autoComplete="name" required /></label>}
+          {isSignUp && <label className="field-label">Invitation code<input name="inviteCode" type="password" autoComplete="off" required /></label>}
+          <label className="field-label">Email address<input name="email" type="email" autoComplete="username" required /></label>
+          <label className="field-label">Password<input name="password" type="password" autoComplete={isSignUp ? 'new-password' : 'current-password'} minLength={10} required /></label>
+          {error && <p className="form-error" role="alert">{error}</p>}
+          <button className="button button-primary full-button" type="submit" disabled={submitting}>{submitting ? 'Please wait…' : isSignUp ? 'Create administrator' : 'Sign in'} <ArrowRight size={15} /></button>
+        </form>
+        <p className="portal-switch">{isSignUp ? 'Already have an admin account?' : 'Need the private registration page?'} <a href={isSignUp ? '/admin/login' : '/admin/signup'}>{isSignUp ? 'Sign in' : 'Register'}</a></p>
+      </div>
+    </main>
+  )
+}
+
+function AdminDashboardPage() {
+  const [session] = useState(getTechnicianSession)
+  const [dashboard, setDashboard] = useState(null)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(() => session?.user.role === 'admin')
+  const [updating, setUpdating] = useState('')
+
+  useEffect(() => {
+    if (!session || session.user.role !== 'admin') return
+    technicianApi.adminDashboard()
+      .then(setDashboard)
+      .catch((requestError) => setError(requestError instanceof Error ? requestError.message : 'Administrator dashboard could not be loaded.'))
+      .finally(() => setLoading(false))
+  }, [session])
+  const accessError = session && session.user.role !== 'admin' ? 'Administrator access is required to view this dashboard.' : ''
+
+  const signOut = () => {
+    clearTechnicianSession()
+    window.location.assign('/admin/login')
+  }
+
+  const updateStatus = async (id, status) => {
+    setUpdating(id)
+    setError('')
+    try {
+      await technicianApi.updateBooking(id, status)
+      const result = await technicianApi.adminDashboard()
+      setDashboard(result)
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Booking status could not be updated.')
+    } finally {
+      setUpdating('')
+    }
+  }
+
+  return (
+    <main className="container account-dashboard">
+      <div className="dashboard-heading">
+        <div><span className="eyebrow">PolarFlow operations</span><h1>Administrator dashboard</h1><p>{session?.user.name || 'Sign in with an administrator account.'}</p></div>
+        {session && <button className="button button-secondary" type="button" onClick={signOut}>Sign out</button>}
+      </div>
+      {!session && <div className="form-card"><p>Please sign in with an administrator account to continue.</p><a className="button button-primary" href="/admin/login">Administrator sign in <ArrowRight size={15} /></a></div>}
+      {(error || accessError) && <p className="form-error" role="alert">{error || accessError} {!session && <a href="/admin/login">Sign in</a>}</p>}
+      {loading && <p>Loading operations dashboard…</p>}
+      {dashboard && <>
+        <div className="dashboard-metrics">
+          <article><span>Customers</span><strong>{dashboard.metrics.customers}</strong></article>
+          <article><span>Total requests</span><strong>{dashboard.metrics.bookings}</strong></article>
+          <article><span>Awaiting confirmation</span><strong>{dashboard.metrics.requestedBookings}</strong></article>
+          <article><span>Active memberships</span><strong>{dashboard.metrics.activeMemberships}</strong></article>
+        </div>
+        <section className="form-card dashboard-table-card">
+          <div className="dashboard-section-heading"><h2>Service requests</h2><span>{dashboard.bookings.length} total</span></div>
+          {dashboard.bookings.length === 0 ? <p className="small-muted">New service requests will appear here.</p> : <div className="dashboard-table-wrap"><table className="dashboard-table">
+            <thead><tr><th>Customer</th><th>Service</th><th>Appointment</th><th>Estimate</th><th>Status</th></tr></thead>
+            <tbody>{dashboard.bookings.map((booking) => <tr key={booking.id}>
+              <td><strong>{booking.name}</strong><small>{booking.email} · {booking.phone}</small><small>{booking.reference}</small></td>
+              <td>{serviceById[booking.serviceId]?.name || booking.serviceId}<small>{booking.zip}</small></td>
+              <td>{booking.date}<small>{booking.time}</small></td>
+              <td>{money(booking.estimate)}</td>
+              <td><select aria-label={`Update status for ${booking.reference}`} value={booking.status} disabled={updating === booking.id} onChange={(event) => updateStatus(booking.id, event.target.value)}>
+                <option value="requested">Requested</option><option value="confirmed">Confirmed</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option>
+              </select></td>
+            </tr>)}</tbody>
+          </table></div>}
+        </section>
+        <section className="form-card dashboard-table-card">
+          <div className="dashboard-section-heading"><h2>Membership payments</h2><span>{dashboard.memberships.length} orders</span></div>
+          {dashboard.memberships.length === 0 ? <p className="small-muted">Confirmed membership orders will appear here.</p> : <div className="dashboard-table-wrap"><table className="dashboard-table">
+            <thead><tr><th>Plan</th><th>Customer</th><th>Payment</th><th>Status</th><th>Expires</th></tr></thead>
+            <tbody>{dashboard.memberships.map((item) => {
+              const customer = dashboard.customers.find((user) => user.id === item.userId)
+              return <tr key={item.id}><td>{item.planName}<small>{money(item.amount / 100)} {item.currency}</small></td><td>{customer?.name || 'Customer'}<small>{customer?.email || ''}</small></td><td>{item.provider}<small>{item.externalReference || 'Payment pending'}</small></td><td><span className={`status-pill status-${item.status}`}>{item.status}</span></td><td>{item.expiresAt ? new Date(item.expiresAt).toLocaleDateString() : '—'}</td></tr>
+            })}</tbody>
+          </table></div>}
+        </section>
+      </>}
+    </main>
+  )
+}
+
 export default function App() {
   const { route, navigate, handleLinkClick } = useNavigation()
   const [pathname, search = ''] = route.split('?')
@@ -665,8 +983,13 @@ export default function App() {
   else if (pathname === '/book') page = <BookingPage key={route} navigate={navigate} />
   else if (pathname === '/checkout') page = <CheckoutPage navigate={navigate} />
   else if (pathname === '/booking-confirmation') page = <BookingConfirmationPage />
-  else if (pathname === '/portal/login') page = <PortalPage isSignUp={false} />
-  else if (pathname === '/portal/signup') page = <PortalPage isSignUp />
+  else if (pathname === '/portal/login') page = <PortalPage isSignUp={false} navigate={navigate} />
+  else if (pathname === '/portal/signup') page = <PortalPage isSignUp navigate={navigate} />
+  else if (pathname === '/portal/dashboard') page = <PortalDashboardPage />
+  else if (pathname === '/membership/checkout') page = <MembershipCheckoutPage />
+  else if (pathname === '/admin/login') page = <AdminAuthPage isSignUp={false} navigate={navigate} />
+  else if (pathname === '/admin/signup') page = <AdminAuthPage isSignUp navigate={navigate} />
+  else if (pathname === '/admin/dashboard') page = <AdminDashboardPage />
   else if (pathname === '/portal/reset-password') page = <ResetPasswordPage />
   else if (information[pathname.slice(1)]) page = <InformationPage page={pathname.slice(1)} />
   else page = <NotFoundPage />

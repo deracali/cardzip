@@ -32,14 +32,22 @@ export default function DigitalAssetsScreen() {
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [assets, setAssets] = useState<StoreProduct[]>([]);
+  const [visibleAssetCount, setVisibleAssetCount] = useState(12);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     let active = true;
     Promise.all([getStorefrontPreferences(), Promise.resolve(searchTerm)])
       .then(([preferences, term]) => fetchDigitalProductsApi(filter, term, preferences))
-      .then((items) => { if (active) setAssets(items); })
+      .then((result) => {
+        if (!active) return;
+        setAssets(result.items);
+        setHasNextPage(result.pagination.hasNextPage);
+      })
       .catch((requestError: unknown) => {
         if (active) setError(requestError instanceof Error ? requestError.message : 'Could not load digital products.');
       })
@@ -49,10 +57,37 @@ export default function DigitalAssetsScreen() {
 
   const submitSearch = async () => {
     const term = searchInput.trim().slice(0, 100);
-    await recordStoreSearch(term);
+    void recordStoreSearch(term).catch((requestError: unknown) => console.error('Could not record digital product search:', requestError));
     setError('');
     setLoading(true);
+    setVisibleAssetCount(12);
+    setCurrentPage(1);
+    setHasNextPage(false);
     setSearchTerm(term);
+  };
+
+  const showMoreAssets = async () => {
+    if (visibleAssetCount < assets.length) {
+      setVisibleAssetCount((count) => count + 12);
+      return;
+    }
+    if (!hasNextPage || loadingMore) return;
+
+    setLoadingMore(true);
+    setError('');
+    try {
+      const preferences = await getStorefrontPreferences();
+      const nextPage = currentPage + 1;
+      const result = await fetchDigitalProductsApi(filter, searchTerm, preferences, nextPage);
+      setAssets((current) => [...current, ...result.items]);
+      setCurrentPage(nextPage);
+      setHasNextPage(result.pagination.hasNextPage);
+      setVisibleAssetCount((count) => count + 12);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Could not load more digital products.');
+    } finally {
+      setLoadingMore(false);
+    }
   };
 
   return (
@@ -72,15 +107,30 @@ export default function DigitalAssetsScreen() {
         </View>
         <View style={styles.filters}>
           {filters.map((item) => (
-            <TouchableOpacity key={item.key} style={[styles.filter, filter === item.key && styles.filterActive]} onPress={() => { if (filter !== item.key) { setLoading(true); setError(''); setFilter(item.key); } }} accessibilityState={{ selected: filter === item.key }}>
+            <TouchableOpacity key={item.key} style={[styles.filter, filter === item.key && styles.filterActive]} onPress={() => { if (filter !== item.key) { setLoading(true); setError(''); setVisibleAssetCount(12); setCurrentPage(1); setHasNextPage(false); setFilter(item.key); } }} accessibilityState={{ selected: filter === item.key }}>
               <Text style={[styles.filterText, filter === item.key && styles.filterTextActive]}>{item.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
         <View style={styles.searchRow}>
-          <TextInput style={styles.searchInput} value={searchInput} onChangeText={setSearchInput} placeholder="Search templates, apps, or categories" placeholderTextColor="#82918B" maxLength={100} returnKeyType="search" onSubmitEditing={() => void submitSearch()} />
-          <TouchableOpacity style={styles.searchButton} onPress={() => void submitSearch()}><Feather name="search" size={15} color="#FFFFFF" /><Text style={styles.searchButtonText}>Search</Text></TouchableOpacity>
-          {searchTerm ? <TouchableOpacity style={styles.clearSearchButton} onPress={() => { setSearchInput(''); setSearchTerm(''); setLoading(true); setError(''); }}><Text style={styles.clearSearchText}>Clear</Text></TouchableOpacity> : null}
+          <TextInput
+            style={styles.searchInput}
+            value={searchInput}
+            onChangeText={setSearchInput}
+            placeholder="Search templates, apps, or categories"
+            placeholderTextColor="#82918B"
+            maxLength={100}
+            returnKeyType="search"
+            onSubmitEditing={() => void submitSearch()}
+            accessibilityLabel="Search websites, apps, or categories"
+          />
+          <View style={styles.searchActions}>
+            <TouchableOpacity style={styles.searchButton} onPress={() => void submitSearch()} accessibilityRole="button">
+              <Feather name="search" size={16} color="#FFFFFF" />
+              <Text style={styles.searchButtonText}>Search</Text>
+            </TouchableOpacity>
+            {searchTerm ? <TouchableOpacity style={styles.clearSearchButton} onPress={() => { setSearchInput(''); setVisibleAssetCount(12); setCurrentPage(1); setHasNextPage(false); setSearchTerm(''); setLoading(true); setError(''); }}><Text style={styles.clearSearchText}>Clear</Text></TouchableOpacity> : null}
+          </View>
         </View>
         {loading ? <ActivityIndicator style={styles.loader} color="#087A4C" /> : null}
         {error ? <Text style={styles.error} accessibilityRole="alert">{error}</Text> : null}
@@ -92,7 +142,7 @@ export default function DigitalAssetsScreen() {
           </View>
         ) : null}
         <View style={styles.grid}>
-          {assets.map((asset) => {
+          {assets.slice(0, visibleAssetCount).map((asset) => {
             const id = String(asset._id || asset.id);
             const price = startingPrice(asset);
             return (
@@ -114,6 +164,11 @@ export default function DigitalAssetsScreen() {
             );
           })}
         </View>
+        {visibleAssetCount < assets.length || hasNextPage ? (
+          <TouchableOpacity style={styles.showMoreButton} onPress={() => void showMoreAssets()} activeOpacity={0.8} disabled={loadingMore}>
+            <Text style={styles.showMoreText}>{loadingMore ? 'Loading…' : visibleAssetCount < assets.length ? 'Show more products' : 'Load more products'}</Text>
+          </TouchableOpacity>
+        ) : null}
       </ScrollView>
       <MarketBottomTab activeTab="Store" />
     </SafeAreaView>
@@ -138,18 +193,21 @@ const styles = StyleSheet.create({
   filterActive: { backgroundColor: '#087A4C', borderColor: '#087A4C' },
   filterText: { color: '#586A65', fontSize: 10, fontWeight: '700' },
   filterTextActive: { color: '#FFFFFF' },
-  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: -5, marginBottom: 17 },
-  searchInput: { minWidth: 0, minHeight: 42, flex: 1, paddingHorizontal: 11, borderRadius: 10, borderWidth: 1, borderColor: '#DDE7E3', backgroundColor: '#FFFFFF', color: '#183044', fontSize: 10 },
-  searchButton: { minHeight: 42, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 9, backgroundColor: '#087A4C' },
-  searchButtonText: { color: '#FFFFFF', fontSize: 10, fontWeight: '800' },
-  clearSearchButton: { paddingHorizontal: 5 },
-  clearSearchText: { color: '#526A60', fontSize: 10, fontWeight: '800' },
+  searchRow: { alignItems: 'stretch', gap: 8, marginTop: -5, marginBottom: 17 },
+  searchInput: { width: '100%', minHeight: 48, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: '#DDE7E3', backgroundColor: '#FFFFFF', color: '#183044', fontSize: 14 },
+  searchActions: { minHeight: 44, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 8 },
+  searchButton: { minHeight: 44, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 9, backgroundColor: '#087A4C' },
+  searchButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
+  clearSearchButton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 9, backgroundColor: '#E8F1EB' },
+  clearSearchText: { color: '#526A60', fontSize: 12, fontWeight: '800' },
   loader: { marginVertical: 28 },
   error: { marginVertical: 16, color: '#A12E3B', fontSize: 12 },
   empty: { minHeight: 165, padding: 20, alignItems: 'center', justifyContent: 'center', gap: 9, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E1E9E6', borderRadius: 16 },
   emptyTitle: { color: '#1B2E3C', fontSize: 14, fontWeight: '800' },
   emptyCopy: { color: '#68777F', fontSize: 11, textAlign: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  showMoreButton: { minHeight: 42, marginTop: 16, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: '#E7F5EC' },
+  showMoreText: { color: '#087A4C', fontSize: 11, fontWeight: '800' },
   card: { width: '48%', overflow: 'hidden', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E3EAE8', borderRadius: 15 },
   cardImage: { position: 'relative', height: 128, alignItems: 'center', justifyContent: 'center', backgroundColor: '#153547' },
   image: { width: '100%', height: '100%' },

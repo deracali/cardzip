@@ -46,11 +46,6 @@ export default function ProfileScreen() {
   const chooseProfileImage = async () => {
     if (!token || profileImageLoading) return;
     setProfileImageError('');
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      setProfileImageError('Allow photo-library access to choose your profile image.');
-      return;
-    }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,

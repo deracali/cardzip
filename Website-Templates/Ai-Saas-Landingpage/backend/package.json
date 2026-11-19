@@ -1,0 +1,14 @@
+{
+  "name": "nexara-ai-backend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "mongodb": "^7.9.0"
+  }
+}

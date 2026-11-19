@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, Search, Star } from 'lucide-react'
 import { learningCourses } from '../data/learningData'
 import { CourseCard, LearningFooter, LearningHeader } from './LearningLandingPage'
@@ -6,15 +6,29 @@ import './LearningExtraPages.css'
 
 const categories = ['All fields', ...new Set(learningCourses.map((course) => course.category))]
 
-function LearningCatalogPage() {
+function LearningCatalogPage({ mode = 'local', apiBaseUrl = '' }) {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('All fields')
   const [sortBy, setSortBy] = useState('popular')
   const [favorites, setFavorites] = useState([])
+  const [courseList, setCourseList] = useState(learningCourses)
+
+  useEffect(() => {
+    let active = true
+    if (mode !== 'api') return () => { active = false }
+    fetch(`${apiBaseUrl}/courses`)
+      .then(async (response) => {
+        const result = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(result.error || 'Unable to load courses.')
+        if (active) setCourseList(result.courses.map((course) => ({ ...learningCourses.find((item) => item.id === course.id), ...course })))
+      })
+      .catch(() => {})
+    return () => { active = false }
+  }, [apiBaseUrl, mode])
 
   const visibleCourses = useMemo(() => {
     const search = query.trim().toLowerCase()
-    const results = learningCourses.filter((course) => {
+    const results = courseList.filter((course) => {
       const matchesCategory = category === 'All fields' || course.category === category
       const matchesQuery = !search || `${course.title} ${course.category} ${course.instructor}`.toLowerCase().includes(search)
       return matchesCategory && matchesQuery
@@ -25,7 +39,7 @@ function LearningCatalogPage() {
       if (sortBy === 'price-high') return second.price - first.price
       return Number(second.rating) - Number(first.rating)
     })
-  }, [category, query, sortBy])
+  }, [category, courseList, query, sortBy])
 
   function toggleFavorite(courseId) {
     setFavorites((current) => current.includes(courseId)

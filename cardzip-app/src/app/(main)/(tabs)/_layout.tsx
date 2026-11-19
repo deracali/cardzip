@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, useWindowDimensions, Platform } from 'react-native';
 import { Tabs, usePathname } from 'expo-router';
 import { Octicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import useFeatureSettings from '../../../hooks/useFeatureSettings';
 
 type CustomTabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>>[0];
@@ -19,6 +20,7 @@ const Colors = {
  */
 function CustomTabBar({ state, descriptors, navigation, esimEnabled }: CustomTabBarProps & { esimEnabled: boolean }) {
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const pathname = usePathname();
 
   if (pathname.endsWith('/store') || pathname.includes('/market/')) return null;
@@ -26,6 +28,7 @@ function CustomTabBar({ state, descriptors, navigation, esimEnabled }: CustomTab
   // Dynamic sizing based on screen width
   const scale = (size: number) => (width / 375) * size;
   const isTablet = width > 600;
+  const sideInset = isTablet ? Math.max(scale(24), (width - 560) / 2) : scale(16);
 
   const barHeight = scale(isTablet ? 68 : 58);
   const iconSize = scale(isTablet ? 20 : 22);
@@ -80,7 +83,9 @@ function CustomTabBar({ state, descriptors, navigation, esimEnabled }: CustomTab
         styles.container,
         {
           height: barHeight,
-          bottom: Platform.OS === 'ios' ? scale(28) : scale(16),
+          left: sideInset,
+          right: sideInset,
+          bottom: insets.bottom + (Platform.OS === 'ios' ? scale(12) : scale(20)),
           borderRadius: barHeight / 2,
         },
       ]}
@@ -152,8 +157,6 @@ export default function TabsLayout() {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    left: 20,
-    right: 20,
     backgroundColor: Colors.bgDark,
     flexDirection: 'row',
     alignItems: 'center',
@@ -184,6 +187,7 @@ const styles = StyleSheet.create({
   },
   activePill: {
     backgroundColor: Colors.activeGreen,
+    borderRadius: 16,
   },
   label: {
     fontFamily: 'Poppins',

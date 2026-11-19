@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator,
   Image,
 Modal,
@@ -44,6 +44,7 @@ export default function TradeCardsScreen() {
   const [cardPickerVisible, setCardPickerVisible] = useState(false);
   const [failedCardLogos, setFailedCardLogos] = useState<Set<string>>(() => new Set());
   const [tradeSpeed, setTradeSpeed] = useState<'fast' | 'slow'>(params.tradeSpeed === 'slow' ? 'slow' : 'fast');
+  const [lastTradeSpeedParam, setLastTradeSpeedParam] = useState(params.tradeSpeed);
   const [pickedImages, setPickedImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
   const [feedback, setFeedback] = useState<{ title: string; message: string; tone?: 'success' | 'error' | 'info' } | null>(null);
   const sliderViewRef = useRef<View>(null);
@@ -51,6 +52,21 @@ export default function TradeCardsScreen() {
   const selectedCard = catalog[activeCardIndex]
     ?? catalog.find((card) => card.id === params.cardId || card.name === params.cardName);
   const selectedRate = selectedCard?.types[0];
+  const routeSelectionKey = `${params.cardId ?? ''}:${params.cardName ?? ''}`;
+  const [appliedRouteSelectionKey, setAppliedRouteSelectionKey] = useState('');
+  const requestedCardIndex = catalog.findIndex((card) => card.id === params.cardId || card.name === params.cardName);
+
+  if (requestedCardIndex >= 0 && routeSelectionKey !== appliedRouteSelectionKey) {
+    setAppliedRouteSelectionKey(routeSelectionKey);
+    setActiveCardIndex(requestedCardIndex);
+  }
+
+  if (params.tradeSpeed !== lastTradeSpeedParam) {
+    setLastTradeSpeedParam(params.tradeSpeed);
+    if (params.tradeSpeed === 'fast' || params.tradeSpeed === 'slow') {
+      setTradeSpeed(params.tradeSpeed);
+    }
+  }
 
   useEffect(() => {
     if (catalog.length === 0 && !catalogLoading) dispatch(fetchGiftCards({ page: 1 }));
@@ -59,7 +75,6 @@ export default function TradeCardsScreen() {
   useEffect(() => {
     const selectedIndex = catalog.findIndex((card) => card.id === params.cardId || card.name === params.cardName);
     if (selectedIndex >= 0) {
-      setActiveCardIndex(selectedIndex);
       requestAnimationFrame(() => {
         cardCarouselRef.current?.scrollTo({
           x: selectedIndex * cardCarouselInterval,
@@ -68,10 +83,6 @@ export default function TradeCardsScreen() {
       });
     }
   }, [cardCarouselInterval, catalog, params.cardId, params.cardName]);
-
-  useEffect(() => {
-    if (params.tradeSpeed === 'fast' || params.tradeSpeed === 'slow') setTradeSpeed(params.tradeSpeed);
-  }, [params.tradeSpeed]);
 
   const ratePerDollar = selectedRate?.rate ?? 0;
   const calculatedNaira = usdAmount * ratePerDollar;
@@ -83,17 +94,17 @@ export default function TradeCardsScreen() {
   );
   const sliderWidth = useRef(0);
   const sliderLeft = useRef(0);
-  const updateAmountFromPosition = (positionX: number) => {
+  const updateAmountFromPosition = useCallback((positionX: number) => {
     if (sliderWidth.current <= 0) return;
     const progress = Math.max(0, Math.min(1, positionX / sliderWidth.current));
     setUsdAmount(Math.round(minVal + progress * (maxVal - minVal)));
-  };
-  const sliderResponder = useRef(PanResponder.create({
+  }, [maxVal, minVal]);
+  const sliderResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > Math.abs(gesture.dy),
     onPanResponderGrant: (_, gesture) => updateAmountFromPosition(gesture.x0 - sliderLeft.current),
     onPanResponderMove: (_, gesture) => updateAmountFromPosition(gesture.moveX - sliderLeft.current),
-  })).current;
+  }), [updateAmountFromPosition]);
 
   const handleSubmitTrade = async () => {
     if (!selectedCard || !selectedRate) {

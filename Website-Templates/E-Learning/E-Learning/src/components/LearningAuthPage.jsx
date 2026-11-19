@@ -14,7 +14,7 @@ function Brand() {
   )
 }
 
-function LearningAuthPage({ mode }) {
+function LearningAuthPage({ mode, storageMode = 'local', apiBaseUrl = '' }) {
   const isSignup = mode === 'signup'
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -32,10 +32,34 @@ function LearningAuthPage({ mode }) {
     ? ['Weak', 'Fair', 'Good', 'Strong'][Math.max(0, strength - 1)]
     : 'Use 8+ characters with numbers & symbols'
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
     if (isSignup && password !== confirmPassword) {
       setNotice('Your passwords do not match. Please check and try again.')
+      return
+    }
+    if (storageMode === 'api') {
+      const form = new FormData(event.currentTarget)
+      try {
+        const response = await fetch(`${apiBaseUrl}/auth/${isSignup ? 'register' : 'login'}`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            ...(isSignup ? { name: form.get('name'), accountType } : {}),
+            email: form.get('email'),
+            password,
+          }),
+        })
+        const result = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(result.error || 'Unable to access your Skillora account.')
+        const next = new URLSearchParams(window.location.search).get('next')
+        const nextPath = next?.startsWith('/') && !next.startsWith('//') ? next : null
+        const destination = result.user.role === 'admin' ? '/admin' : result.user.role === 'instructor' ? '/instructor/dashboard' : '/dashboard'
+        window.location.replace(nextPath || destination)
+      } catch (error) {
+        setNotice(error.message)
+      }
       return
     }
     setNotice('This demo form is ready to connect to your account service.')

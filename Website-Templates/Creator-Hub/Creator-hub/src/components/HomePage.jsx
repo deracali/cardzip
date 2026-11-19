@@ -2,9 +2,11 @@ import CreatorFeatures from './CreatorFeatures'
 import CreatorHero from './CreatorHero'
 import CreatorPricing from './CreatorPricing'
 import CreatorStories from './CreatorStories'
+import CreatorHomeMore from './CreatorHomeMore'
 import CreatorHubFooter from './CreatorHubFooter'
 import CreatorHubHeader from './CreatorHubHeader'
 import './CreatorHub.css'
+import './CreatorPages.css'
 
 function HomePage() {
   return (
@@ -15,6 +17,7 @@ function HomePage() {
         <CreatorFeatures />
         <CreatorStories />
         <CreatorPricing />
+        <CreatorHomeMore />
       </main>
       <CreatorHubFooter />
     </div>

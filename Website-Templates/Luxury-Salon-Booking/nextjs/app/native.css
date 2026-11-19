@@ -1,0 +1,50 @@
+.salon-home {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.salon-nav {
+  flex-wrap: wrap;
+}
+
+.salon-nav-actions {
+  gap: 16px;
+}
+
+.salon-nav-actions > a:not(.salon-button) {
+  color: #44372c;
+  font-size: 11px;
+  text-decoration: none;
+}
+
+.salon-footer-column > span {
+  color: inherit;
+  font-size: inherit;
+}
+
+.salon-account-page {
+  color: #2e2016;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.salon-account-card > a.salon-button {
+  text-decoration: none;
+}
+
+@media (max-width: 760px) {
+  .salon-header-inner {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+    padding: 14px 0;
+  }
+
+  .salon-nav {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 12px 18px;
+  }
+
+  .salon-nav-actions {
+    margin-left: 0;
+  }
+}

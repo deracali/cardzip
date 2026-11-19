@@ -1,16 +1,31 @@
-# React + Vite
+# FixFlow Pro
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+FixFlow Pro is a home-service booking experience for plumbing, HVAC, and repair requests. Vite and Next.js each have their own frontend pages and components and connect to the same separate Express/MongoDB API.
 
-Currently, two official plugins are available:
+See the [buyer guide](../docs/buyer-guide.md) for the full overview, setup steps, role access, and demo limitations.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Run locally
 
-## React Compiler
+```sh
+npm install
+npm run dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Set `VITE_HOME_SERVICE_API_URL` in `.env.local` if the API is not at `http://localhost:5200/api`. Start MongoDB and the API first; see [`../backend/README.md`](../backend/README.md).
 
-## Expanding the ESLint configuration
+## Portals
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- `/book-now` - authenticated client service request
+- `/login` and `/signup` - client access
+- `/dashboard` - client appointment history
+- `/admin/login` - administrator sign-in
+- `/admin` - administrator service-request workspace
+
+The UI may redirect users for convenience, but the API independently enforces client and administrator roles for protected requests.
+
+## Checks
+
+```sh
+npm run lint
+npm run build
+```

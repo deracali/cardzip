@@ -13,9 +13,15 @@ import DemoPage from './pages/demo-page';
 import FormPage from './pages/form-page';
 import CheckoutPage from './pages/checkout-page';
 import LegalPage from './pages/legal-page';
+import ClientDashboardPage from './pages/client-dashboard-page';
+import DynamicContentPage from './components/DynamicContentPage';
+import { useEffect, useState } from 'react';
+import { NexaraApiError, nexaraApi, type NexaraPage } from './services/nexara-api';
 
 export default function App() {
   const path = useCurrentPath();
+  const [dynamicPage, setDynamicPage] = useState<NexaraPage | null>(null);
+  const [dynamicError, setDynamicError] = useState('');
   const pages: Record<string, ReactNode> = {
     "/": <HomePage />,
     "/features": <FeaturesPage />,
@@ -28,9 +34,28 @@ export default function App() {
     "/login": <FormPage mode="login" />,
     "/contact": <FormPage mode="contact" />,
     "/checkout": <CheckoutPage />,
+    "/dashboard": <ClientDashboardPage />,
     "/privacy": <LegalPage type="privacy" />,
     "/terms": <LegalPage type="terms" />,
   };
 
-  return <div className="app-shell"><Header />{pages[path] ?? <NotFoundPage />}</div>;
+  useEffect(() => {
+    let active = true;
+    setDynamicPage(null);
+    setDynamicError('');
+    if (['/dashboard', '/login', '/signup', '/contact', '/checkout'].includes(path)) {
+      return () => { active = false; };
+    }
+
+    nexaraApi.publicPage(path)
+      .then(({ data }) => { if (active) setDynamicPage(data); })
+      .catch((requestError: unknown) => {
+        if (!active || (requestError instanceof NexaraApiError && requestError.status === 404)) return;
+        if (active) setDynamicError(requestError instanceof Error ? requestError.message : 'Dynamic website content could not be loaded.');
+      });
+
+    return () => { active = false; };
+  }, [path]);
+
+  return <div className="app-shell"><Header />{dynamicError && <p className="cms-api-warning" role="status">{dynamicError}</p>}{dynamicPage ? <DynamicContentPage page={dynamicPage} /> : pages[path] ?? <NotFoundPage />}</div>;
 }

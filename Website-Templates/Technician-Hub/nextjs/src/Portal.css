@@ -1,0 +1,277 @@
+.account-dashboard {
+  min-height: 65vh;
+  padding-top: 42px;
+  padding-bottom: 60px;
+}
+
+.dashboard-heading,
+.dashboard-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.dashboard-heading {
+  margin-bottom: 28px;
+}
+
+.dashboard-heading h1 {
+  margin: 8px 0;
+  font-size: clamp(30px, 4vw, 46px);
+  letter-spacing: -0.045em;
+}
+
+.dashboard-heading p,
+.small-muted {
+  color: var(--muted);
+}
+
+.dashboard-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.dashboard-metrics article,
+.dashboard-grid > .form-card,
+.dashboard-table-card,
+.membership-checkout-card,
+.admin-auth-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.dashboard-metrics article {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+}
+
+.dashboard-metrics span,
+.dashboard-section-heading > span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.dashboard-metrics strong {
+  font-size: 26px;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  gap: 18px;
+}
+
+.dashboard-grid > .form-card,
+.dashboard-table-card,
+.membership-checkout-card {
+  padding: 22px;
+}
+
+.dashboard-section-heading {
+  margin-bottom: 16px;
+}
+
+.dashboard-section-heading h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.dashboard-record {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 15px 0;
+  border-top: 1px solid var(--line);
+}
+
+.dashboard-record > div {
+  display: grid;
+  gap: 5px;
+}
+
+.dashboard-record strong {
+  font-size: 13px;
+}
+
+.dashboard-record span,
+.dashboard-record small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 8px;
+  border: 1px solid rgba(6, 191, 210, 0.22);
+  border-radius: 999px;
+  color: var(--cyan-soft) !important;
+  background: rgba(6, 191, 210, 0.08);
+  font-size: 10px !important;
+  text-transform: capitalize;
+}
+
+.status-active,
+.status-confirmed,
+.status-completed {
+  border-color: rgba(46, 213, 162, 0.25);
+  color: var(--green) !important;
+  background: rgba(46, 213, 162, 0.08);
+}
+
+.status-cancelled,
+.status-failed {
+  border-color: rgba(248, 113, 113, 0.26);
+  color: #fca5a5 !important;
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.dashboard-table-card {
+  margin-top: 18px;
+}
+
+.dashboard-table-wrap {
+  overflow-x: auto;
+}
+
+.dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 12px;
+}
+
+.dashboard-table th,
+.dashboard-table td {
+  padding: 13px 10px;
+  border-top: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.dashboard-table th {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.dashboard-table td small {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.dashboard-table select {
+  min-width: 115px;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--text);
+  background: var(--panel-deep);
+}
+
+.membership-checkout-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  align-items: start;
+  gap: 20px;
+  padding-top: 28px;
+  padding-bottom: 55px;
+}
+
+.membership-checkout-card h2 {
+  margin: 10px 0 18px;
+  font-size: 38px;
+}
+
+.membership-checkout-card h2 small {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.membership-benefits {
+  display: grid;
+  gap: 13px;
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+
+.membership-benefits li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: #d3d9e5;
+  font-size: 13px;
+}
+
+.membership-benefits svg {
+  flex: 0 0 auto;
+  color: var(--green);
+}
+
+.membership-provider-actions {
+  display: grid;
+  gap: 10px;
+  margin: 18px 0;
+}
+
+.membership-provider-actions > p,
+.membership-auth-note {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.membership-auth-note a {
+  color: var(--cyan-soft);
+  font-weight: 700;
+}
+
+.admin-auth-card {
+  display: grid;
+  gap: 13px;
+  max-width: 470px;
+  margin: 0 auto;
+}
+
+.admin-auth-card h1 {
+  margin: 0;
+}
+
+.admin-auth-card > .text-link {
+  margin-bottom: 8px;
+}
+
+.request-reference {
+  display: inline-flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+@media (max-width: 720px) {
+  .dashboard-grid,
+  .membership-checkout-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-heading {
+    align-items: flex-start;
+  }
+}

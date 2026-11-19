@@ -1,0 +1,14 @@
+.product-related-section { margin: 28px 0 50px; }
+.product-related-heading { display: grid; justify-items: start; gap: 5px; margin-bottom: 14px; }
+.product-related-heading h2 { margin: 0; color: #14231c; font-size: 23px; }
+.product-related-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; }
+.product-related-card { display: grid; gap: 6px; overflow: hidden; padding: 0 0 12px; border: 1px solid #e0e7e2; border-radius: 8px; background: white; color: #14231c; text-align: left; cursor: pointer; }
+.product-related-card:hover { border-color: #a9ceb8; box-shadow: 0 8px 24px rgba(20, 35, 28, .08); }
+.product-related-image { display: block; height: 150px; background: #edf2ee; }
+.product-related-image img { width: 100%; height: 100%; object-fit: cover; }
+.product-related-category, .product-related-card > strong, .product-related-price { margin: 0 10px; }
+.product-related-category { color: #07804e; font-size: 9px; font-weight: 850; text-transform: uppercase; }
+.product-related-card > strong { font-size: 13px; }
+.product-related-price { color: #087a4c; font-size: 13px; font-weight: 800; }
+.product-related-empty { color: #718077; font-size: 12px; }
+@media (max-width: 720px) { .product-related-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .product-related-image { height: 125px; } }

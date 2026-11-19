@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { ArrowDownLeft, ArrowRight, ArrowUpRight, BadgeCheck, Banknote, Bitcoin, Check, ChevronDown, CreditCard, Globe2, LockKeyhole, Mail, Menu, ShieldCheck, Smartphone, Wallet, X, Zap } from 'lucide-react'
 import './Portal.css'
 
-const nav = [['Exchange', '/'], ['Rates', '/rates'], ['Utility bills', '/bills'], ['Virtual cards', '/virtual-cards'], ['API', '/api']]
+const nav = [['Exchange', '/'], ['Rates', '/rates'], ['Utility bills', '/bills'], ['Virtual cards', '/virtual-cards'], ['My account', '/dashboard'], ['API', '/api']]
 const assets = [{ name: 'Amazon US gift card', rate: 0.84 }, { name: 'Apple gift card', rate: 0.79 }, { name: 'Bitcoin', rate: 61250 }, { name: 'USDT', rate: 1 }]
 const billTypes = [['Airtime & data', Smartphone, ['MTN', 'Airtel', 'Glo', '9mobile']], ['Electricity', Zap, ['Ikeja Electric', 'Eko Disco', 'Kano Electric', 'AEDC Abuja']], ['Cable TV', Globe2, ['DStv', 'GOtv', 'StarTimes']], ['Internet', Globe2, ['Spectranet', 'Smile', 'Swift Networks']]]
 

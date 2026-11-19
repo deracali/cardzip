@@ -2,14 +2,15 @@
 
 import dynamic from "next/dynamic";
 
-const LegacyApp = dynamic(() => import("../src/App.jsx"), {
+const SkilloraApp = dynamic(() => import("../../E-Learning/src/App.jsx"), {
   ssr: false,
 });
 
 export default function AppClient() {
+  const apiBaseUrl = process.env.NEXT_PUBLIC_SKILLORA_API_URL || "http://localhost:5300/api";
   return (
     <div className="min-h-screen">
-      <LegacyApp />
+      <SkilloraApp mode="api" apiBaseUrl={apiBaseUrl} />
     </div>
   );
 }

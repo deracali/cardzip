@@ -1,16 +1,62 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowLeft, ArrowRight, Check, ChevronRight } from 'lucide-react'
 import { learningCourses } from '../data/learningData'
 import { LearningFooter, LearningHeader } from './LearningLandingPage'
 import './LearningExtraPages.css'
 
-function LearningLessonPage({ courseId }) {
-  const course = learningCourses.find((item) => item.id === courseId)
+function LearningLessonPage({ courseId, mode = 'local', apiBaseUrl = '' }) {
+  const [course, setCourse] = useState(learningCourses.find((item) => item.id === courseId))
+  const [enrollmentId, setEnrollmentId] = useState('')
   const [selectedLesson, setSelectedLesson] = useState(0)
   const [completedLessons, setCompletedLessons] = useState([])
   const [previewSelected, setPreviewSelected] = useState(false)
   const [activeTab, setActiveTab] = useState('Overview')
   const [notes, setNotes] = useState('')
+  const [loading, setLoading] = useState(mode === 'api')
+
+  useEffect(() => {
+    let active = true
+    if (mode === 'local') {
+      try {
+        const saved = JSON.parse(localStorage.getItem('skillora-progress-demo') || '[]')
+        const progress = saved.find((item) => item.courseId === courseId)
+        if (active && progress) setCompletedLessons(progress.completedLessons || [])
+      } catch {}
+      return () => { active = false }
+    }
+    async function load() {
+      try {
+        const [courseResponse, enrollmentResponse] = await Promise.all([
+          fetch(`${apiBaseUrl}/courses/${encodeURIComponent(courseId)}`),
+          fetch(`${apiBaseUrl}/student/enrollments`, { credentials: 'include' }),
+        ])
+        const courseResult = await courseResponse.json().catch(() => ({}))
+        const enrollmentResult = await enrollmentResponse.json().catch(() => ({}))
+        if (enrollmentResponse.status === 401) {
+          const next = encodeURIComponent(window.location.pathname)
+          window.location.replace(`/login?next=${next}`)
+          return
+        }
+        if (!courseResponse.ok || !enrollmentResponse.ok) throw new Error(courseResult.error || enrollmentResult.error || 'Unable to load this lesson.')
+        const matched = (enrollmentResult.enrollments || []).find((item) => item.courseId === courseId)
+        if (!matched) {
+          window.location.replace(`/checkout?course=${encodeURIComponent(courseId)}`)
+          return
+        }
+        if (active) {
+          setCourse({ ...learningCourses.find((item) => item.id === courseId), ...courseResult.course })
+          setEnrollmentId(matched._id)
+          setCompletedLessons(matched.completedLessons || [])
+        }
+      } catch {
+        if (active) setCourse(null)
+      } finally { if (active) setLoading(false) }
+    }
+    void load()
+    return () => { active = false }
+  }, [apiBaseUrl, courseId, mode])
+
+  if (loading) return <div className="extra-page">Loading your course…</div>
 
   if (!course) {
     return (
@@ -30,8 +76,26 @@ function LearningLessonPage({ courseId }) {
   const activeTitle = lessons[selectedLesson]?.title || lessons[0].title
   const completed = completedLessons.includes(selectedLesson)
 
-  function markComplete() {
-    setCompletedLessons((current) => current.includes(selectedLesson) ? current : [...current, selectedLesson])
+  async function markComplete() {
+    const updated = completedLessons.includes(selectedLesson) ? completedLessons : [...completedLessons, selectedLesson]
+    if (mode === 'api' && enrollmentId) {
+      const response = await fetch(`${apiBaseUrl}/student/enrollments/${encodeURIComponent(enrollmentId)}/progress`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ completedLessons: updated }),
+      })
+      if (!response.ok) return
+    } else if (mode === 'local') {
+      const progress = JSON.parse(localStorage.getItem('skillora-progress-demo') || '[]')
+      const index = progress.findIndex((item) => item.courseId === courseId)
+      if (index >= 0) {
+        const total = lessons.length
+        progress[index] = { ...progress[index], completedLessons: updated, progress: total ? Math.round((updated.length / total) * 100) : 0 }
+        localStorage.setItem('skillora-progress-demo', JSON.stringify(progress))
+      }
+    }
+    setCompletedLessons(updated)
   }
 
   return (

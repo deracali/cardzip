@@ -1,26 +1,24 @@
-# PolarFlow HVAC
+# PolarFlow HVAC — Vite
 
-A responsive HVAC service website built with React and Vite. It includes a service catalog, per-service detail pages, an interactive estimate, a booking request and review flow, customer portal screens, and information pages.
+Vite storefront for PolarFlow HVAC. The React interface connects to the separate MVC API in `../backend`.
 
 ## Run locally
 
-```sh
-npm install
-npm run dev
-```
+1. Start the API. Follow `../backend/README.md` and configure its `.env`.
+2. Copy `.env.example` to `.env.local` and set `VITE_TECHNICIAN_API_URL` if the API is not at `http://localhost:5000/api`.
+3. Run `npm install` and `npm run dev`.
 
-Use `npm run build` to create a production build and `npm run lint` to run ESLint.
+Run `npm run lint` and `npm run build` to validate the frontend.
 
-## Routes
+## Main routes
 
-- `/` — Home and estimate calculator
+- `/` — Service overview and estimate calculator
 - `/services` and `/services/:serviceId` — Service catalog and details
-- `/maintenance`, `/about`, `/contact`, `/privacy`, `/terms`, `/warranty` — Information pages
-- `/book` — Appointment request
-- `/checkout` — Request review and payment information
-- `/booking-confirmation` — Saved request details
-- `/portal/login`, `/portal/signup`, `/portal/reset-password` — Customer portal screens
+- `/maintenance` and `/membership/checkout` — Annual membership information and secure hosted checkout
+- `/book`, `/checkout`, `/booking-confirmation` — Appointment request and confirmation
+- `/portal/login`, `/portal/signup`, `/portal/dashboard` — Customer account and private dashboard
+- `/admin/login`, `/admin/signup`, `/admin/dashboard` — Invitation-only administrator access and operations dashboard
 
-## Integration notes
+Appointment requests are persisted by the API; no payment is collected for service visits. The Home Comfort Plan is $199 for one year, paid once through Stripe or Paystack when configured. It does not automatically renew.
 
-Appointment details are stored in the current browser only. The portal forms, dispatch notifications, and online card payments are interface previews and are not connected to backend services. The checkout does not collect card data or charge a payment method; connect a secure payment provider and appointment API before using this site for real bookings.
+See `../docs/BUYER-GUIDE.md` and the generated PDF for setup, API, payment, deployment and buyer information.

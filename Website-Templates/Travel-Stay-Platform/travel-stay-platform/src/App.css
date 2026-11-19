@@ -399,3 +399,20 @@ img { display: block; max-width: 100%; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
+
+.payment-result { display: grid; min-height: 65vh; place-items: center; padding-top: 40px; padding-bottom: 60px; }
+.payment-result-card { width: min(100%, 560px); padding: 38px; border: 1px solid var(--line); border-radius: 14px; background: #fff; box-shadow: 0 16px 48px rgba(26, 51, 46, .08); }
+.payment-result-card > svg { display: block; margin-bottom: 16px; color: var(--teal); }
+.payment-result-card > .payment-spinner { animation: payment-spin 1s linear infinite; }
+.payment-result-eyebrow { color: var(--teal); font-size: 10px; font-weight: 750; letter-spacing: .08em; }
+.payment-result-card h1 { margin: 12px 0; color: var(--ink); font-size: clamp(24px, 4vw, 34px); letter-spacing: -.04em; }
+.payment-result-card > p { color: var(--muted); font-size: 14px; line-height: 1.65; }
+.payment-result-note { display: flex; align-items: flex-start; gap: 7px; padding: 12px; border-radius: 8px; background: #eff8f5; color: var(--ink) !important; font-size: 12px !important; }
+.payment-result-note svg { flex: 0 0 auto; color: var(--teal); }
+.payment-result-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+.payment-result-actions .button, .payment-result-actions .outline-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+@keyframes payment-spin { to { transform: rotate(360deg); } }
+@media (max-width: 520px) {
+  .payment-result-card { padding: 25px; }
+  .payment-result-actions { align-items: stretch; flex-direction: column; }
+}

@@ -6,7 +6,6 @@ import {
   Check,
   ChevronDown,
   Clock3,
-  CreditCard,
   Fuel,
   Heart,
   KeyRound,
@@ -20,77 +19,13 @@ import {
   Truck,
   UserRound,
   Users,
-  WalletCards,
   X,
   Zap,
 } from 'lucide-react'
 import './RentalApp.css'
-
-const vehicles = [
-  {
-    name: 'Apex Cruiser X5',
-    category: 'SUV',
-    label: 'Most rented',
-    price: 89,
-    details: '2024 · Hybrid · 4-person ready',
-    seats: 5,
-    fuel: 'Auto',
-    image: 'photo-1492144534655-ae79c964c9d7',
-  },
-  {
-    name: 'City Swift Sedan',
-    category: 'Sedan',
-    label: '',
-    price: 64,
-    details: '2024 · Hybrid · Airport ready',
-    seats: 5,
-    fuel: 'Auto',
-    image: 'photo-1552519507-da3b142c6e3d',
-  },
-  {
-    name: 'Metro Cargo Van',
-    category: 'Cargo Van',
-    label: 'Logistics pick',
-    price: 98,
-    details: '2024 · Hybrid · Airport ready',
-    seats: 2,
-    fuel: 'Auto',
-    image: 'photo-1566933293069-b55c7f326dd4',
-  },
-  {
-    name: 'Volt Urban EV',
-    category: 'Sedan',
-    label: 'Electric',
-    price: 62,
-    details: '2024 · Hybrid · Airport ready',
-    seats: 5,
-    fuel: 'Electric',
-    image: 'photo-1503376780353-7e6692767b70',
-  },
-  {
-    name: 'Trailblazer 4x4',
-    category: 'SUV',
-    label: '',
-    price: 112,
-    details: '2024 · Hybrid · 4-person ready',
-    seats: 5,
-    fuel: 'Auto',
-    image: 'photo-1519641471654-76ce0107ad1b',
-  },
-  {
-    name: 'Hauler Max XL',
-    category: 'Cargo Van',
-    label: 'High volume',
-    price: 124,
-    details: '2024 · Hybrid · Airport ready',
-    seats: 3,
-    fuel: 'Auto',
-    image: 'photo-1601584115197-04ecc0da31d7',
-  },
-]
-
-const imageUrl = (id, width = 1000) =>
-  `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${width}&q=85`
+import { imageUrl } from './data/vehicles'
+import { createBooking, getCurrentUser, getFleet, registerRenter, signIn } from './services/rentalStore'
+import { AdminLoginPage, AdminPortal, ClientDashboard } from './pages/AccountPages'
 
 function Logo({ light = false }) {
   return (
@@ -103,6 +38,7 @@ function Logo({ light = false }) {
 
 function Header({ compact = false }) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const currentUser = getCurrentUser()
 
   return (
     <header className="site-header">
@@ -124,7 +60,7 @@ function Header({ compact = false }) {
           <a href="/#locations">Locations</a>
           <div className="nav-actions">
             <button type="button" className="currency-button"><span className="globe-mark">◎</span> USD $ <ChevronDown size={11} /></button>
-            <a className="help-link" href="/#support">Help</a>
+            <a className="help-link" href={currentUser ? '/dashboard' : '/login'}>{currentUser ? 'My account' : 'Sign in'}</a>
             <a className="button button-small" href="/fleet">Reserve Vehicle <ArrowRight size={13} /></a>
           </div>
         </nav>
@@ -267,7 +203,7 @@ function HomePage() {
   )
 }
 
-function VehicleGrid({ vehiclesToShow = vehicles, limit }) {
+function VehicleGrid({ vehiclesToShow = getFleet(), limit }) {
   const visibleVehicles = limit ? vehiclesToShow.slice(0, limit) : vehiclesToShow
   return <div className="vehicle-grid">{visibleVehicles.map((vehicle) => <VehicleCard key={vehicle.name} vehicle={vehicle} />)}</div>
 }
@@ -275,7 +211,8 @@ function VehicleGrid({ vehiclesToShow = vehicles, limit }) {
 function FleetPage() {
   const [filter, setFilter] = useState('All')
   const filters = ['All', 'Sedan', 'SUV', 'Cargo Van']
-  const filteredVehicles = filter === 'All' ? vehicles : vehicles.filter((vehicle) => vehicle.category === filter)
+  const inventory = getFleet()
+  const filteredVehicles = filter === 'All' ? inventory : inventory.filter((vehicle) => vehicle.category === filter)
 
   return (
     <>
@@ -297,7 +234,8 @@ function FleetPage() {
 
 function getBookingDetails() {
   const params = new URLSearchParams(window.location.search)
-  const vehicle = vehicles.find((item) => item.name === params.get('vehicle')) ?? vehicles[0]
+  const inventory = getFleet()
+  const vehicle = inventory.find((item) => item.name === params.get('vehicle')) ?? inventory[0]
   const start = params.get('start') || ''
   const end = params.get('end') || ''
   const days = start && end
@@ -406,12 +344,23 @@ function CheckoutPage() {
   const subtotal = booking.vehicle.price * booking.days
   const protection = booking.coverage ? 18 * booking.days : 0
   const total = subtotal + protection
-  const [paymentMethod, setPaymentMethod] = useState('card')
   const [confirmed, setConfirmed] = useState(false)
+  const [notice, setNotice] = useState('')
 
   function confirmBooking(event) {
     event.preventDefault()
-    setConfirmed(true)
+    setNotice('')
+    try {
+      const currentUser = getCurrentUser()
+      if (!currentUser || currentUser.role !== 'renter') {
+        throw new Error('Sign in with a renter account before confirming your reservation.')
+      }
+      const form = new FormData(event.currentTarget)
+      createBooking({ ...booking, protection, total }, { name: form.get('name') || currentUser.name })
+      setConfirmed(true)
+    } catch (error) {
+      setNotice(error.message)
+    }
   }
 
   return (
@@ -420,17 +369,17 @@ function CheckoutPage() {
       <main className="booking-page">
         <a className="checkout-back" href={`/book?vehicle=${encodeURIComponent(booking.vehicle.name)}&pickup=${encodeURIComponent(booking.pickup)}&dropoff=${encodeURIComponent(booking.dropoff)}&start=${encodeURIComponent(booking.start)}&end=${encodeURIComponent(booking.end)}&coverage=${booking.coverage}`}><ArrowLeft size={14} /> Back to booking</a>
         <div className="checkout-heading">
-          <div><p className="section-kicker">YOUR TRIP · STEP 2 OF 2</p><h1>{confirmed ? 'You’re all set!' : 'Payment checkout'}</h1><p>{confirmed ? 'Your demo reservation is confirmed.' : 'Add your details to complete your reservation.'}</p></div>
-          <span className="secure-label"><LockKeyhole size={14} /> Secure checkout</span>
+          <div><p className="section-kicker">YOUR TRIP · STEP 2 OF 2</p><h1>{confirmed ? 'You’re all set!' : 'Review your reservation'}</h1><p>{confirmed ? 'Your reservation request has been sent to Voltigo.' : 'Confirm your trip details to send a reservation request.'}</p></div>
+          <span className="secure-label"><LockKeyhole size={14} /> No payment collected</span>
         </div>
         {confirmed ? (
           <section className="confirmation-card panel-card" role="status">
             <span className="confirmation-icon"><Check size={27} /></span>
             <p className="section-kicker">RESERVATION REQUEST RECEIVED</p>
-            <h2>Your {booking.vehicle.name} is reserved.</h2>
-            <p>This is a checkout demo. No payment was collected. Your trip summary is ready below.</p>
+            <h2>Your {booking.vehicle.name} reservation is requested.</h2>
+            <p>Your reservation is visible in the renter dashboard. No payment was collected.</p>
             <div className="confirmation-total"><span>Reservation total</span><strong>${total}</strong></div>
-            <a className="button continue-button" href="/">Back to Voltigo <ArrowRight size={15} /></a>
+            <a className="button continue-button" href="/dashboard">View my trips <ArrowRight size={15} /></a>
           </section>
         ) : (
           <div className="booking-layout">
@@ -438,32 +387,13 @@ function CheckoutPage() {
               <section className="form-section">
                 <div className="form-section-heading"><span className="step-icon"><UserRound size={16} /></span><div><h2>Contact information</h2><p>We’ll send your trip details and pickup instructions here.</p></div></div>
                 <div className="booking-input-grid">
-                  <label className="checkout-field"><span>Full name</span><input name="name" autoComplete="name" placeholder="Jordan Miles" required /></label>
-                  <label className="checkout-field"><span>Email address</span><input type="email" name="email" autoComplete="email" placeholder="jordan@example.com" required /></label>
-                  <label className="checkout-field"><span>Phone number</span><input type="tel" name="phone" autoComplete="tel" placeholder="+1 (555) 000-0000" required /></label>
+                  <label className="checkout-field"><span>Full name</span><input name="name" autoComplete="name" placeholder={getCurrentUser()?.name || 'Jordan Miles'} required /></label>
+                  <label className="checkout-field"><span>Renter account</span><input value={getCurrentUser()?.email || 'Sign in to continue'} readOnly /></label>
                 </div>
               </section>
-              <section className="form-section">
-                <div className="form-section-heading"><span className="step-icon"><CreditCard size={16} /></span><div><h2>Payment method</h2><p>Choose how you’d like to pay.</p></div></div>
-                <div className="payment-methods" role="group" aria-label="Payment method">
-                  <button type="button" className={paymentMethod === 'card' ? 'payment-method is-active' : 'payment-method'} aria-pressed={paymentMethod === 'card'} onClick={() => setPaymentMethod('card')}><CreditCard size={16} /> Credit or debit card</button>
-                  <button type="button" className={paymentMethod === 'wallet' ? 'payment-method is-active' : 'payment-method'} aria-pressed={paymentMethod === 'wallet'} onClick={() => setPaymentMethod('wallet')}><WalletCards size={16} /> Digital wallet</button>
-                </div>
-                {paymentMethod === 'card' ? (
-                  <div className="payment-fields">
-                    <label className="checkout-field"><span>Name on card</span><input name="cardholder" autoComplete="cc-name" placeholder="Jordan Miles" required /></label>
-                    <label className="checkout-field"><span>Card number</span><span className="card-input"><CreditCard size={15} /><input name="cardnumber" inputMode="numeric" autoComplete="cc-number" placeholder="1234 5678 9012 3456" minLength={12} maxLength={23} required /></span></label>
-                    <div className="booking-input-grid">
-                      <label className="checkout-field"><span>Expiry date</span><input name="expiry" autoComplete="cc-exp" placeholder="MM / YY" required /></label>
-                      <label className="checkout-field"><span>Security code</span><input name="cvc" inputMode="numeric" autoComplete="cc-csc" placeholder="CVC" minLength={3} maxLength={4} required /></label>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="wallet-note"><WalletCards size={18} /><span><strong>Digital wallet selected</strong><small>Wallet processing is available when a payment provider is connected.</small></span></div>
-                )}
-              </section>
-              <p className="demo-payment-note"><LockKeyhole size={13} /> Demo checkout only. Do not enter real payment details; no payment is processed.</p>
-              <button className="button continue-button" type="submit">Confirm reservation · ${total} <ArrowRight size={15} /></button>
+              <p className="demo-payment-note"><LockKeyhole size={13} /> Reservation request only. No payment details are collected or processed.</p>
+              {notice && <p className="auth-notice" role="alert">{notice} <a href="/login">Sign in</a> or <a href="/signup">create an account</a>.</p>}
+              <button className="button continue-button" type="submit">Request reservation · ${total} <ArrowRight size={15} /></button>
             </form>
             <BookingSummary booking={booking} days={booking.days} subtotal={subtotal} protection={protection} total={total} payment />
           </div>
@@ -481,7 +411,16 @@ function AuthPage({ signup = false }) {
 
   function handleSubmit(event) {
     event.preventDefault()
-    setNotice(signup ? 'Your account details are ready. Connect a registration service to continue.' : 'Your sign-in form is ready to connect to your account.')
+    setNotice('')
+    const form = new FormData(event.currentTarget)
+    try {
+      const account = signup
+        ? registerRenter({ name: form.get('name'), email: form.get('email'), password: form.get('password') })
+        : signIn(form.get('email'), form.get('password'))
+      window.location.href = account.role === 'admin' ? '/admin' : '/dashboard'
+    } catch (error) {
+      setNotice(error.message)
+    }
   }
 
   return (
@@ -508,25 +447,23 @@ function AuthPage({ signup = false }) {
                 <div className="account-switch" role="group" aria-label="Account type">
                   {['Personal / Driver', 'Business / Fleet'].map((type) => <button type="button" key={type} className={accountType === type ? 'active' : ''} aria-pressed={accountType === type} onClick={() => setAccountType(type)}>{type}</button>)}
                 </div>
-                <AuthField label="Full Name" icon={<UserRound size={14} />} type="text" placeholder="Jordan Miles" autoComplete="name" />
+                <AuthField label="Full Name" name="name" icon={<UserRound size={14} />} type="text" placeholder="Jordan Miles" autoComplete="name" />
                 <div className="auth-field-row">
                   <AuthField label="Driver’s License Number" icon={<ShieldCheck size={14} />} type="text" placeholder="DL-8841-2093" />
                   <AuthField label="Phone Number" icon={<Smartphone size={14} />} type="tel" placeholder="+1 (555) 014-8820" autoComplete="tel" />
                 </div>
               </>
             )}
-            <AuthField label="Email" icon={<Mail size={14} />} type="email" placeholder="alex@company.com" autoComplete="email" />
+            <AuthField label="Email" name="email" icon={<Mail size={14} />} type="email" placeholder="alex@company.com" autoComplete="email" />
             <label className="auth-field">
               <span>{signup ? 'Password' : 'Password'}</span>
-              <span className="auth-input"><LockKeyhole size={14} /><input type={showPassword ? 'text' : 'password'} placeholder="••••••••••" autoComplete={signup ? 'new-password' : 'current-password'} minLength={signup ? 8 : undefined} required /><button className="show-password" type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword((show) => !show)}>{showPassword ? 'Hide' : 'Show'}</button></span>
+              <span className="auth-input"><LockKeyhole size={14} /><input name="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••••" autoComplete={signup ? 'new-password' : 'current-password'} minLength={signup ? 8 : undefined} required /><button className="show-password" type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword((show) => !show)}>{showPassword ? 'Hide' : 'Show'}</button></span>
             </label>
             {!signup && <div className="auth-options"><label><input type="checkbox" defaultChecked /> Remember Me</label><a href="/login">Forgot Password?</a></div>}
             {signup && <label className="auth-consent"><input type="checkbox" required /> I agree to the <a href="/#support">Terms of Service</a> and Privacy Policy.</label>}
             <button className="button auth-submit" type="submit">{signup ? 'Create Account' : 'Sign In'} <ArrowRight size={14} /></button>
           </form>
           {notice && <p className="auth-notice" role="status">{notice}</p>}
-          <div className="auth-divider"><span>OR SIGN IN WITH</span></div>
-          <div className="social-buttons"><button type="button" onClick={() => setNotice('Google sign-in can be connected to your identity provider.')}>◎ <span>Google</span></button><button type="button" onClick={() => setNotice('Apple sign-in can be connected to your identity provider.')}>◉ <span>Apple</span></button></div>
           <p className="auth-switch">{signup ? 'Already registered?' : "Don't have an account?"} <a href={signup ? '/login' : '/signup'}>{signup ? 'Sign In' : 'Sign Up'}</a></p>
         </div>
         {signup && <aside className="signup-benefits"><div><Zap size={17} /><strong>Your ride is unlocked by phone</strong><span>No lines. Clean pickup. Full tank before you arrive.</span></div></aside>}
@@ -535,11 +472,11 @@ function AuthPage({ signup = false }) {
   )
 }
 
-function AuthField({ label, icon, type, placeholder, autoComplete }) {
+function AuthField({ label, name, icon, type, placeholder, autoComplete }) {
   return (
     <label className="auth-field">
       <span>{label}</span>
-      <span className="auth-input">{icon}<input type={type} placeholder={placeholder} autoComplete={autoComplete} required /></span>
+      <span className="auth-input">{icon}<input name={name} type={type} placeholder={placeholder} autoComplete={autoComplete} required /></span>
     </label>
   )
 }
@@ -572,7 +509,7 @@ function SiteFooter() {
       <div className="footer-about"><Logo /><p>Local rental + logistics. Cars, vans and drivers on demand.</p><small>© 2026 Voltigo Mobility Inc.</small></div>
       <div className="footer-links"><strong>Fleet</strong><a href="/fleet">Sedans</a><a href="/fleet">SUVs</a><a href="/fleet">Cargo Vans</a><a href="/fleet">Long-Term</a></div>
       <div className="footer-links"><strong>Services</strong><a href="/fleet">Doorstep delivery</a><a href="/fleet">Airport pickup</a><a href="/fleet">Business fleet</a><a href="/fleet">Moving help</a></div>
-      <div className="footer-links"><strong>Company</strong><a href="/#locations">Locations</a><a href="/#support">Pricing</a><a href="/#support">Careers</a><a href="/#support">Support</a></div>
+      <div className="footer-links"><strong>Company</strong><a href="/#locations">Locations</a><a href="/#support">Pricing</a><a href="/#support">Careers</a><a href="/#support">Support</a><a href="/admin/login">Admin sign in</a></div>
       <form className="newsletter" onSubmit={handleSubscribe}><label htmlFor="newsletter-email">Get fleet updates</label><div><input id="newsletter-email" type="email" placeholder="Email" required /><button type="submit">{subscribed ? <Check size={14} /> : 'Join'}</button></div>{subscribed && <small role="status">Thanks for subscribing.</small>}</form>
     </footer>
   )
@@ -585,6 +522,9 @@ function NavigationIcon() {
 export default function RentalApp() {
   const path = window.location.pathname.replace(/\/+$/, '') || '/'
 
+  if (path === '/admin/login') return <AdminLoginPage />
+  if (path === '/admin') return <AdminPortal />
+  if (path === '/dashboard') return <ClientDashboard />
   if (path === '/login' || path === '/signin') return <AuthPage />
   if (path === '/signup' || path === '/register') return <AuthPage signup />
   if (path === '/fleet') return <FleetPage />

@@ -41,6 +41,7 @@ export default function FleexaMarketScreen() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedMarketShortcut, setSelectedMarketShortcut] = useState<'community' | 'digital' | 'advertise' | 'store' | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [visibleProductCount, setVisibleProductCount] = useState(12);
   const [storePreferences, setStorePreferences] = useState<StorefrontPreferences | null>(null);
   const lastSearchRequest = useRef<string | null>(null);
   const hasEnteredStore = useRef(false);
@@ -130,6 +131,7 @@ export default function FleexaMarketScreen() {
       .toLowerCase();
     return matchesCategory && searchableText.includes(searchQuery.trim().toLowerCase());
   });
+  const hasMoreVisibleProducts = visibleProductCount < filteredProducts.length;
 
   if (!productsPagination && !error) {
     return (
@@ -189,7 +191,10 @@ export default function FleexaMarketScreen() {
               placeholder="Search products, gadgets, or items..."
               placeholderTextColor="#94A3B8"
               value={searchQuery}
-              onChangeText={setSearchQuery}
+              onChangeText={(value) => {
+                setSearchQuery(value);
+                setVisibleProductCount(12);
+              }}
             />
           </View>
         </View>
@@ -215,7 +220,10 @@ export default function FleexaMarketScreen() {
                 <TouchableOpacity
                   key={cat}
                   style={[styles.categoryChip, isSelected && styles.selectedCategoryChip]}
-                  onPress={() => setSelectedCategory(cat)}
+                  onPress={() => {
+                    setSelectedCategory(cat);
+                    setVisibleProductCount(12);
+                  }}
                 >
                   <Text style={[styles.categoryText, isSelected && styles.selectedCategoryText]}>
                     {cat}
@@ -257,7 +265,7 @@ export default function FleexaMarketScreen() {
                 <Text style={styles.loadingText}>
                   {mappedProducts.length === 0 ? 'No products are available right now.' : 'No products match your search.'}
                 </Text>
-              ) : filteredProducts.map((item) => (
+              ) : filteredProducts.slice(0, visibleProductCount).map((item) => (
                 <View key={item.id} style={styles.productCard}>
                   <TouchableOpacity
                     activeOpacity={0.9}
@@ -308,19 +316,26 @@ export default function FleexaMarketScreen() {
             )}
           </View>
 
-          {!loading && productsPagination?.hasNextPage ? (
+          {!loading && (hasMoreVisibleProducts || productsPagination?.hasNextPage) ? (
             <TouchableOpacity
               style={styles.loadMoreButton}
-              onPress={() => void dispatch(fetchStoreProducts({
-                page: productsPagination.page + 1,
-                append: true,
-                preferences: storePreferences || undefined,
-                category: selectedCategory === 'All' ? '' : selectedCategory,
-                search: searchQuery.trim(),
-              }))}
+              onPress={() => {
+                if (hasMoreVisibleProducts) {
+                  setVisibleProductCount((count) => count + 12);
+                } else if (productsPagination?.hasNextPage) {
+                  setVisibleProductCount((count) => count + 12);
+                  void dispatch(fetchStoreProducts({
+                    page: productsPagination.page + 1,
+                    append: true,
+                    preferences: storePreferences || undefined,
+                    category: selectedCategory === 'All' ? '' : selectedCategory,
+                    search: searchQuery.trim(),
+                  }));
+                }
+              }}
               activeOpacity={0.8}
             >
-              <Text style={styles.loadMoreText}>Load more products</Text>
+              <Text style={styles.loadMoreText}>Show more products</Text>
             </TouchableOpacity>
           ) : null}
 

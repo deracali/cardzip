@@ -22,10 +22,14 @@ function CreatorHubHeader() {
           {menuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
         <nav className={menuOpen ? 'creator-nav is-open' : 'creator-nav'} aria-label="Main navigation">
-          <a href="#features" onClick={closeMenu}>Features</a>
-          <a href="#pricing" onClick={closeMenu}>Pricing</a>
-          <a href="#examples" onClick={closeMenu}>Examples</a>
-          <a href="#latest-drops" onClick={closeMenu}>Blog</a>
+          <a href="/features" onClick={closeMenu}>Features</a>
+          <a href="/creators" onClick={closeMenu}>Creators</a>
+          <a href="/explore" onClick={closeMenu}>Explore</a>
+          <a href="/store" onClick={closeMenu}>Store</a>
+          <a href="/blog" onClick={closeMenu}>Blog</a>
+          <a href="/resources" onClick={closeMenu}>Resources</a>
+          <a href="/#pricing" onClick={closeMenu}>Pricing</a>
+          <a href="/about" onClick={closeMenu}>About</a>
           <div className="creator-nav-actions">
             <a className="creator-sign-in" href="/login" onClick={closeMenu}>Sign in</a>
             <a className="creator-button creator-button-dark" href="/signup" onClick={closeMenu}>Claim your link — free</a>

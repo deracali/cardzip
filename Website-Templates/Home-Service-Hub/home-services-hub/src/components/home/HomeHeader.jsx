@@ -28,9 +28,11 @@ function HomeHeader() {
           <a href="#services" onClick={closeMenu}>Services</a>
           <a href="#estimate" onClick={closeMenu}>Pricing</a>
           <a href="#service-area" onClick={closeMenu}>Areas served</a>
+          <a href="/dashboard" onClick={closeMenu}>Client portal</a>
+          <a href="/admin/login" onClick={closeMenu}>Admin</a>
           <div className="ff-header-actions">
             <a className="ff-phone-link" href="tel:+18005550199"><Phone size={14} /> (800) 555-0199</a>
-            <a className="ff-button ff-button-orange ff-header-cta" href="#service-area" onClick={closeMenu}>
+            <a className="ff-button ff-button-orange ff-header-cta" href="/book-now" onClick={closeMenu}>
               Request service <ArrowUpRight size={14} />
             </a>
           </div>

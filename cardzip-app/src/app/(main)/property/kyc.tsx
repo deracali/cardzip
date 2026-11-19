@@ -20,6 +20,7 @@ export default function KycScreen() {
   const { user, token } = useAppSelector((state) => state.auth);
   const { summary, loading, kycSubmitting, kycError } = useAppSelector((state) => state.account);
   const [legalName, setLegalName] = useState(user?.name ?? '');
+  const effectiveLegalName = legalName || user?.name || '';
   const [documentType, setDocumentType] = useState<KycSubmission['documentType']>('nin');
   const [documentNumber, setDocumentNumber] = useState('');
   const [feedback, setFeedback] = useState<{ title: string; message: string; tone?: 'success' | 'error' } | null>(null);
@@ -28,17 +29,13 @@ export default function KycScreen() {
     if (token) dispatch(fetchMyAccount(token));
   }, [dispatch, token]);
 
-  useEffect(() => {
-    if (user?.name && !legalName) setLegalName(user.name);
-  }, [legalName, user?.name]);
-
   const submit = async () => {
     if (!token) {
       setFeedback({ title: 'Sign in required', message: 'Sign in to submit identity verification.', tone: 'error' });
       return;
     }
     try {
-      await dispatch(submitKyc({ token, submission: { legalName, documentType, documentNumber } })).unwrap();
+      await dispatch(submitKyc({ token, submission: { legalName: effectiveLegalName, documentType, documentNumber } })).unwrap();
       setDocumentNumber('');
       setFeedback({ title: 'Submitted for review', message: 'Your identity details were sent for review.', tone: 'success' });
     } catch (error) {
@@ -67,7 +64,7 @@ export default function KycScreen() {
       {status !== 'approved' && status !== 'pending' && (
         <View style={styles.form}>
           <Text style={styles.label}>Legal name</Text>
-          <TextInput value={legalName} onChangeText={setLegalName} style={styles.input} placeholder="As shown on your document" />
+          <TextInput value={effectiveLegalName} onChangeText={setLegalName} style={styles.input} placeholder="As shown on your document" />
           <Text style={styles.label}>Document type</Text>
           <View style={styles.documentRow}>
             {DOCUMENTS.map((document) => (

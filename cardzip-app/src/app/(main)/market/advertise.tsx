@@ -52,11 +52,6 @@ export default function AdvertiseScreen() {
       return;
     }
     setError('');
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      setError('Allow photo-library access to choose your banner image.');
-      return;
-    }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,

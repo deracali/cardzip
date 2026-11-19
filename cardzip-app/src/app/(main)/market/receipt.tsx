@@ -62,14 +62,15 @@ export default function OrderReceiptScreen() {
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState('');
   const scale = (size: number) => (width / 375) * size;
+  const missingOrderContext = !token || !orderNumber;
+  const visibleError = missingOrderContext
+    ? 'Sign in and open a valid order reference to view its receipt.'
+    : error;
+  const isLoading = !missingOrderContext && loading;
 
   useEffect(() => {
     let active = true;
-    if (!token || !orderNumber) {
-      setError('Sign in and open a valid order reference to view its receipt.');
-      setLoading(false);
-      return () => { active = false; };
-    }
+    if (!token || !orderNumber) return () => { active = false; };
     setLoading(true);
     setError('');
     void fetchStoreOrderApi(token, orderNumber)
@@ -111,7 +112,7 @@ export default function OrderReceiptScreen() {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.loadingState}><ActivityIndicator size="large" color="#10B981" /><Text style={styles.loadingText}>Loading order…</Text></View>
@@ -119,13 +120,13 @@ export default function OrderReceiptScreen() {
     );
   }
 
-  if (error || !order) {
+  if (visibleError || !order) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.errorState}>
           <Feather name="package" size={scale(34)} color="#10B981" />
           <Text style={styles.errorTitle}>Order unavailable</Text>
-          <Text style={styles.errorMessage}>{error || 'We could not find this order.'}</Text>
+          <Text style={styles.errorMessage}>{visibleError || 'We could not find this order.'}</Text>
           <TouchableOpacity style={styles.secondaryButton} onPress={() => router.replace('/(main)/market/orders')}>
             <Feather name="arrow-left" size={scale(16)} color="#0F172A" /><Text style={styles.secondaryButtonText}>Back to orders</Text>
           </TouchableOpacity>

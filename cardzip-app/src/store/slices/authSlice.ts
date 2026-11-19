@@ -19,6 +19,7 @@ interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   sessionReady: boolean;
+  sessionExpired: boolean;
   loading: boolean;
   error: string | null;
 }
@@ -28,6 +29,11 @@ interface AuthSession {
   token: string;
 }
 
+interface RestoredAuthSession {
+  session: AuthSession | null;
+  expired: boolean;
+}
+
 const AUTH_SESSION_KEY = 'cardzip.auth.session';
 
 const initialState: AuthState = {
@@ -35,11 +41,26 @@ const initialState: AuthState = {
   token: null,
   isAuthenticated: false,
   sessionReady: false,
+  sessionExpired: false,
   loading: false,
   error: null,
 };
 
 const API_URL = `${API_BASE_URL}/api/users`;
+
+const isTokenExpired = (token: string): boolean => {
+  const encodedPayload = token.split('.')[1];
+  if (!encodedPayload) return true;
+
+  try {
+    const base64Payload = encodedPayload.replace(/-/g, '+').replace(/_/g, '/');
+    const paddedPayload = base64Payload.padEnd(Math.ceil(base64Payload.length / 4) * 4, '=');
+    const payload = JSON.parse(atob(paddedPayload)) as { exp?: unknown };
+    return typeof payload.exp !== 'number' || payload.exp * 1000 <= Date.now();
+  } catch {
+    return true;
+  }
+};
 
 // Async Thunk for User Login
 export const loginUser = createAsyncThunk(
@@ -134,21 +155,25 @@ export const signupUser = createAsyncThunk(
   }
 );
 
-export const restoreAuthSession = createAsyncThunk<AuthSession | null>(
+export const restoreAuthSession = createAsyncThunk<RestoredAuthSession>(
   'auth/restoreSession',
   async () => {
     const storedSession = await AsyncStorage.getItem(AUTH_SESSION_KEY);
-    if (!storedSession) return null;
+    if (!storedSession) return { session: null, expired: false };
     try {
       const session = JSON.parse(storedSession) as AuthSession;
       if (!session.token || !session.user?.id || !session.user?.name) {
         await AsyncStorage.removeItem(AUTH_SESSION_KEY);
-        return null;
+        return { session: null, expired: false };
       }
-      return session;
+      if (isTokenExpired(session.token)) {
+        await AsyncStorage.removeItem(AUTH_SESSION_KEY);
+        return { session: null, expired: true };
+      }
+      return { session, expired: false };
     } catch {
       await AsyncStorage.removeItem(AUTH_SESSION_KEY);
-      return null;
+      return { session: null, expired: false };
     }
   }
 );
@@ -161,6 +186,7 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
+      state.sessionExpired = false;
       state.error = null;
     },
     clearError: (state) => {
@@ -181,6 +207,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.isAuthenticated = true;
         state.sessionReady = true;
+        state.sessionExpired = false;
         state.user = action.payload.user;
         state.token = action.payload.token;
       })
@@ -196,6 +223,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.isAuthenticated = true;
         state.sessionReady = true;
+        state.sessionExpired = false;
         state.user = action.payload.user;
         state.token = action.payload.token;
       })
@@ -211,6 +239,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.isAuthenticated = true;
         state.sessionReady = true;
+        state.sessionExpired = false;
         state.user = action.payload.user;
         state.token = action.payload.token;
       })
@@ -227,6 +256,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.isAuthenticated = true;
         state.sessionReady = true;
+        state.sessionExpired = false;
         state.user = action.payload.user;
         state.token = action.payload.token;
       })
@@ -234,15 +264,17 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      .addCase(restoreAuthSession.fulfilled, (state, action: PayloadAction<AuthSession | null>) => {
+      .addCase(restoreAuthSession.fulfilled, (state, action: PayloadAction<RestoredAuthSession>) => {
         state.sessionReady = true;
-        if (!action.payload) return;
-        state.user = action.payload.user;
-        state.token = action.payload.token;
+        state.sessionExpired = action.payload.expired;
+        if (!action.payload.session) return;
+        state.user = action.payload.session.user;
+        state.token = action.payload.session.token;
         state.isAuthenticated = true;
       })
       .addCase(restoreAuthSession.rejected, (state) => {
         state.sessionReady = true;
+        state.sessionExpired = false;
       });
   },
 });

@@ -1,4 +1,8 @@
-import { useState } from 'react'
+"use client";
+
+import { useEffect, useState } from 'react'
+import Link from "next/link";
+import { getSessionUser } from "../services/agency-api";
 import {
   ArrowLeft,
   ArrowRight,
@@ -96,6 +100,8 @@ export const pageTitles: Record<string, string> = {
   '/case-studies': 'Case Studies | NOVA Studio',
   '/about': 'About the Creators | NOVA Studio',
   '/quote': 'Start a Project | NOVA Studio',
+  '/contact': 'Client Messages | NOVA Studio',
+  '/messages': 'Client Messages | NOVA Studio',
 }
 
 
@@ -103,20 +109,25 @@ import { useMenuState } from "../hooks/useMenuState";
 
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
+import type { CaseStudy } from "../services/agency-api";
 
-type Project = { id: string; name: string; client: string; type: string; visual: string; image: string; alt: string; summary: string; description: string; result: string; deliverables: string[] };
+type Project = { id: string; name: string; client: string; type: string; visual: string; image: string; images?: string[]; alt: string; summary: string; description: string; result: string; deliverables: string[] };
 
 export function Brand({ compact = false }: { compact?: boolean }) {
   return (
-    <a className="brand" href="/" aria-label="NOVA Studio home">
+    <Link className="brand" href="/" aria-label="NOVA Studio home">
       <img src="/favicon.svg" alt="" />
       <span className="brand-copy"><strong>NOVA Studio</strong>{!compact && <small>CREATIVE AGENCY</small>}</span>
-    </a>
+    </Link>
   )
 }
 
 export function Header({ portal = false, active = '' }: { portal?: boolean; active?: string }) {
   const { menuOpen, setMenuOpen } = useMenuState()
+  const [isClient, setIsClient] = useState(false)
+  useEffect(() => {
+    setIsClient(getSessionUser()?.role === "client")
+  }, [])
   return (
     <header className="site-header">
       <div className="header-inner">
@@ -127,29 +138,31 @@ export function Header({ portal = false, active = '' }: { portal?: boolean; acti
         <nav className={`main-nav${menuOpen ? ' is-open' : ''}`} aria-label="Main navigation">
           {portal ? (
             <>
-              <a href="/work" onClick={() => setMenuOpen(false)}>Work</a>
-              <a href="/services" onClick={() => setMenuOpen(false)}>Services</a>
-              <a href="/dashboard" onClick={() => setMenuOpen(false)}>Client portal</a>
+              <Link href="/work" onClick={() => setMenuOpen(false)}>Work</Link>
+              <Link href="/services" onClick={() => setMenuOpen(false)}>Services</Link>
+              <Link href="/dashboard" onClick={() => setMenuOpen(false)}>Client portal</Link>
+              <Link href="/messages" onClick={() => setMenuOpen(false)}>Messages</Link>
             </>
           ) : (
             <>
-              <a className={active === 'work' ? 'active' : ''} href="/work" onClick={() => setMenuOpen(false)}>Work</a>
-              <a className={active === 'services' ? 'active' : ''} href="/services" onClick={() => setMenuOpen(false)}>Services</a>
-              <a className={active === 'case-studies' ? 'active' : ''} href="/case-studies" onClick={() => setMenuOpen(false)}>Case Studies</a>
-              <a className={active === 'about' ? 'active' : ''} href="/about" onClick={() => setMenuOpen(false)}>About</a>
+              <Link className={active === 'work' ? 'active' : ''} href="/work" onClick={() => setMenuOpen(false)}>Work</Link>
+              <Link className={active === 'services' ? 'active' : ''} href="/services" onClick={() => setMenuOpen(false)}>Services</Link>
+              <Link className={active === 'case-studies' ? 'active' : ''} href="/case-studies" onClick={() => setMenuOpen(false)}>Case Studies</Link>
+              <Link className={active === 'about' ? 'active' : ''} href="/about" onClick={() => setMenuOpen(false)}>About</Link>
+              <Link className={active === 'contact' ? 'active' : ''} href="/messages" onClick={() => setMenuOpen(false)}>Messages</Link>
             </>
           )}
         </nav>
         <div className="header-actions">
           <span className="availability"><i /> Available for Q4</span>
-          <a className="button button-cyan header-cta" href="/quote">Get a Quote</a>
+          <Link className="button button-cyan header-cta" href="/quote">Get a Quote</Link>
         </div>
       </div>
     </header>
   )
 }
 
-export function ProjectArtwork({ project, featured = false }: { project: Project; featured?: boolean }) {
+export function ProjectArtwork({ project, featured = false }: { project: Project | CaseStudy; featured?: boolean }) {
   return (
     <div className={`project-art ${project.visual}${featured ? ' project-art-featured' : ''}`} role="img" aria-label={project.alt}>
       {project.image && <img src={project.image} alt="" />}
@@ -174,7 +187,8 @@ export function ProjectArtwork({ project, featured = false }: { project: Project
   )
 }
 
-export function HeroPreview() {
+export function HeroPreview({ project = featuredProject }: { project?: Project | CaseStudy }) {
+  const projectPath = `/case-studies/${"slug" in project ? project.slug : project.id}`;
   return (
     <div className="hero-preview" aria-label="Featured NOVA Studio digital commerce project">
       <div className="preview-window">
@@ -183,13 +197,13 @@ export function HeroPreview() {
           <span className="preview-kicker">NEW COLLECTION · 2026</span>
           <h2>WE BUILD DIGITAL<br />EXPERIENCES THAT<br /><em>DRIVE GROWTH</em></h2>
           <p>Designed for the next generation of commerce.</p>
-          <a href="/case-studies/aurora-commerce">EXPLORE THE COLLECTION <ArrowRight size={10} /></a>
+          <Link href={projectPath}>EXPLORE THE COLLECTION <ArrowRight size={10} /></Link>
           <div className="preview-art-shape" />
-          <div className="preview-site-footer"><b>Featured</b><span>3D Motion · WebGL</span><strong>Aurora — Immersive 3D Commerce</strong><small>+372% conversion rate · 05:45</small></div>
+          <div className="preview-site-footer"><b>Featured</b><span>{project.type}</span><strong>{project.name}</strong><small>{project.result}</small></div>
         </div>
       </div>
       <div className="preview-progress"><i /><span /><span /><span /></div>
-      <div className="preview-controls"><a href="/case-studies/lumen-finance" aria-label="Previous featured project"><ArrowLeft size={13} /></a><a href="/case-studies/aurora-commerce" aria-label="View featured project"><ArrowRight size={13} /></a></div>
+      <div className="preview-controls"><Link href={projectPath} aria-label="Featured case study"><ArrowLeft size={13} /></Link><Link href={projectPath} aria-label="View featured case study"><ArrowRight size={13} /></Link></div>
     </div>
   )
 }
@@ -200,7 +214,7 @@ export function SiteFooter() {
       <Brand />
       <span>© {new Date().getFullYear()} NOVA Studio — Made for what’s next.</span>
       <nav aria-label="Studio links">
-        <a href="/work">Work</a><a href="/services">Services</a><a href="/about">About</a><a href="/quote">Get a Quote</a><a href="/login">Client portal</a>
+        <Link href="/work">Work</Link><Link href="/services">Services</Link><Link href="/about">About</Link><Link href="/messages">Messages</Link><Link href="/quote">Get a Quote</Link><Link href="/login">Client portal</Link>
       </nav>
     </footer>
   )
@@ -214,17 +228,17 @@ export function PageIntro({ label, title, description, action }: { label: string
   return (
     <section className="route-intro">
       <div><span className="section-kicker">{label}</span><h1>{title}</h1><p>{description}</p></div>
-      {action && <a className="button button-cyan" href="/quote">{action} <ArrowRight size={14} /></a>}
+      {action && <Link className="button button-cyan" href="/quote">{action} <ArrowRight size={14} /></Link>}
     </section>
   )
 }
 
-export function ProjectCard({ project }: { project: Project }) {
+export function ProjectCard({ project }: { project: Project | CaseStudy }) {
   return (
-    <a className="project-card" href={`/case-studies/${project.id}`}>
+    <Link className="project-card" href={`/case-studies/${project.id}`}>
       <ProjectArtwork project={project} />
       <div className="project-card-copy"><span className="project-type">{project.type}</span><strong>{project.name}</strong><span>{project.client}</span><span className="project-arrow"><ArrowUpRight size={15} /></span></div>
-    </a>
+    </Link>
   )
 }
 

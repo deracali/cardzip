@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowRight, CalendarDays, Check, ChevronDown, Clock3, Fuel, Heart, KeyRound,
   LockKeyhole, Mail, MapPin, Menu, ShieldCheck, Smartphone, Star, Truck, UserRound,
   Users, WalletCards, X, Zap
 } from "lucide-react";
-import { imageUrl, vehicles, type Booking, type Vehicle } from "../data/vehicles";
+import { imageUrl, type Booking, type Vehicle } from "../data/vehicles";
+import { ApiError, apiRequest } from "../services/api";
 export function Logo({ light = false }: { light?: boolean }) {
   return (
     <a className={`brand${light ? ' brand-light' : ''}`} href="/" aria-label="Voltigo home">
@@ -18,6 +19,24 @@ export function Logo({ light = false }: { light?: boolean }) {
 
 export function Header({ compact = false }: { compact?: boolean }) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [accountLink, setAccountLink] = useState({ href: "/login?next=%2Fdashboard", label: "Sign in" })
+
+  useEffect(() => {
+    apiRequest<{ user: { role: string } | null }>("/auth/me")
+      .then(({ user }) => {
+        if (user) {
+          setAccountLink({
+            href: user.role === "admin" ? "/admin" : "/dashboard",
+            label: "My account",
+          });
+        }
+      })
+      .catch((error: unknown) => {
+        if (!(error instanceof ApiError && error.status === 401)) {
+          console.error("Unable to check Voltigo account session:", error);
+        }
+      });
+  }, [])
 
   return (
     <header className="site-header">
@@ -34,12 +53,12 @@ export function Header({ compact = false }: { compact?: boolean }) {
         </button>
         <nav className={`main-nav${menuOpen ? ' is-open' : ''}`} aria-label="Main navigation">
           <a className={!compact ? 'nav-active' : ''} href="/">Fleet</a>
-          <a href="/fleet">Delivery Services <ChevronDown size={12} /></a>
-          <a href="/fleet">Long-Term Rental <ChevronDown size={12} /></a>
+          <a href="/delivery">Delivery Services <ChevronDown size={12} /></a>
+          <a href="/long-term">Long-Term Rental <ChevronDown size={12} /></a>
           <a href="/#locations">Locations</a>
           <div className="nav-actions">
             <button type="button" className="currency-button"><span className="globe-mark">◎</span> USD $ <ChevronDown size={11} /></button>
-            <a className="help-link" href="/#support">Help</a>
+            <a className="help-link" href={accountLink.href}>{accountLink.label}</a>
             <a className="button button-small" href="/fleet">Reserve Vehicle <ArrowRight size={13} /></a>
           </div>
         </nav>
@@ -133,8 +152,34 @@ export function BookingSearch() {
   )
 }
 
-export function VehicleGrid({ vehiclesToShow = vehicles, limit }: { vehiclesToShow?: Vehicle[]; limit?: number }) {
-  const visibleVehicles = limit ? vehiclesToShow.slice(0, limit) : vehiclesToShow
+export function VehicleGrid({ vehiclesToShow, limit }: { vehiclesToShow?: Vehicle[]; limit?: number }) {
+  const [inventory, setInventory] = useState<Vehicle[]>([])
+  const [loadError, setLoadError] = useState("")
+  const [loading, setLoading] = useState(vehiclesToShow === undefined)
+  useEffect(() => {
+    if (vehiclesToShow !== undefined) {
+      setLoading(false)
+      return
+    }
+    let active = true
+    apiRequest<{ vehicles: Vehicle[] }>("/vehicles")
+      .then((result) => {
+        if (active) setInventory(result.vehicles)
+      })
+      .catch((error: unknown) => {
+        console.error("Unable to load Voltigo fleet:", error)
+        if (active) setLoadError(error instanceof Error ? error.message : "Unable to load the fleet.")
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => { active = false }
+  }, [vehiclesToShow])
+  const listedVehicles = vehiclesToShow ?? inventory
+  const visibleVehicles = limit ? listedVehicles.slice(0, limit) : listedVehicles
+  if (loading) return <p className="portal-empty">Loading available vehicles…</p>
+  if (loadError) return <p className="portal-alert" role="alert">{loadError}</p>;
+  if (!visibleVehicles.length) return <p className="portal-empty">No vehicles are currently available.</p>;
   return <div className="vehicle-grid">{visibleVehicles.map((vehicle) => <VehicleCard key={vehicle.name} vehicle={vehicle} />)}</div>
 }
 
@@ -143,7 +188,7 @@ export function BookingSummary({ booking, days, subtotal, protection, total, pay
     <aside className="booking-summary panel-card">
       <h2>{payment ? 'Your reservation' : 'Trip summary'}</h2>
       <div className="summary-vehicle">
-        <img src={imageUrl(booking.vehicle.image, 500)} alt={booking.vehicle.name} />
+        {booking.vehicle.image && <img src={imageUrl(booking.vehicle.image, 500)} alt={booking.vehicle.name} />}
         <span><strong>{booking.vehicle.name}</strong><small>{booking.vehicle.category} · {booking.vehicle.details.split(' · ').slice(0, 2).join(' · ')}</small><span className="summary-rating"><Star size={12} fill="currentColor" /> 4.9 · Unlimited mileage</span></span>
       </div>
       <div className="summary-route">
@@ -193,7 +238,7 @@ export function SiteFooter() {
   return (
     <footer className="site-footer" id="support">
       <div className="footer-about"><Logo /><p>Local rental + logistics. Cars, vans and drivers on demand.</p><small>© 2026 Voltigo Mobility Inc.</small></div>
-      <div className="footer-links"><strong>Fleet</strong><a href="/fleet">Sedans</a><a href="/fleet">SUVs</a><a href="/fleet">Cargo Vans</a><a href="/fleet">Long-Term</a></div>
+      <div className="footer-links"><strong>Fleet</strong><a href="/fleet">Sedans</a><a href="/fleet">SUVs</a><a href="/delivery">Cargo Vans</a><a href="/long-term">Long-Term</a></div>
       <div className="footer-links"><strong>Services</strong><a href="/fleet">Doorstep delivery</a><a href="/fleet">Airport pickup</a><a href="/fleet">Business fleet</a><a href="/fleet">Moving help</a></div>
       <div className="footer-links"><strong>Company</strong><a href="/#locations">Locations</a><a href="/#support">Pricing</a><a href="/#support">Careers</a><a href="/#support">Support</a></div>
       <form className="newsletter" onSubmit={handleSubscribe}><label htmlFor="newsletter-email">Get fleet updates</label><div><input id="newsletter-email" type="email" placeholder="Email" required /><button type="submit">{subscribed ? <Check size={14} /> : 'Join'}</button></div>{subscribed && <small role="status">Thanks for subscribing.</small>}</form>

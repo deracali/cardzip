@@ -1,23 +1,32 @@
 # Voltigo Rental — Next.js
 
-Next.js, TypeScript, and Tailwind CSS port of the Voltigo React/Vite car rental UI. Screen components are split into `src/pages`, shared UI is in `src/components`, booking state is in `src/hooks`, and vehicle data is in `src/data`.
+Next.js, TypeScript, and Tailwind CSS frontend for Voltigo Rental. Authentication, fleet listings, administrator-managed Cloudinary vehicle photos, and renter reservations use the separate Node.js Express and MongoDB service in `../backend`.
 
 ## Run locally
 
-```sh
+1. Configure and start the Express API using [the backend README](../backend/README.md).
+2. In Command Prompt, configure and start the Next.js website:
+
+```bat
+cd /d "C:\path\to\Car-renter\nextjs"
+copy .env.example .env.local
+notepad .env.local
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Run `npm run build` for a production build and `npm run typecheck` to check the TypeScript app.
+Set `NEXT_PUBLIC_API_URL=http://localhost:5000/api` in `.env.local`. Open [http://localhost:3000](http://localhost:3000). Keep the backend and website running in separate terminals. Run `npm run build` and `npm run typecheck` to validate the website.
 
-## Routes
+## Pages
 
-- `/` — Home and featured vehicles
-- `/fleet` — Filterable vehicle fleet
-- `/book` — Booking details and trip summary
-- `/checkout` — Demo reservation checkout
-- `/login` and `/signin` — Account sign-in preview
-- `/signup` and `/register` — Account registration preview
+- `/` and `/fleet` — public website and complete live fleet
+- `/delivery` — delivery cargo vans
+- `/long-term` — long-term sedan and SUV rentals
+- `/book` and `/checkout` — renter reservation request flow
+- `/login` and `/signup` — renter sign-in and registration
+- `/dashboard` — renter trip and reservation history
+- `/admin/login` and `/admin` — administrator sign-in and fleet, booking, and customer management
 
-Sign-up forms and checkout are front-end previews; no accounts or payments are processed.
+The Next.js app has no API or database of its own. It calls the standalone Express API configured through `NEXT_PUBLIC_API_URL`; the backend manages MongoDB records, authentication cookies, administrator authorization, and signed Cloudinary uploads. Reservations are requests only, and the demo does not process payments.
+
+The buyer guide is served at `/buyer-guide.pdf`. From the Vite project, run `npm run guide:build` to regenerate the PDF for both website variants.

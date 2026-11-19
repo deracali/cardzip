@@ -1,0 +1,148 @@
+.home-header {
+  position: relative;
+  z-index: 5;
+  border-bottom: 1px solid #eef1f3;
+  background: #fff;
+}
+
+.home-header-inner {
+  display: flex;
+  width: min(100% - 48px, 1180px);
+  min-height: 64px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 auto;
+}
+
+.home-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #17243a;
+  font-size: 17px;
+  font-weight: 750;
+  letter-spacing: -0.05em;
+  text-decoration: none;
+}
+
+.home-brand > span:last-child > span {
+  color: #0e978b;
+}
+
+.home-brand-mark {
+  display: grid;
+  width: 25px;
+  height: 25px;
+  place-items: center;
+  border-radius: 7px;
+  background: #0e978b;
+  color: #fff;
+}
+
+.home-nav,
+.home-nav-actions {
+  display: flex;
+  align-items: center;
+}
+
+.home-nav {
+  gap: 28px;
+}
+
+.home-nav > a,
+.home-login-link {
+  color: #425267;
+  font-size: 12px;
+  font-weight: 550;
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+.home-nav > a:hover,
+.home-login-link:hover {
+  color: #0e978b;
+}
+
+.home-nav-actions {
+  gap: 18px;
+  margin-left: 24px;
+}
+
+.home-book-link {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 15px;
+  border-radius: 7px;
+  background: #0e978b;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 150ms ease;
+}
+
+.home-book-link:hover {
+  background: #0b8178;
+}
+
+.home-menu-toggle {
+  display: none;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e5ecef;
+  border-radius: 8px;
+  background: #fff;
+  color: #1d3448;
+}
+
+@media (max-width: 640px) {
+  .home-header-inner {
+    width: calc(100% - 32px);
+    min-height: 58px;
+  }
+
+  .home-menu-toggle {
+    display: inline-flex;
+  }
+
+  .home-nav {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    display: none;
+    align-items: stretch;
+    gap: 0;
+    padding: 8px 16px 16px;
+    border-bottom: 1px solid #e8eef0;
+    background: #fff;
+    box-shadow: 0 12px 20px rgba(27, 44, 66, 0.08);
+  }
+
+  .home-nav.is-open {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .home-nav > a,
+  .home-login-link {
+    padding: 12px 4px;
+  }
+
+  .home-nav-actions {
+    gap: 14px;
+    justify-content: space-between;
+    margin: 6px 0 0;
+    padding-top: 12px;
+    border-top: 1px solid #edf1f3;
+  }
+
+  .home-login-link {
+    padding: 8px 4px;
+  }
+}

@@ -229,6 +229,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .form-success > div { display: grid; gap: 5px; }
 .form-success b { color: #d9fff3; font-size: 11px; }
 .form-success span { color: #a9c7bf; font-size: 10px; line-height: 1.5; }
+.local-form-error, .form-error { margin: 0; color: #ff9aa8; font-size: 12px; line-height: 1.5; }
 .form-card .back-link { margin-top: 18px; }
 .checkout-page { min-height: calc(100vh - 180px); padding: 38px 24px 75px; background: radial-gradient(ellipse at 50% 0%, #1c2144, transparent 48%); }
 .checkout-wrap { width: min(910px, 100%); margin: auto; }

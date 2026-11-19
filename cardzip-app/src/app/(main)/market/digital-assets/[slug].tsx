@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Image, Linking, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import * as ExpoLinking from 'expo-linking';
 import * as Sharing from 'expo-sharing';
-import * as WebBrowser from 'expo-web-browser';
+import { WebView } from 'react-native-webview';
 import { Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useAppSelector } from '../../../../store';
 import {
@@ -30,20 +30,68 @@ import { formatNaira } from '../../../../utils/currency';
 import MarketBottomTab from '../bottomtab/bottomtab';
 
 const callbackUrl = process.env.EXPO_PUBLIC_PAYSTACK_CALLBACK_URL?.trim();
+type DigitalProductReceipt = {
+  productId: string;
+  purchaseType: 'use' | 'template';
+  accessUrl?: string;
+  sourceCodeAvailable?: boolean;
+  templateSourceCodeAvailable?: boolean;
+  documents: { name: string; mimeType: string }[];
+  templateDocuments?: { name: string; mimeType: string }[];
+  reference: string;
+};
+type SellerReceipt = SellerDigitalAssetPaystackVerification['sellerDigitalAsset'] & { reference: string };
+type PurchaseHistoryData = {
+  key: string;
+  paidOptions: { use: boolean; template: boolean };
+  receipt: DigitalProductReceipt | null;
+  sellerReceipt: SellerReceipt | null;
+};
+
+const normalizeHttpUrl = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  const candidate = /^[a-z][a-z\d+.-]*:/i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const url = new URL(candidate);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : '';
+  } catch {
+    return '';
+  }
+};
+
+const openCheckoutUrl = async (authorizationUrl: string, returnUrl: string) => {
+  const checkoutUrl = normalizeHttpUrl(authorizationUrl);
+  if (!checkoutUrl) throw new Error('The payment provider returned an invalid checkout URL. Please try again.');
+  try {
+    new URL(returnUrl);
+  } catch {
+    throw new Error('The payment callback URL is invalid. Check EXPO_PUBLIC_PAYSTACK_CALLBACK_URL.');
+  }
+  await openPaystackCheckout(checkoutUrl, returnUrl);
+};
+
+const getShortDocumentName = (name: string) => {
+  const title = name.replace(/\.[^.]+$/, '').trim();
+  if (/certificate/i.test(title) && /cardzip[\s-]+services/i.test(title)) return 'Certificate · Cardzip';
+  return title.length > 22 ? `${title.slice(0, 21).trimEnd()}…` : title;
+};
 
 export default function DigitalAssetDetailsScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const assetSlug = String(slug || '');
   const router = useRouter();
-  const { token } = useAppSelector((state) => state.auth);
+  const { token, user } = useAppSelector((state) => state.auth);
   const [asset, setAsset] = useState<StoreProduct | null>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [imageViewer, setImageViewer] = useState<{ images: string[]; index: number; source: 'asset' | 'receipt' } | null>(null);
+  const [websitePreviewUrl, setWebsitePreviewUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadedSlug, setLoadedSlug] = useState('');
   const [busyOption, setBusyOption] = useState<'use' | 'template' | ''>('');
   const [error, setError] = useState('');
-  const [purchaseError, setPurchaseError] = useState('');
-  const [receipt, setReceipt] = useState<({ productId: string; purchaseType: 'use' | 'template'; accessUrl?: string; sourceCodeAvailable?: boolean; templateSourceCodeAvailable?: boolean; documents: { name: string; mimeType: string }[]; templateDocuments?: { name: string; mimeType: string }[]; reference: string }) | null>(null);
-  const [sellerReceipt, setSellerReceipt] = useState<(SellerDigitalAssetPaystackVerification['sellerDigitalAsset'] & { reference: string }) | null>(null);
+  const [purchaseErrorState, setPurchaseErrorState] = useState<{ key: string; message: string } | null>(null);
+  const [purchaseHistory, setPurchaseHistory] = useState<PurchaseHistoryData | null>(null);
   const [downloadingFile, setDownloadingFile] = useState('');
   const [ownerAssetId, setOwnerAssetId] = useState('');
   const [promotionPrices, setPromotionPrices] = useState<CommunityPromotionDuration[]>([]);
@@ -53,14 +101,38 @@ export default function DigitalAssetDetailsScreen() {
   const isApp = asset?.productType === 'app' || asset?.productType === 'ios_app';
   const isAndroidApp = asset?.productType === 'app';
   const productId = String(asset?._id || asset?.id || '');
+  const purchaseHistoryKey = `${user?.id ?? ''}:${productId}`;
+  const currentPurchaseHistory = purchaseHistory?.key === purchaseHistoryKey ? purchaseHistory : null;
+  const receipt = currentPurchaseHistory?.receipt ?? null;
+  const sellerReceipt = currentPurchaseHistory?.sellerReceipt ?? null;
+  const paidOptions = currentPurchaseHistory?.paidOptions ?? { use: false, template: false };
+  const purchaseError = purchaseErrorState?.key === purchaseHistoryKey ? purchaseErrorState.message : '';
+  const checkingPurchaseHistory = Boolean(token && productId && !currentPurchaseHistory);
+  const updatePurchaseHistory = useCallback((changes: Partial<Omit<PurchaseHistoryData, 'key'>>) => {
+    setPurchaseHistory((current) => ({
+      key: purchaseHistoryKey,
+      paidOptions: current?.key === purchaseHistoryKey ? current.paidOptions : { use: false, template: false },
+      receipt: current?.key === purchaseHistoryKey ? current.receipt : null,
+      sellerReceipt: current?.key === purchaseHistoryKey ? current.sellerReceipt : null,
+      ...changes,
+    }));
+  }, [purchaseHistoryKey]);
+  const setReceipt = (value: DigitalProductReceipt | null) => updatePurchaseHistory({ receipt: value });
+  const setSellerReceipt = (value: SellerReceipt | null) => updatePurchaseHistory({ sellerReceipt: value });
+  const setPaidOptions = (value: { use: boolean; template: boolean }) => updatePurchaseHistory({ paidOptions: value });
+  const setPurchaseError = useCallback((message: string) => {
+    setPurchaseErrorState({ key: purchaseHistoryKey, message });
+  }, [purchaseHistoryKey]);
+  const assetImages = asset
+    ? [...new Set([asset.image, ...(asset.images ?? [])]
+      .filter((image): image is string => typeof image === 'string' && Boolean(image.trim()))
+      .map((image) => image.trim()))]
+    : [];
+  const selectedImage = assetImages[selectedImageIndex] || assetImages[0] || '';
 
   useEffect(() => {
     let active = true;
-    if (!token || !productId) {
-      setReceipt(null);
-      setSellerReceipt(null);
-      return () => { active = false; };
-    }
+    if (!token || !productId) return () => { active = false; };
     fetchMyDigitalProductPaymentsApi(token, productId)
       .then(async (payments) => {
         const verified = await Promise.all(payments
@@ -83,21 +155,37 @@ export default function DigitalAssetDetailsScreen() {
             }
           }));
         if (!active) return;
-        const latestPurchase = verified.find(Boolean);
-        if (!latestPurchase) return;
+        const confirmedPurchases = verified.filter(
+          (purchase): purchase is NonNullable<typeof purchase> => purchase !== null,
+        );
+        updatePurchaseHistory({ paidOptions: {
+          use: confirmedPurchases.some((purchase) => purchase.purchased.purchaseType === 'use'),
+          template: confirmedPurchases.some((purchase) => purchase.purchased.purchaseType === 'template'),
+        } });
+        const latestPurchase = confirmedPurchases[0];
+        if (!latestPurchase) {
+          updatePurchaseHistory({ receipt: null, sellerReceipt: null });
+          return;
+        }
         if (latestPurchase.purpose === 'seller_digital_asset') {
-          setSellerReceipt({ ...latestPurchase.purchased, reference: latestPurchase.reference });
-          setReceipt(null);
+          updatePurchaseHistory({
+            sellerReceipt: { ...latestPurchase.purchased, reference: latestPurchase.reference },
+            receipt: null,
+          });
         } else {
-          setReceipt({ ...latestPurchase.purchased, reference: latestPurchase.reference });
-          setSellerReceipt(null);
+          updatePurchaseHistory({
+            receipt: { ...latestPurchase.purchased, reference: latestPurchase.reference },
+            sellerReceipt: null,
+          });
         }
       })
       .catch((requestError: unknown) => {
-        if (active) setPurchaseError(requestError instanceof Error ? requestError.message : 'Could not load your purchase history.');
+        if (!active) return;
+        updatePurchaseHistory({ paidOptions: { use: false, template: false }, receipt: null, sellerReceipt: null });
+        setPurchaseError(requestError instanceof Error ? requestError.message : 'Could not load your purchase history.');
       });
     return () => { active = false; };
-  }, [productId, token]);
+  }, [productId, setPurchaseError, token, updatePurchaseHistory]);
 
   useEffect(() => {
     let active = true;
@@ -105,6 +193,8 @@ export default function DigitalAssetDetailsScreen() {
       .then((result) => {
         if (!active) return;
         setAsset(result);
+        setSelectedImageIndex(0);
+        setImageViewer(null);
         setLoadedSlug(assetSlug);
       })
       .catch((requestError: unknown) => {
@@ -135,7 +225,24 @@ export default function DigitalAssetDetailsScreen() {
   }, [asset?.isSellerListing, productId, token]);
   const isOwner = Boolean(token && ownerAssetId === productId);
 
+  const openAssetImage = () => {
+    if (selectedImage) setImageViewer({ images: assetImages, index: selectedImageIndex, source: 'asset' });
+  };
+
+  const openReceiptImage = (index: number) => {
+    const images = sellerReceipt?.screenshots || [];
+    if (images.length) setImageViewer({ images, index, source: 'receipt' });
+  };
+
+  const stepImageViewer = (direction: -1 | 1) => {
+    if (!imageViewer || imageViewer.images.length < 2) return;
+    const index = (imageViewer.index + direction + imageViewer.images.length) % imageViewer.images.length;
+    setImageViewer({ ...imageViewer, index });
+    if (imageViewer.source === 'asset') setSelectedImageIndex(index);
+  };
+
   const purchase = async (option: 'use' | 'template') => {
+    if (checkingPurchaseHistory || paidOptions[option]) return;
     if (!token) {
       Alert.alert('Sign in required', 'Sign in to purchase this digital product.', [
         { text: 'Cancel', style: 'cancel' },
@@ -149,13 +256,14 @@ export default function DigitalAssetDetailsScreen() {
     try {
       const returnUrl = callbackUrl || ExpoLinking.createURL('payment/callback', { scheme: 'cardzip' });
       const payment = await initializeDigitalProductPaymentApi(token, productId, option, returnUrl);
-      await openPaystackCheckout(payment.authorizationUrl, returnUrl);
+      await openCheckoutUrl(payment.authorizationUrl, returnUrl);
       const result = await verifyPaystackUntilSettled({
         verify: () => verifyDigitalProductPaymentApi(token, payment.reference),
         getStatus: (verification) => verification.status === 'completed' && verification.digitalProduct ? 'completed' : 'pending',
         failureMessage: 'Paystack did not complete this digital-product payment.',
         pendingMessage: 'Payment is still being confirmed. Verify again shortly.',
       });
+      setPaidOptions((current) => ({ ...current, [option]: true }));
       setReceipt({
         productId,
         purchaseType: result.digitalProduct.purchaseType,
@@ -185,6 +293,7 @@ export default function DigitalAssetDetailsScreen() {
   };
 
   const purchaseSellerListing = async (option: 'use' | 'template') => {
+    if (checkingPurchaseHistory || paidOptions[option]) return;
     if (!token) {
       Alert.alert('Sign in required', 'Sign in to purchase this digital listing.', [
         { text: 'Cancel', style: 'cancel' },
@@ -193,18 +302,19 @@ export default function DigitalAssetDetailsScreen() {
       return;
     }
     if (!productId) return;
-    setBusyOption('use');
+    setBusyOption(option);
     setPurchaseError('');
     try {
       const returnUrl = callbackUrl || ExpoLinking.createURL('payment/callback', { scheme: 'cardzip' });
       const payment = await initializeSellerDigitalAssetPaymentApi(token, productId, option, returnUrl);
-      await openPaystackCheckout(payment.authorizationUrl, returnUrl);
+      await openCheckoutUrl(payment.authorizationUrl, returnUrl);
       const result = await verifyPaystackUntilSettled({
         verify: () => verifySellerDigitalAssetPaymentApi(token, payment.reference),
         getStatus: (verification) => verification.status === 'completed' && verification.sellerDigitalAsset ? 'completed' : 'pending',
         failureMessage: 'Paystack did not complete this digital-listing payment.',
         pendingMessage: 'Payment is still being confirmed. Verify again shortly.',
       });
+      setPaidOptions((current) => ({ ...current, [option]: true }));
       setSellerReceipt({ ...result.sellerDigitalAsset, reference: payment.reference });
       setReceipt(null);
       Alert.alert('Payment confirmed', `You can now access the listing. The seller received ${formatNaira(result.sellerDigitalAsset.sellerShare)} (70%); Cardzip retained 30%.`);
@@ -226,7 +336,7 @@ export default function DigitalAssetDetailsScreen() {
     try {
       const returnUrl = callbackUrl || ExpoLinking.createURL('payment/callback', { scheme: 'cardzip' });
       const payment = await initializeDigitalAssetPromotionPaymentApi(token, productId, duration.key, returnUrl);
-      await openPaystackCheckout(payment.authorizationUrl, returnUrl);
+      await openCheckoutUrl(payment.authorizationUrl, returnUrl);
       await verifyPaystackUntilSettled({
         verify: () => verifyCommunityPromotionPaymentApi(token, payment.reference),
         getStatus: (result) => result.status === 'completed' && result.promotion ? 'completed' : 'pending',
@@ -250,12 +360,14 @@ export default function DigitalAssetDetailsScreen() {
     }
   };
 
-  const openWebsite = async (url: string) => {
-    try {
-      await WebBrowser.openBrowserAsync(url);
-    } catch {
-      setPurchaseError('Could not open the website preview. Please try again.');
+  const openWebsite = (url: string) => {
+    const websiteUrl = normalizeHttpUrl(url);
+    if (!websiteUrl) {
+      setPurchaseError('This website link is invalid. Check that it is a complete URL.');
+      return;
     }
+    setPurchaseError('');
+    setWebsitePreviewUrl(websiteUrl);
   };
 
   const downloadPurchasedFile = async (
@@ -307,13 +419,21 @@ export default function DigitalAssetDetailsScreen() {
         <View style={styles.iconButton} />
       </View>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.art}>
-          {asset.image ? <Image source={{ uri: asset.image }} style={styles.artImage} resizeMode="cover" /> : <Feather name={isApp ? 'smartphone' : 'globe'} size={42} color="#8BF0B9" />}
+        <View style={styles.gallery}>
+          <TouchableOpacity style={styles.art} onPress={openAssetImage} disabled={!selectedImage} activeOpacity={0.9} accessibilityRole="button" accessibilityLabel={`Zoom image ${selectedImageIndex + 1} of ${assetImages.length}`}>
+            {selectedImage ? <Image source={{ uri: selectedImage }} style={styles.artImage} resizeMode="cover" /> : <Feather name={isApp ? 'smartphone' : 'globe'} size={42} color="#8BF0B9" />}
+            {selectedImage ? <View style={styles.zoomHint}><Feather name="maximize" size={14} color="#FFFFFF" /><Text style={styles.zoomHintText}>Zoom image</Text></View> : null}
+          </TouchableOpacity>
+          {assetImages.length > 1 ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.imageThumbnails}>
+            {assetImages.map((image, index) => <TouchableOpacity key={`${image}-${index}`} style={[styles.imageThumbnailButton, index === selectedImageIndex && styles.imageThumbnailSelected]} onPress={() => setSelectedImageIndex(index)} accessibilityRole="button" accessibilityLabel={`Show image ${index + 1}`} accessibilityState={{ selected: index === selectedImageIndex }}>
+              <Image source={{ uri: image }} style={styles.imageThumbnail} resizeMode="cover" />
+            </TouchableOpacity>)}
+          </ScrollView> : null}
         </View>
         <Text style={styles.typeLabel}>{isAndroidApp ? 'ANDROID APPLICATION' : asset.productType === 'ios_app' ? 'IOS APPLICATION' : asset.productType === 'full_stack' ? 'FULL STACK' : asset.productType === 'admin' ? 'ADMIN DASHBOARD' : 'WEBSITE'}</Text>
         <Text style={styles.title}>{asset.name}</Text>
         <Text style={styles.copy}>{asset.description || 'A digital product from the Cardzip collection.'}</Text>
-        {!asset.isSellerListing && asset.websiteUrl ? <TouchableOpacity style={styles.previewLink} onPress={() => void Linking.openURL(asset.websiteUrl!)}><Text style={styles.previewText}>Visit website</Text><Feather name="arrow-up-right" size={15} color="#087A4C" /></TouchableOpacity> : null}
+        {!asset.isSellerListing && asset.websiteUrl ? <TouchableOpacity style={styles.previewLink} onPress={() => void openWebsite(asset.websiteUrl!)}><Text style={styles.previewText}>Visit website</Text><Feather name="arrow-up-right" size={15} color="#087A4C" /></TouchableOpacity> : null}
 
         <View style={styles.infoCard}>
           <Text style={styles.sectionTitle}>About and setup</Text>
@@ -326,13 +446,13 @@ export default function DigitalAssetDetailsScreen() {
           <Text style={styles.sectionTitle}>Choose your option</Text>
           {asset.isSellerListing ? <>
             <View style={styles.sellerTerms}><Text style={styles.optionTitle}>Purchase from the creator</Text><Text style={styles.optionDescription}>Each paid option unlocks its own ZIP and buyer files. Full-template buyers also receive its legal documents.</Text><Text style={styles.sellerPayout}>Seller receives 70% · Cardzip retains 30% · seller withdrawals take 1–2 business days.</Text></View>
-            {(Number(asset.usePrice) > 0 || (!Number(asset.usePrice) && !Number(asset.templatePrice) && Number(asset.price) > 0)) ? <TouchableOpacity style={styles.option} disabled={Boolean(busyOption)} onPress={() => void purchaseSellerListing('use')}>
+            {(Number(asset.usePrice) > 0 || (!Number(asset.usePrice) && !Number(asset.templatePrice) && Number(asset.price) > 0)) ? <TouchableOpacity style={styles.option} disabled={Boolean(busyOption) || checkingPurchaseHistory || paidOptions.use} onPress={() => void purchaseSellerListing('use')}>
               <View style={styles.optionCopy}><Text style={styles.optionTitle}>Use / rent</Text><Text style={styles.optionDescription}>Use access, rental ZIP and buyer files.</Text></View>
-              <Text style={styles.optionPrice}>{busyOption === 'use' ? 'Opening…' : formatNaira(Number(asset.usePrice) || Number(asset.price))}</Text>
+              <Text style={styles.optionPrice}>{checkingPurchaseHistory ? 'Checking payment…' : paidOptions.use ? 'Already paid' : busyOption === 'use' ? 'Opening…' : formatNaira(Number(asset.usePrice) || Number(asset.price))}</Text>
             </TouchableOpacity> : null}
-            {Number(asset.templatePrice) > 0 ? <TouchableOpacity style={styles.option} disabled={Boolean(busyOption)} onPress={() => void purchaseSellerListing('template')}>
+            {Number(asset.templatePrice) > 0 ? <TouchableOpacity style={styles.option} disabled={Boolean(busyOption) || checkingPurchaseHistory || paidOptions.template} onPress={() => void purchaseSellerListing('template')}>
               <View style={styles.optionCopy}><Text style={styles.optionTitle}>Full project template</Text><Text style={styles.optionDescription}>Full source ZIP and legal documents.</Text></View>
-              <Text style={styles.optionPrice}>{busyOption === 'template' ? 'Opening…' : formatNaira(Number(asset.templatePrice))}</Text>
+              <Text style={styles.optionPrice}>{checkingPurchaseHistory ? 'Checking payment…' : paidOptions.template ? 'Already paid' : busyOption === 'template' ? 'Opening…' : formatNaira(Number(asset.templatePrice))}</Text>
             </TouchableOpacity> : null}
             {isOwner ? <View style={styles.promotionBox}>
               <Text style={styles.optionTitle}>Promote in Community Marketplace</Text>
@@ -348,26 +468,26 @@ export default function DigitalAssetDetailsScreen() {
             </View> : null}
           </> : null}
           {!asset.isSellerListing && Number(asset.usePrice) > 0 ? (
-            <TouchableOpacity style={styles.option} disabled={Boolean(busyOption)} onPress={() => void purchase('use')}>
+            <TouchableOpacity style={styles.option} disabled={Boolean(busyOption) || checkingPurchaseHistory || paidOptions.use} onPress={() => void purchase('use')}>
               <View style={styles.optionCopy}><Text style={styles.optionTitle}>Use / rent</Text><Text style={styles.optionDescription}>Use the ready-made {isApp ? 'app' : 'website'} with setup guidance.</Text></View>
-              <Text style={styles.optionPrice}>{busyOption === 'use' ? 'Opening…' : formatNaira(Number(asset.usePrice))}</Text>
+              <Text style={styles.optionPrice}>{checkingPurchaseHistory ? 'Checking payment…' : paidOptions.use ? 'Already paid' : busyOption === 'use' ? 'Opening…' : formatNaira(Number(asset.usePrice))}</Text>
             </TouchableOpacity>
           ) : null}
           {!asset.isSellerListing && Number(asset.templatePrice) > 0 ? (
-            <TouchableOpacity style={styles.option} disabled={Boolean(busyOption)} onPress={() => void purchase('template')}>
+            <TouchableOpacity style={styles.option} disabled={Boolean(busyOption) || checkingPurchaseHistory || paidOptions.template} onPress={() => void purchase('template')}>
               <View style={styles.optionCopy}><Text style={styles.optionTitle}>Full project template</Text><Text style={styles.optionDescription}>Source project, backend and two weeks of setup/upload.</Text></View>
-              <Text style={styles.optionPrice}>{busyOption === 'template' ? 'Opening…' : formatNaira(Number(asset.templatePrice))}</Text>
+              <Text style={styles.optionPrice}>{checkingPurchaseHistory ? 'Checking payment…' : paidOptions.template ? 'Already paid' : busyOption === 'template' ? 'Opening…' : formatNaira(Number(asset.templatePrice))}</Text>
             </TouchableOpacity>
           ) : null}
           {purchaseError ? <Text style={styles.error} accessibilityRole="alert">{purchaseError}</Text> : null}
           {receipt?.purchaseType === 'use' && receipt.accessUrl ? <TouchableOpacity style={styles.accessButton} onPress={() => void openAccess(receipt.accessUrl!)}><Feather name={isApp ? 'download' : 'external-link'} size={16} color="#FFFFFF" /><Text style={styles.accessButtonText}>{isAndroidApp ? 'Download hosted APK' : asset.productType === 'ios_app' ? 'Open iOS app access' : 'Open your website'}</Text></TouchableOpacity> : null}
           {receipt?.purchaseType === 'template' ? <Text style={styles.success}>Template purchase confirmed. Your source archive and files are ready below.</Text> : null}
           {(receipt?.sourceCodeAvailable || receipt?.templateSourceCodeAvailable || sellerReceipt?.sourceCodeAvailable) ? <TouchableOpacity style={styles.accessButton} disabled={Boolean(downloadingFile)} onPress={() => void downloadPurchasedFile('source-code', 0, `${asset.name}-${sellerReceipt?.purchaseType === 'template' || receipt?.purchaseType === 'template' ? 'full-template' : 'rental'}-source-code.zip`, 'application/zip')}><Feather name="download" size={16} color="#FFFFFF" /><Text style={styles.accessButtonText}>{downloadingFile.includes('source-code') ? 'Downloading source ZIP…' : `Download ${sellerReceipt?.purchaseType === 'template' || receipt?.purchaseType === 'template' ? 'full-template' : 'rental'} source ZIP`}</Text></TouchableOpacity> : null}
-          {(sellerReceipt?.documents || receipt?.documents || []).map((document, index) => <TouchableOpacity key={`${document.name}-${index}`} style={styles.accessButton} disabled={Boolean(downloadingFile)} onPress={() => void downloadPurchasedFile('document', index, document.name, document.mimeType)}><Feather name="file-text" size={16} color="#FFFFFF" /><Text style={styles.accessButtonText}>{downloadingFile === `document-${index}` ? 'Downloading…' : `Download ${document.name}`}</Text></TouchableOpacity>)}
-          {(sellerReceipt?.templateDocuments || receipt?.templateDocuments || []).map((document, index) => <TouchableOpacity key={`legal-${document.name}-${index}`} style={styles.accessButton} disabled={Boolean(downloadingFile)} onPress={() => void downloadPurchasedFile('template-document', index, document.name, document.mimeType)}><Feather name="file-text" size={16} color="#FFFFFF" /><Text style={styles.accessButtonText}>{downloadingFile === `template-document-${index}` ? 'Downloading…' : `Download legal document: ${document.name}`}</Text></TouchableOpacity>)}
+          {(sellerReceipt?.documents || receipt?.documents || []).map((document, index) => <TouchableOpacity key={`${document.name}-${index}`} style={styles.accessButton} disabled={Boolean(downloadingFile)} onPress={() => void downloadPurchasedFile('document', index, document.name, document.mimeType)}><Feather name="file-text" size={16} color="#FFFFFF" /><Text style={styles.accessButtonText}>{downloadingFile === `document-${index}` ? 'Downloading…' : `Download ${getShortDocumentName(document.name)}`}</Text></TouchableOpacity>)}
+          {(sellerReceipt?.templateDocuments || receipt?.templateDocuments || []).map((document, index) => <TouchableOpacity key={`legal-${document.name}-${index}`} style={styles.accessButton} disabled={Boolean(downloadingFile)} onPress={() => void downloadPurchasedFile('template-document', index, document.name, document.mimeType)}><Feather name="file-text" size={16} color="#FFFFFF" /><Text style={styles.accessButtonText}>{downloadingFile === `template-document-${index}` ? 'Downloading…' : `Legal · ${getShortDocumentName(document.name)}`}</Text></TouchableOpacity>)}
           {sellerReceipt ? <>
             <Text style={styles.success}>Payment confirmed. The seller received {formatNaira(sellerReceipt.sellerShare)} (70%).</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sellerGallery}>{sellerReceipt.screenshots.map((image, index) => <Image key={`${image}-${index}`} source={{ uri: image }} style={styles.sellerScreenshot} />)}</ScrollView>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sellerGallery}>{sellerReceipt.screenshots.map((image, index) => <TouchableOpacity key={`${image}-${index}`} onPress={() => openReceiptImage(index)} accessibilityRole="button" accessibilityLabel={`Zoom purchased screenshot ${index + 1}`}><Image source={{ uri: image }} style={styles.sellerScreenshot} /></TouchableOpacity>)}</ScrollView>
             {sellerReceipt.accessUrl && ['website', 'full_stack', 'admin'].includes(sellerReceipt.productType) ? <TouchableOpacity style={styles.accessButton} onPress={() => void openWebsite(sellerReceipt.accessUrl!)}><Feather name="globe" size={16} color="#FFFFFF" /><Text style={styles.accessButtonText}>Open website</Text></TouchableOpacity> : null}
             {sellerReceipt.apkUrl ? <TouchableOpacity style={styles.accessButton} onPress={() => void openAccess(sellerReceipt.apkUrl!)}><Feather name="download" size={16} color="#FFFFFF" /><Text style={styles.accessButtonText}>Download APK</Text></TouchableOpacity> : null}
             {sellerReceipt.iosAppUrl ? <TouchableOpacity style={styles.accessButton} onPress={() => void openAccess(sellerReceipt.iosAppUrl!)}><Feather name="smartphone" size={16} color="#FFFFFF" /><Text style={styles.accessButtonText}>Open iOS app</Text></TouchableOpacity> : null}
@@ -379,6 +499,42 @@ export default function DigitalAssetDetailsScreen() {
           </View>
         </View>
       </ScrollView>
+      <Modal visible={Boolean(imageViewer)} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setImageViewer(null)}>
+        <View style={styles.imageViewer}>
+          {imageViewer ? <Image source={{ uri: imageViewer.images[imageViewer.index] }} style={styles.imageViewerImage} resizeMode="contain" /> : null}
+          <TouchableOpacity style={[styles.viewerControl, styles.viewerClose]} onPress={() => setImageViewer(null)} accessibilityRole="button" accessibilityLabel="Close image viewer"><Feather name="x" size={23} color="#FFFFFF" /></TouchableOpacity>
+          {imageViewer && imageViewer.images.length > 1 ? <>
+            <TouchableOpacity style={[styles.viewerControl, styles.viewerPrevious]} onPress={() => stepImageViewer(-1)} accessibilityRole="button" accessibilityLabel="Previous image"><Feather name="chevron-left" size={28} color="#FFFFFF" /></TouchableOpacity>
+            <TouchableOpacity style={[styles.viewerControl, styles.viewerNext]} onPress={() => stepImageViewer(1)} accessibilityRole="button" accessibilityLabel="Next image"><Feather name="chevron-right" size={28} color="#FFFFFF" /></TouchableOpacity>
+            <Text style={styles.viewerCount}>{imageViewer.index + 1} / {imageViewer.images.length}</Text>
+          </> : null}
+        </View>
+      </Modal>
+      <Modal visible={Boolean(websitePreviewUrl)} animationType="slide" onRequestClose={() => setWebsitePreviewUrl('')}>
+        <SafeAreaView style={styles.websitePreview}>
+          <WebView
+            source={{ uri: websitePreviewUrl }}
+            originWhitelist={['http://*', 'https://*']}
+            style={styles.websiteWebView}
+            startInLoadingState
+            renderLoading={() => <View style={styles.websiteLoading}><ActivityIndicator size="large" color="#087A4C" /></View>}
+            javaScriptEnabled
+            domStorageEnabled
+            setSupportMultipleWindows={false}
+            allowsBackForwardNavigationGestures
+          />
+          <View style={styles.websitePreviewOverlay} pointerEvents="box-none">
+            <View style={styles.websitePreviewHeader}>
+              <TouchableOpacity style={styles.websitePreviewClose} onPress={() => setWebsitePreviewUrl('')} accessibilityRole="button" accessibilityLabel="Close website preview">
+                <Feather name="x" size={18} color="#14253A" />
+                <Text style={styles.websitePreviewCloseText}>Close</Text>
+              </TouchableOpacity>
+              <Text style={styles.websitePreviewTitle}>Website preview</Text>
+              <View style={styles.websitePreviewSpacer} />
+            </View>
+          </View>
+        </SafeAreaView>
+      </Modal>
       <MarketBottomTab activeTab="Store" />
     </SafeAreaView>
   );
@@ -390,8 +546,31 @@ const styles = StyleSheet.create({
   iconButton: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { color: '#14253A', fontSize: 16, fontWeight: '800' },
   content: { padding: 16, paddingBottom: 28 },
-  art: { height: 190, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderRadius: 18, backgroundColor: '#153547' },
+  gallery: { gap: 9 },
+  art: { height: 220, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderRadius: 16, backgroundColor: '#153547' },
   artImage: { width: '100%', height: '100%' },
+  zoomHint: { position: 'absolute', right: 10, bottom: 10, paddingHorizontal: 10, paddingVertical: 7, flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 20, backgroundColor: 'rgba(16, 27, 47, 0.82)' },
+  zoomHintText: { color: '#FFFFFF', fontSize: 10, fontWeight: '800' },
+  imageThumbnails: { gap: 8, paddingVertical: 2 },
+  imageThumbnailButton: { width: 58, height: 48, overflow: 'hidden', borderWidth: 2, borderColor: 'transparent', borderRadius: 7, backgroundColor: '#FFFFFF' },
+  imageThumbnailSelected: { borderColor: '#087A4C' },
+  imageThumbnail: { width: '100%', height: '100%' },
+  imageViewer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#07111F' },
+  imageViewerImage: { width: '100%', height: '100%' },
+  viewerControl: { position: 'absolute', width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)', borderRadius: 22, backgroundColor: 'rgba(20,35,51,0.82)' },
+  viewerClose: { top: 46, right: 16 },
+  viewerPrevious: { left: 14 },
+  viewerNext: { right: 14 },
+  viewerCount: { position: 'absolute', bottom: 28, color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
+  websitePreview: { flex: 1, backgroundColor: '#FFFFFF' },
+  websitePreviewOverlay: { position: 'absolute', top: 18, left: 0, right: 0, zIndex: 10, elevation: 10 },
+  websitePreviewHeader: { minHeight: 56, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E2E8F0', backgroundColor: 'rgba(245,248,247,0.97)', zIndex: 10, elevation: 10 },
+  websitePreviewClose: { minWidth: 76, height: 40, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderWidth: 1, borderColor: '#C9D8D0', borderRadius: 20, backgroundColor: '#FFFFFF', elevation: 4 },
+  websitePreviewCloseText: { color: '#14253A', fontSize: 12, fontWeight: '800' },
+  websitePreviewSpacer: { width: 76 },
+  websitePreviewTitle: { color: '#14253A', fontSize: 14, fontWeight: '800' },
+  websiteWebView: { flex: 1, backgroundColor: '#FFFFFF' },
+  websiteLoading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
   typeLabel: { marginTop: 18, color: '#087A4C', fontSize: 9, fontWeight: '900', letterSpacing: 0.8 },
   title: { marginTop: 7, color: '#14253A', fontSize: 26, fontWeight: '900', letterSpacing: -0.6 },
   copy: { marginTop: 8, color: '#62727B', fontSize: 12, lineHeight: 19 },

@@ -1,20 +1,34 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, MapPin, Search, SlidersHorizontal, Star } from 'lucide-react'
 import HomeHeader from '../components/HomeHeader'
 import HomeFooter from '../components/HomeFooter'
 import { doctors, specialties } from '../data/doctors'
 import './DoctorsPage.css'
 
-function DoctorsPage({ bookingMode = false }) {
+function DoctorsPage({ bookingMode = false, mode = 'local', apiBaseUrl = '' }) {
   const searchParams = new URLSearchParams(window.location.search)
   const [query, setQuery] = useState(searchParams.get('q') || '')
   const [specialty, setSpecialty] = useState(searchParams.get('specialty') || '')
   const [location, setLocation] = useState(searchParams.get('location') || '')
   const [sortBy, setSortBy] = useState('recommended')
+  const [doctorList, setDoctorList] = useState(doctors)
+
+  useEffect(() => {
+    let active = true
+    if (mode !== 'api') return () => { active = false }
+    fetch(`${apiBaseUrl}/doctors`)
+      .then((response) => response.json().then((result) => ({ response, result })))
+      .then(({ response, result }) => {
+        if (!response.ok) throw new Error(result.error || 'Unable to load doctors.')
+        if (active) setDoctorList(result.doctors.map((doctor) => ({ ...doctors.find((item) => item.slug === doctor.slug), ...doctor, image: doctors.find((item) => item.slug === doctor.slug)?.image })))
+      })
+      .catch(() => {})
+    return () => { active = false }
+  }, [apiBaseUrl, mode])
 
   const filteredDoctors = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
-    const filtered = doctors.filter((doctor) => {
+    const filtered = doctorList.filter((doctor) => {
       const matchesQuery = !normalizedQuery ||
         `${doctor.name} ${doctor.specialty} ${doctor.credentials}`.toLowerCase().includes(normalizedQuery)
       const matchesSpecialty = !specialty || doctor.specialty === specialty
@@ -25,7 +39,7 @@ function DoctorsPage({ bookingMode = false }) {
     return sortBy === 'rating'
       ? [...filtered].sort((a, b) => b.rating - a.rating)
       : filtered
-  }, [location, query, sortBy, specialty])
+  }, [doctorList, location, query, sortBy, specialty])
 
   return (
     <div className={bookingMode ? 'doctors-page booking-page' : 'doctors-page'}>

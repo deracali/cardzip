@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
 import { Href, Stack, useRouter } from 'expo-router';
 import { useFonts } from 'expo-font';
+import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
 import { Provider } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -61,7 +62,6 @@ function AppNavigator() {
   const { sessionReady, token, user } = useAppSelector((state) => state.auth);
   const notificationsEnabled = useAppSelector((state) => state.preferences.notificationsEnabled);
   const cartLoaded = useAppSelector((state) => state.cart.loaded);
-  const [startupDataReady, setStartupDataReady] = useState(false);
   const handledNotification = useRef('');
   const [fontsLoaded] = useFonts({
     Poppins: require('../../assets/fonts/Poppins-Regular.ttf'),
@@ -80,19 +80,8 @@ function AppNavigator() {
 
   useEffect(() => {
     if (!fontsLoaded || !sessionReady) return;
-    let active = true;
-    const prepareAccount = async () => {
-      if (token) {
-        await dispatch(fetchMyAccount(token));
-      } else {
-        dispatch(clearAccount());
-      }
-      if (active) setStartupDataReady(true);
-    };
-    void prepareAccount();
-    return () => {
-      active = false;
-    };
+    if (token) void dispatch(fetchMyAccount(token));
+    else dispatch(clearAccount());
   }, [dispatch, fontsLoaded, sessionReady, token]);
 
   useEffect(() => {
@@ -115,7 +104,7 @@ function AppNavigator() {
   }, [dispatch, notificationsEnabled, sessionReady, user?.id]);
 
   useEffect(() => {
-    if (!sessionReady || !startupDataReady) return;
+    if (!sessionReady) return;
     const openFromNotification = (response: Notifications.NotificationResponse) => {
       const notificationData = response.notification.request.content.data;
       const data = notificationData && typeof notificationData === 'object' ? notificationData : {};
@@ -133,9 +122,9 @@ function AppNavigator() {
       })
       .catch((error: unknown) => console.error('Could not read the last notification response:', error));
     return () => subscription.remove();
-  }, [router, sessionReady, startupDataReady]);
+  }, [router, sessionReady]);
 
-  if (!fontsLoaded || !sessionReady || !startupDataReady || !cartLoaded) {
+  if (!fontsLoaded || !sessionReady || !cartLoaded) {
     return (
       <View style={styles.startup}>
         <ActivityIndicator size="large" color="#059669" />
@@ -166,7 +155,10 @@ export default function RootLayout() {
   return (
     <Provider store={store}>
       <SafeAreaProvider>
-        <AppNavigator />
+        <>
+          <StatusBar style="dark" />
+          <AppNavigator />
+        </>
       </SafeAreaProvider>
     </Provider>
   );

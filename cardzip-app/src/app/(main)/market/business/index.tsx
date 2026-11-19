@@ -45,8 +45,10 @@ export default function BusinessHubScreen() {
   const token = useAppSelector((state) => state.auth.token);
   const [mode, setMode] = useState<PageMode>('directory');
   const [shops, setShops] = useState<ShopProfile[]>([]);
+  const [visibleShopCount, setVisibleShopCount] = useState(12);
   const [shop, setShop] = useState<ShopProfile | null>(null);
   const [products, setProducts] = useState<ShopProduct[]>([]);
+  const [visibleProductCount, setVisibleProductCount] = useState(12);
   const [productDraft, setProductDraft] = useState({
     name: '',
     category: '',
@@ -140,11 +142,6 @@ export default function BusinessHubScreen() {
   const chooseBanner = async () => {
     setError('');
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        setError('Allow photo-library access to choose a profile image.');
-        return;
-      }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
@@ -191,11 +188,6 @@ export default function BusinessHubScreen() {
     }
     setError('');
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        setError('Allow photo-library access to choose product photos.');
-        return;
-      }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsMultipleSelection: true,
@@ -446,7 +438,7 @@ export default function BusinessHubScreen() {
               <View><Text style={styles.sectionEyebrow}>YOUR CATALOG</Text><Text style={styles.sectionTitle}>Listed products</Text></View>
               <Text style={styles.productStock}>{products.length}</Text>
             </View>
-            {products.length === 0 ? <Text style={styles.emptyDescription}>Your store is ready for its first product.</Text> : products.map((product) => (
+            {products.length === 0 ? <Text style={styles.emptyDescription}>Your store is ready for its first product.</Text> : products.slice(0, visibleProductCount).map((product) => (
               <View style={styles.ownerProductCard} key={product._id}>
                 <TouchableOpacity
                   style={styles.ownerProductMain}
@@ -466,6 +458,11 @@ export default function BusinessHubScreen() {
                 </TouchableOpacity>
               </View>
             ))}
+            {visibleProductCount < products.length ? (
+              <TouchableOpacity style={styles.secondaryButton} onPress={() => setVisibleProductCount((count) => count + 12)} activeOpacity={0.8}>
+                <Text style={styles.secondaryButtonText}>Show more products</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         </View>
       );
@@ -489,9 +486,6 @@ export default function BusinessHubScreen() {
         </TouchableOpacity>
         <TouchableOpacity style={styles.secondaryButton} onPress={() => void copyPublicPage(shop.slug)}>
           <Feather name="copy" size={15} color="#087A4C" /><Text style={styles.secondaryButtonText}>Copy public business page</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.secondaryButton} onPress={startNewApplication}>
-          <Text style={styles.secondaryButtonText}>Create another store or business</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.secondaryButton} onPress={startNewApplication}>
           <Text style={styles.secondaryButtonText}>Create another store or business</Text>
@@ -538,7 +532,7 @@ export default function BusinessHubScreen() {
                 <Text style={styles.emptyDescription}>Check back soon or create a Business profile to get started.</Text>
               </View>
             ) : null}
-            {shops.map((item) => (
+            {shops.slice(0, visibleShopCount).map((item) => (
               <TouchableOpacity key={item._id} style={styles.businessCard} onPress={() => openBusiness(item.slug)} activeOpacity={0.85}>
                 {item.bannerImage ? <Image source={{ uri: item.bannerImage }} style={styles.businessLogo} resizeMode="cover" /> : <View style={styles.businessIcon}><Feather name="briefcase" size={19} color="#087A4C" /></View>}
                 <View style={styles.flexCopy}>
@@ -549,6 +543,11 @@ export default function BusinessHubScreen() {
                 <Feather name="chevron-right" size={19} color="#087A4C" />
               </TouchableOpacity>
             ))}
+            {visibleShopCount < shops.length ? (
+              <TouchableOpacity style={styles.secondaryButton} onPress={() => setVisibleShopCount((count) => count + 12)} activeOpacity={0.8}>
+                <Text style={styles.secondaryButtonText}>Show more businesses</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         ) : (
           <View style={styles.section}>

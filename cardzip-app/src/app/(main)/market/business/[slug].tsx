@@ -24,6 +24,7 @@ import {
   fetchShopProductsApi,
 } from '../../../../services/api/storeApi';
 import type { ShopAppointment, ShopProduct, ShopProfile } from '../../../../types/shop';
+import type { PaginationInfo } from '../../../../types/pagination';
 import { useAppSelector } from '../../../../store';
 import { formatNaira } from '../../../../utils/currency';
 
@@ -43,6 +44,8 @@ export default function PublicBusinessScreen() {
   const token = useAppSelector((state) => state.auth.token);
   const [business, setBusiness] = useState<ShopProfile | null>(null);
   const [products, setProducts] = useState<ShopProduct[]>([]);
+  const [productsPagination, setProductsPagination] = useState<PaginationInfo | null>(null);
+  const [loadingMoreProducts, setLoadingMoreProducts] = useState(false);
   const [appointments, setAppointments] = useState<ShopAppointment[]>([]);
   const [myBookings, setMyBookings] = useState<ShopAppointment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,6 +57,8 @@ export default function PublicBusinessScreen() {
   useEffect(() => {
     let active = true;
     const loadBusiness = async () => {
+      setProducts([]);
+      setProductsPagination(null);
       if (!slug) {
         setError('Business page not found.');
         setLoading(false);
@@ -64,8 +69,11 @@ export default function PublicBusinessScreen() {
         if (!active) return;
         setBusiness(result);
         if (result.shopType === 'store') {
-          const productResult = await fetchShopProductsApi(slug);
-          if (active) setProducts(productResult.items);
+          const productResult = await fetchShopProductsApi(slug, 1, 12);
+          if (active) {
+            setProducts(productResult.items);
+            setProductsPagination(productResult.pagination);
+          }
           return;
         }
         const [available, bookings] = await Promise.all([
@@ -85,6 +93,21 @@ export default function PublicBusinessScreen() {
     void loadBusiness();
     return () => { active = false; };
   }, [slug, token]);
+
+  const loadMoreProducts = async () => {
+    if (!slug || !productsPagination?.hasNextPage || loadingMoreProducts) return;
+    setLoadingMoreProducts(true);
+    setError('');
+    try {
+      const result = await fetchShopProductsApi(slug, productsPagination.page + 1, 12);
+      setProducts((current) => [...current, ...result.items]);
+      setProductsPagination(result.pagination);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Could not load more store products.');
+    } finally {
+      setLoadingMoreProducts(false);
+    }
+  };
 
   const bookAppointment = async (appointmentId: string) => {
     if (!token) {
@@ -224,6 +247,16 @@ export default function PublicBusinessScreen() {
                     <Feather name="chevron-right" size={19} color="#087A4C" />
                   </TouchableOpacity>
                 ))}
+                {productsPagination?.hasNextPage ? (
+                  <TouchableOpacity
+                    style={styles.loadMoreButton}
+                    onPress={() => void loadMoreProducts()}
+                    disabled={loadingMoreProducts}
+                    activeOpacity={0.8}
+                  >
+                    {loadingMoreProducts ? <ActivityIndicator color="#087A4C" /> : <Text style={styles.loadMoreText}>Load more products</Text>}
+                  </TouchableOpacity>
+                ) : null}
               </>
             ) : (
               <>
@@ -317,6 +350,8 @@ const styles = StyleSheet.create({
   sectionHeading: { marginTop: 23, marginBottom: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sectionEyebrow: { color: '#087A4C', fontSize: 9, fontWeight: '800', letterSpacing: 1 },
   sectionTitle: { marginTop: 4, color: '#153426', fontSize: 17, fontWeight: '800' },
+  loadMoreButton: { minHeight: 42, marginTop: 6, alignItems: 'center', justifyContent: 'center', borderRadius: 9, backgroundColor: '#E8F4EC' },
+  loadMoreText: { color: '#087A4C', fontSize: 11, fontWeight: '800' },
   appointmentCard: { marginBottom: 10, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 13, borderWidth: 1, borderColor: '#E0EAE3', backgroundColor: '#FFFFFF' },
   appointmentIcon: { width: 39, height: 39, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: '#EAF7EE' },
   appointmentInfo: { flex: 1, minWidth: 0 },

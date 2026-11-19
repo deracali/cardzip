@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Activity,
   ArrowDownRight,
@@ -43,6 +43,7 @@ const routeNames = [
 
 
 import { useMenuState } from "../hooks/useMenuState";
+import { nexaraApi, type NexaraPage } from "../services/nexara-api";
 
 
 export function Logo() {
@@ -51,6 +52,18 @@ export function Logo() {
 
 export function Header() {
   const { menuOpen, setMenuOpen } = useMenuState()
+  const [cmsPages, setCmsPages] = useState<NexaraPage[]>([])
+  useEffect(() => {
+    let active = true;
+    nexaraApi.publicPages()
+      .then(({ data }) => { if (active) setCmsPages(data); })
+      .catch((error: unknown) => console.error("Could not load website navigation:", error));
+    return () => { active = false; };
+  }, []);
+  const links = [
+    ...routeNames.map(([href, label]) => [href, cmsPages.find((page) => page.slug === href)?.title || label] as const),
+    ...cmsPages.filter((page) => !routeNames.some(([href]) => href === page.slug)).map((page) => [page.slug, page.title] as const),
+  ]
   return (
     <header className="site-header">
       <div className="header-inner">
@@ -59,7 +72,7 @@ export function Header() {
           {menuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
         <nav className={menuOpen ? 'main-nav is-open' : 'main-nav'} aria-label="Main navigation">
-          {routeNames.map(([href, label]) => <a href={href} key={href} onClick={() => setMenuOpen(false)}>{label}</a>)}
+          {links.map(([href, label]) => <a href={href} key={href} onClick={() => setMenuOpen(false)}>{label}</a>)}
           <a className="nav-login" href="/login" onClick={() => setMenuOpen(false)}>Log in</a>
           <a className="button button-small" href="/signup" onClick={() => setMenuOpen(false)}>Get started free <ArrowRight size={14} /></a>
         </nav>

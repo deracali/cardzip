@@ -1,5 +1,5 @@
-import { io } from 'socket.io-client'
-import { API_ORIGIN, getUserToken } from './api'
+const LOCAL_TRADE_EVENT = 'cardzip-gift-card-trade-changed'
+const LOCAL_DATA_KEY = 'cardzip-react-local-data-v1'
 
 export const mergeGiftCardTrades = (currentTrades, incomingTrades, limit = 2) => {
   const tradesById = new Map((currentTrades || []).map((trade) => [String(trade._id), trade]))
@@ -15,19 +15,24 @@ export const mergeGiftCardTrades = (currentTrades, incomingTrades, limit = 2) =>
 }
 
 export const subscribeToGiftCardTradeChanges = (onChange, onReconnect) => {
-  const token = getUserToken()
-  if (typeof window === 'undefined' || !token) return () => {}
-
-  const socket = io(API_ORIGIN, { auth: { token } })
-  socket.on('giftCardTrade:changed', (trade) => {
-    onChange(trade)
-    if (trade?.status === 'successful') window.dispatchEvent(new Event('cardzip-wallet-changed'))
-  })
-  let connectedOnce = false
-  socket.on('connect', () => {
-    if (connectedOnce) onReconnect?.()
-    connectedOnce = true
-  })
-
-  return () => socket.disconnect()
+  if (typeof window === 'undefined') return () => {}
+  const handleLocalChange = (event) => {
+    if (event.detail) onChange(event.detail)
+  }
+  const handleStorageChange = (event) => {
+    if (event.key !== LOCAL_DATA_KEY || !event.newValue) return
+    try {
+      const state = JSON.parse(event.newValue)
+      const trades = state.resources?.['/gift-cards/my']
+      if (Array.isArray(trades)) onReconnect?.()
+    } catch (error) {
+      console.error('Could not read locally saved gift card trades:', error)
+    }
+  }
+  window.addEventListener(LOCAL_TRADE_EVENT, handleLocalChange)
+  window.addEventListener('storage', handleStorageChange)
+  return () => {
+    window.removeEventListener(LOCAL_TRADE_EVENT, handleLocalChange)
+    window.removeEventListener('storage', handleStorageChange)
+  }
 }

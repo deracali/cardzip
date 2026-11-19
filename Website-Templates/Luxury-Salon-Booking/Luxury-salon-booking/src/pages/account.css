@@ -1,0 +1,288 @@
+.salon-account-page {
+  --salon-ink: #2e2016;
+  --salon-brown: #8e572b;
+  --salon-muted: #83776b;
+  --salon-line: #eee5da;
+  --salon-paper: #fbf8f3;
+  min-height: calc(100vh - 90px);
+  padding: 48px 24px;
+  background: var(--salon-paper);
+  color: var(--salon-ink);
+  font-family: "DM Sans", sans-serif;
+}
+
+.account-brand {
+  display: flex;
+  width: max-content;
+  margin: 0 auto 28px;
+}
+
+.salon-account-card {
+  width: min(100%, 620px);
+  margin: 0 auto;
+  border: 1px solid var(--salon-line);
+  border-radius: 18px;
+  padding: clamp(24px, 5vw, 42px);
+  background: #fffdfa;
+  box-shadow: 0 16px 48px rgba(67, 45, 28, .07);
+}
+
+.salon-account-card h1 {
+  margin: 10px 0;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: clamp(36px, 6vw, 54px);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.salon-account-card > p {
+  color: var(--salon-muted);
+  line-height: 1.65;
+}
+
+.salon-account-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.salon-account-form label,
+.salon-admin-appointment > label {
+  display: grid;
+  gap: 7px;
+  color: #594637;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.salon-account-form input,
+.salon-account-form select,
+.salon-account-form textarea,
+.salon-admin-appointment select {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #e6ddd1;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: white;
+  color: var(--salon-ink);
+  font: inherit;
+}
+
+.salon-account-form textarea {
+  resize: vertical;
+}
+
+.salon-account-form .salon-button {
+  width: 100%;
+  cursor: pointer;
+  font: inherit;
+}
+
+.salon-form-error {
+  margin: 0;
+  color: #a22929 !important;
+}
+
+.salon-account-note,
+.salon-account-switch {
+  margin-top: 18px !important;
+  font-size: 12px;
+}
+
+.salon-account-switch a,
+.salon-back-link {
+  color: var(--salon-brown);
+  font-weight: 700;
+}
+
+.salon-back-link {
+  display: inline-block;
+  margin-top: 20px;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.salon-booking-page {
+  padding-top: 32px;
+}
+
+.salon-booking-form-card {
+  width: min(100%, 740px);
+}
+
+.salon-form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.salon-portal-header {
+  display: flex;
+  min-height: 74px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--salon-line);
+  padding: 12px max(24px, calc((100% - 1120px) / 2));
+  background: var(--salon-paper);
+  color: var(--salon-ink);
+  font-family: "DM Sans", sans-serif;
+}
+
+.salon-portal-header > span {
+  color: var(--salon-muted);
+  font-size: 12px;
+}
+
+.salon-portal-header button {
+  border: 1px solid var(--salon-line);
+  border-radius: 20px;
+  padding: 9px 14px;
+  background: transparent;
+  color: var(--salon-ink);
+  cursor: pointer;
+}
+
+.salon-portal-content {
+  width: min(100% - 48px, 1120px);
+  min-height: calc(100vh - 230px);
+  margin: 0 auto;
+  padding: 44px 0 72px;
+  color: var(--salon-ink);
+  font-family: "DM Sans", sans-serif;
+}
+
+.salon-portal-content > h1 {
+  margin: 10px 0;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: clamp(38px, 6vw, 56px);
+  font-weight: 600;
+}
+
+.salon-portal-content > p {
+  color: var(--salon-muted);
+}
+
+.salon-appointment-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.salon-appointment-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  border: 1px solid var(--salon-line);
+  border-radius: 12px;
+  padding: 18px;
+  background: #fffdfa;
+}
+
+.salon-appointment-card h2 {
+  margin: 0 0 5px;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 23px;
+}
+
+.salon-appointment-card p {
+  margin: 0 0 8px;
+  color: var(--salon-muted);
+}
+
+.salon-appointment-card small {
+  display: block;
+  margin-top: 5px;
+  color: var(--salon-muted);
+}
+
+.salon-appointment-meta {
+  display: grid;
+  justify-items: end;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.salon-appointment-meta span {
+  color: var(--salon-brown);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.salon-metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin: 24px 0;
+}
+
+.salon-metrics article {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--salon-line);
+  border-radius: 10px;
+  padding: 16px;
+  background: #fffdfa;
+}
+
+.salon-metrics small {
+  color: var(--salon-muted);
+  font-size: 11px;
+  text-transform: capitalize;
+}
+
+.salon-metrics strong {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 30px;
+}
+
+.salon-admin-appointment {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 160px;
+  align-items: center;
+  gap: 16px;
+  border-top: 1px solid var(--salon-line);
+}
+
+.salon-admin-appointment .salon-appointment-card {
+  border: 0;
+  padding-left: 0;
+  box-shadow: none;
+}
+
+.salon-client-row {
+  border-top: 1px solid var(--salon-line);
+  padding-top: 12px;
+  font-size: 13px;
+}
+
+@media (max-width: 720px) {
+  .salon-form-row,
+  .salon-admin-appointment {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .salon-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .salon-portal-header {
+    flex-wrap: wrap;
+    padding: 12px 18px;
+  }
+
+  .salon-portal-header > span {
+    order: 3;
+    width: 100%;
+  }
+
+  .salon-appointment-card {
+    flex-direction: column;
+  }
+
+  .salon-appointment-meta {
+    justify-items: start;
+  }
+}

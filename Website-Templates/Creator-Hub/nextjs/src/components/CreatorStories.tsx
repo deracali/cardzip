@@ -1,41 +1,42 @@
-import { ArrowUpRight, Clock3, Eye, FileText } from 'lucide-react'
+"use client";
 
-const stories = [
-  {
-    category: 'BLOG · 6 MIN',
-    title: 'My $0 to $10k newsletter playbook',
-    date: 'May 22',
-    image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=840&q=85',
-  },
-  {
-    category: 'VIDEO · 12 MIN',
-    title: 'I redesigned my link page live',
-    date: 'May 18',
-    image: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=840&q=85',
-  },
-]
+import { useEffect, useState } from 'react'
+import { ArrowUpRight, Clock3, Eye, FileText } from 'lucide-react'
+import { apiRequest } from '../services/api'
+
+type BlogPost = { _id: string; title: string; slug: string; category: string; excerpt: string; coverImage: string }
 
 function CreatorStories() {
+  const [stories, setStories] = useState<BlogPost[]>([])
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    apiRequest<{ posts: BlogPost[] }>('/site/blog?limit=3')
+      .then(({ posts }) => setStories(posts))
+      .catch((requestError: unknown) => setError(requestError instanceof Error ? requestError.message : 'Unable to load CreatorHub stories.'))
+  }, [])
+
   return (
     <section className="creator-section creator-stories-section" id="latest-drops" aria-labelledby="latest-drops-title">
       <div className="creator-section-heading creator-stories-heading">
-        <div><span className="creator-eyebrow">THE CREATOR PLAYBOOK</span><h2 id="latest-drops-title">Ideas worth opening</h2></div>
-        <a href="#latest-drops">View all <ArrowUpRight size={14} /></a>
+        <div><span className="creator-eyebrow">FROM THE CREATORHUB TEAM</span><h2 id="latest-drops-title">Ideas worth opening</h2></div>
+        <a href="/blog">View all <ArrowUpRight size={14} /></a>
       </div>
       <div className="creator-story-grid">
         {stories.map((story) => (
-          <article className="creator-story-card" key={story.title}>
-            <a href="/maya-chen" className="creator-story-image" style={{ backgroundImage: `url("${story.image}")` }} aria-label={`Read ${story.title}`}>
-              <span><Eye size={14} /> 5.2k</span>
+          <article className="creator-story-card" key={story.slug}>
+            <a href={`/blog/${story.slug}`} className="creator-story-image" style={story.coverImage ? { backgroundImage: `url("${story.coverImage}")` } : undefined} aria-label={`Read ${story.title}`}>
+              <span><Eye size={14} /> {story.category}</span>
             </a>
             <div className="creator-story-copy">
-              <span>{story.category} <time>{story.date}</time></span>
-              <h3><a href="/maya-chen">{story.title}</a></h3>
-              <p>Practical notes from building a creative business, shared with the community.</p>
-              <a className="creator-story-read" href="/maya-chen"><FileText size={13} /> Read the story <Clock3 size={13} /> 6 min</a>
+              <span>{story.category}</span>
+              <h3><a href={`/blog/${story.slug}`}>{story.title}</a></h3>
+              <p>{story.excerpt}</p>
+              <a className="creator-story-read" href={`/blog/${story.slug}`}><FileText size={13} /> Read the story <Clock3 size={13} /></a>
             </div>
           </article>
         ))}
+        {!stories.length && <div className="creator-info-empty"><FileText size={22} /><h3>{error ? 'Stories are temporarily unavailable' : 'New stories are on the way'}</h3><p>{error || 'Check the blog for the latest posts from the CreatorHub team.'}</p><a className="creator-story-read" href="/blog">Visit the blog <ArrowUpRight size={14} /></a></div>}
       </div>
     </section>
   )

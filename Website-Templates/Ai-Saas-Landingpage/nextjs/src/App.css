@@ -229,6 +229,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .form-success > div { display: grid; gap: 5px; }
 .form-success b { color: #d9fff3; font-size: 11px; }
 .form-success span { color: #a9c7bf; font-size: 10px; line-height: 1.5; }
+.form-error { margin: 0; color: #ff9aa8; font-size: 12px; line-height: 1.5; }
 .form-card .back-link { margin-top: 18px; }
 .checkout-page { min-height: calc(100vh - 180px); padding: 38px 24px 75px; background: radial-gradient(ellipse at 50% 0%, #1c2144, transparent 48%); }
 .checkout-wrap { width: min(910px, 100%); margin: auto; }
@@ -352,4 +353,65 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
+
+.cms-page { min-height: 60vh; }
+.cms-hero { width: min(940px, calc(100% - 48px)); margin: 0 auto; padding: 82px 0 42px; text-align: center; }
+.cms-hero h1 { margin: 14px 0; font-size: clamp(36px, 6vw, 64px); letter-spacing: -.05em; }
+.cms-hero > p, .cms-section > p { max-width: 720px; margin: 0 auto; color: var(--muted); line-height: 1.8; }
+.cms-section { width: min(1080px, calc(100% - 48px)); margin: 0 auto; padding: 32px 0 70px; }
+.cms-section > h2 { margin: 0 0 15px; font-size: clamp(22px, 3vw, 34px); text-align: center; }
+.cms-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin-top: 24px; }
+.cms-card { display: block; min-height: 130px; padding: 22px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.cms-card h3 { margin: 0 0 10px; }
+.cms-card p { margin: 0; color: var(--muted); line-height: 1.7; }
+.cms-card .text-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 16px; color: #a9a6ff; }
+.cms-pricing { padding-top: 0; }
+.cms-pricing .billing-switch { margin: 0 auto 30px; }
+.cms-empty, .cms-empty-state { color: var(--muted); text-align: center; }
+.cms-empty-state { min-height: 55vh; display: grid; align-content: center; justify-items: center; padding: 32px; }
+.cms-empty-state h1 { color: var(--text); }
+.cms-empty-state p { max-width: 540px; line-height: 1.7; }
+.cms-empty-state a { color: #aaa6ff; }
+.cms-page + .cms-section { padding-top: 0; }
+.cms-api-warning { width: min(1060px, calc(100% - 48px)); margin: 18px auto; padding: 12px 15px; border: 1px solid #6b5930; border-radius: 9px; background: #282111; color: #f0d99c; font-size: 12px; line-height: 1.6; }
+.form-error { margin: 0; padding: 11px 13px; border: 1px solid #743c51; border-radius: 8px; background: #2a1721; color: #ffb1c3; font-size: 12px; line-height: 1.5; }
+.form-submit:disabled { opacity: .65; cursor: wait; transform: none; }
+.client-dashboard { width: min(1060px, calc(100% - 48px)); min-height: 70vh; margin: 0 auto; padding: 58px 0 76px; }
+.client-dashboard-hero { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 30px; border: 1px solid #283450; border-radius: 16px; background: radial-gradient(ellipse at 85% 0, #34387980, transparent 56%), #101625; }
+.client-dashboard-hero h1 { margin: 10px 0 7px; font-size: clamp(26px, 4vw, 36px); letter-spacing: -.045em; }
+.client-dashboard-hero p { margin: 0; color: var(--muted); font-size: 13px; }
+.client-dashboard-hero .button { flex: 0 0 auto; }
+.client-dashboard-panel { margin-top: 24px; padding: 25px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.client-dashboard-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 20px; }
+.client-dashboard-panel-heading h2 { margin: 7px 0 0; font-size: 21px; }
+.client-dashboard-panel-heading .text-link { display: inline-flex; align-items: center; gap: 7px; color: #aaa6ff; font-size: 12px; }
+.client-dashboard-state { padding: 24px 0; color: var(--muted); text-align: center; }
+.client-dashboard-error { padding: 14px; border: 1px solid #743c51; border-radius: 9px; background: #2a1721; color: #ffb1c3; }
+.client-dashboard-empty { display: grid; justify-items: center; gap: 10px; padding: 44px 20px; border: 1px dashed #35405a; border-radius: 11px; color: #9daac0; text-align: center; }
+.client-dashboard-empty > svg { color: #aaa6ff; }
+.client-dashboard-empty h3 { margin: 3px 0 0; color: var(--text); }
+.client-dashboard-empty p { max-width: 470px; margin: 0 0 8px; font-size: 12px; line-height: 1.7; }
+.client-inquiry-list { display: grid; gap: 13px; }
+.client-inquiry { padding: 20px; border: 1px solid #28344b; border-radius: 11px; background: #0b101c; }
+.client-inquiry > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.client-inquiry > header h3 { margin: 9px 0 0; font-size: 15px; }
+.client-inquiry > header time { color: #8290a6; font-size: 11px; }
+.client-inquiry-type { display: inline-flex; padding: 5px 8px; border: 1px solid #344263; border-radius: 20px; color: #b6b2ff; font-size: 9px; text-transform: capitalize; }
+.client-inquiry-type.contact { border-color: #235341; color: #8fe0c0; }
+.client-inquiry-message { margin: 14px 0 0; color: #bbc6d7; font-size: 12px; line-height: 1.7; white-space: pre-wrap; }
+.client-inquiry-status { display: flex; align-items: center; gap: 6px; margin-top: 13px; color: #95a3b8; font-size: 10px; text-transform: capitalize; }
+.client-inquiry-response { margin-top: 15px; padding: 14px; border-left: 3px solid #6f6bff; border-radius: 0 8px 8px 0; background: #16192b; }
+.client-inquiry-response-label { display: flex; align-items: center; gap: 6px; color: #b6b2ff; font-size: 10px; font-weight: 700; }
+.client-inquiry-response p { margin: 9px 0 0; color: #e2e7f1; font-size: 12px; line-height: 1.7; white-space: pre-wrap; }
+.client-inquiry-waiting { margin: 13px 0 0; color: #8391a7; font-size: 11px; }
+
+@media (max-width: 640px) {
+  .cms-hero { width: calc(100% - 32px); padding-top: 54px; }
+  .cms-section { width: calc(100% - 32px); padding-bottom: 48px; }
+  .cms-api-warning,.client-dashboard { width: calc(100% - 32px); }
+  .client-dashboard { padding-top: 34px; }
+  .client-dashboard-hero { align-items: flex-start; flex-direction: column; padding: 22px; }
+  .client-dashboard-panel { padding: 19px 15px; }
+  .client-inquiry { padding: 15px; }
 }

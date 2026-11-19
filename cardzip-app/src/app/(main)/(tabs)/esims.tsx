@@ -118,15 +118,17 @@ function NumberHubContent() {
   const [codeCopied, setCodeCopied] = useState(false);
   const [areas, setAreas] = useState<NumberHubOption[]>([]);
   const [apps, setApps] = useState<NumberHubOption[]>([]);
-  const [durations, setDurations] = useState<RentalDuration[]>([]);
-  const [pricing, setPricing] = useState<RentalPricing | null>(null);
-  const [pricingLoading, setPricingLoading] = useState(false);
-  const [durationLoading, setDurationLoading] = useState(false);
+  const [durationResult, setDurationResult] = useState<{ appValue: string; durations: RentalDuration[] } | null>(null);
+  const [durationLoadSettledFor, setDurationLoadSettledFor] = useState('');
+  const [pricingResult, setPricingResult] = useState<{ key: string; pricing: RentalPricing } | null>(null);
+  const [pricingLoadSettledFor, setPricingLoadSettledFor] = useState('');
   const [rentals, setRentals] = useState<RentalProfile[]>([]);
+  const [rentalsToken, setRentalsToken] = useState('');
   const [messages, setMessages] = useState<SmsMessage[]>([]);
   const [selectedRentalId, setSelectedRentalId] = useState<string | null>(null);
   const [catalogLoading, setCatalogLoading] = useState(true);
-  const [rentalLoading, setRentalLoading] = useState(false);
+  const [manualRentalLoading, setManualRentalLoading] = useState(false);
+  const [rentalLoadSettledFor, setRentalLoadSettledFor] = useState('');
   const [inboxLoading, setInboxLoading] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'paystack'>('wallet');
@@ -138,7 +140,16 @@ function NumberHubContent() {
 
   const selectedArea = areas.find((area) => area.value === selectedRegion) ?? areas[0];
   const selectedApp = apps.find((app) => app.value === selectedService) ?? apps[0];
+  const durations = selectedApp && durationResult?.appValue === selectedApp.value
+    ? durationResult.durations
+    : [];
   const selectedDurationOption = durations.find((duration) => duration.value === selectedDuration) ?? durations[0];
+  const durationLoading = Boolean(selectedApp && durationLoadSettledFor !== selectedApp.value);
+  const pricingKey = `${selectedApp?.value ?? ''}:${selectedDurationOption?.duration ?? selectedDuration}`;
+  const pricing = pricingResult?.key === pricingKey ? pricingResult.pricing : null;
+  const pricingLoading = Boolean(selectedApp && selectedDurationOption && pricingLoadSettledFor !== pricingKey);
+  const visibleRentals = token && rentalsToken === token ? rentals : [];
+  const rentalLoading = manualRentalLoading || Boolean(token && rentalLoadSettledFor !== token);
 
   useFocusEffect(useCallback(() => {
     if (tab !== 'catalog') return undefined;
@@ -151,11 +162,12 @@ function NumberHubContent() {
   }, [dispatch, token]);
 
   const loadRentals = async () => {
-    setRentalLoading(true);
+    setManualRentalLoading(true);
     try {
       if (!token) throw new Error('Sign in to load your virtual-number rentals.');
       const nextRentals = await fetchActiveRentals(token);
       setRentals(nextRentals);
+      setRentalsToken(token);
       setSelectedRentalId((current) => current && nextRentals.some((rental) => rental.id === current)
         ? current
         : nextRentals[0]?.id ?? null);
@@ -168,7 +180,7 @@ function NumberHubContent() {
       });
       return [];
     } finally {
-      setRentalLoading(false);
+      setManualRentalLoading(false);
     }
   };
 
@@ -176,8 +188,11 @@ function NumberHubContent() {
     setInboxLoading(true);
     try {
       if (!token) throw new Error('Sign in to load your virtual-number messages.');
-      const rentalList = rentals.length ? rentals : await fetchActiveRentals(token);
-      if (!rentals.length) setRentals(rentalList);
+      const rentalList = visibleRentals.length ? visibleRentals : await fetchActiveRentals(token);
+      if (!visibleRentals.length) {
+        setRentals(rentalList);
+        setRentalsToken(token);
+      }
       const targetId = rentalId ?? selectedRentalId ?? rentalList[0]?.id;
       if (!targetId) {
         setMessages([]);
@@ -198,7 +213,6 @@ function NumberHubContent() {
 
   useEffect(() => {
     let mounted = true;
-    setCatalogLoading(true);
     Promise.all([fetchRentalAreas(), fetchRentalApps()])
       .then(([availableAreas, availableApps]) => {
         if (!mounted) return;
@@ -216,17 +230,13 @@ function NumberHubContent() {
   }, []);
 
   useEffect(() => {
-    if (!token) {
-      setRentals([]);
-      setRentalLoading(false);
-      return;
-    }
+    if (!token) return undefined;
     let mounted = true;
-    setRentalLoading(true);
     fetchActiveRentals(token)
       .then((loadedRentals) => {
         if (!mounted) return;
         setRentals(loadedRentals);
+        setRentalsToken(token);
         setSelectedRentalId(loadedRentals[0]?.id ?? null);
         if (loadedRentals[0]) {
           fetchRentalMessages(loadedRentals[0].id, token)
@@ -243,23 +253,18 @@ function NumberHubContent() {
           });
         }
       })
-      .finally(() => { if (mounted) setRentalLoading(false); });
+      .finally(() => { if (mounted) setRentalLoadSettledFor(token); });
     return () => { mounted = false; };
   }, [token]);
 
   useEffect(() => {
-    if (!selectedApp) {
-      setDurationLoading(false);
-      return;
-    }
+    if (!selectedApp) return undefined;
     let mounted = true;
-    setDurations([]);
-    setSelectedDuration('');
-    setDurationLoading(true);
-    fetchRentalDurations(selectedApp.value)
+    const appValue = selectedApp.value;
+    fetchRentalDurations(appValue)
       .then((availableDurations) => {
         if (!mounted) return;
-        setDurations(availableDurations);
+        setDurationResult({ appValue, durations: availableDurations });
         setSelectedDuration((current) => availableDurations.some((duration) => duration.value === current)
           ? current
           : availableDurations[0]?.value ?? '');
@@ -267,23 +272,24 @@ function NumberHubContent() {
       .catch((error: unknown) => {
         if (mounted) setApiError(error instanceof Error ? error.message : 'Could not load rental durations.');
       })
-      .finally(() => { if (mounted) setDurationLoading(false); });
+      .finally(() => { if (mounted) setDurationLoadSettledFor(appValue); });
     return () => { mounted = false; };
   }, [selectedApp?.value]);
 
   useEffect(() => {
-    if (!selectedApp || !selectedDuration) return;
+    if (!selectedApp || !selectedDurationOption) return undefined;
     let mounted = true;
-    setPricing(null);
-    setPricingLoading(true);
-    fetchRentalPricing(selectedApp.value, selectedDurationOption?.duration ?? selectedDuration)
-      .then((currentPricing) => { if (mounted) setPricing(currentPricing); })
+    const requestKey = pricingKey;
+    fetchRentalPricing(selectedApp.value, selectedDurationOption.duration)
+      .then((currentPricing) => {
+        if (mounted) setPricingResult({ key: requestKey, pricing: currentPricing });
+      })
       .catch((error: unknown) => {
         if (mounted) setApiError(error instanceof Error ? error.message : 'Could not load rental pricing.');
       })
-      .finally(() => { if (mounted) setPricingLoading(false); });
+      .finally(() => { if (mounted) setPricingLoadSettledFor(requestKey); });
     return () => { mounted = false; };
-  }, [selectedApp?.value, selectedDuration, selectedDurationOption?.duration]);
+  }, [pricingKey, selectedApp?.value, selectedDurationOption?.duration]);
 
   useEffect(() => {
     if (activeTab !== 'inbox' || !selectedRentalId || !token) return;
@@ -423,8 +429,8 @@ function NumberHubContent() {
   }, [pendingPaymentReference, purchasing, token, verifyPendingPurchase]);
 
   const handleAutoRenew = async (rentalId: string, value: boolean) => {
-    const previousRentals = rentals;
-    setRentals((current) => current.map((rental) => rental.id === rentalId ? { ...rental, autoRenew: value } : rental));
+    const previousRentals = visibleRentals;
+    setRentals(visibleRentals.map((rental) => rental.id === rentalId ? { ...rental, autoRenew: value } : rental));
     try {
       if (!token) throw new Error('Sign in to update rental settings.');
       await updateRentalAutoRenew(rentalId, value, token);
@@ -476,7 +482,7 @@ function NumberHubContent() {
       <NumberHubHeader
         activeTab={activeTab}
         onTabChange={handleTabChange}
-        activeRentalCount={rentals.length}
+        activeRentalCount={visibleRentals.length}
         styles={styles}
       />
 
@@ -519,7 +525,7 @@ function NumberHubContent() {
         ) : (
           <NumberHubRentals
             activeTab={activeTab}
-            rentals={rentals}
+            rentals={visibleRentals}
             messages={messages}
             loading={rentalLoading}
             inboxLoading={inboxLoading}

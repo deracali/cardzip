@@ -57,6 +57,7 @@ export default function CommunityMarketScreen({ manageOnly = false }: { manageOn
   const router = useRouter();
   const { token, user } = useAppSelector((state) => state.auth);
   const [listings, setListings] = useState<CommunityListing[]>([]);
+  const [visibleListingCount, setVisibleListingCount] = useState(12);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -232,11 +233,6 @@ export default function CommunityMarketScreen({ manageOnly = false }: { manageOn
     const remaining = MAX_LISTING_IMAGES - photos.length;
     if (remaining < 1) {
       setFormError(`You can add up to ${MAX_LISTING_IMAGES} photos to one listing.`);
-      return;
-    }
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      setFormError('Allow photo-library access to upload listing photos.');
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -446,7 +442,7 @@ export default function CommunityMarketScreen({ manageOnly = false }: { manageOn
         ) : null}
 
         <View style={styles.listingsHeader}><View><Text style={styles.eyebrow}>{manageOnly ? 'YOUR INVENTORY' : 'DIRECT FROM SELLERS'}</Text><Text style={styles.sectionTitle}>{manageOnly ? 'Your items' : 'Community listings'}</Text></View><Text style={styles.count}>{listings.length} items</Text></View>
-        {loading ? <CardzipLoader label={manageOnly ? 'Loading your listings…' : 'Loading community listings…'} /> : error ? <Text style={styles.errorText}>{error}</Text> : listings.length === 0 ? <View style={styles.emptyState}><Feather name={manageOnly ? 'package' : 'camera'} size={23} color="#82918B" /><Text style={styles.emptyTitle}>{manageOnly ? 'No listings to manage' : 'No listings yet'}</Text><Text style={styles.emptyText}>{manageOnly ? 'Post an item to manage it here.' : 'Be the first to post an item for your community.'}</Text></View> : <View style={[styles.listingGrid, manageOnly && styles.manageListingGrid]}>{listings.map((listing) => (
+        {loading ? <CardzipLoader label={manageOnly ? 'Loading your listings…' : 'Loading community listings…'} /> : error ? <Text style={styles.errorText}>{error}</Text> : listings.length === 0 ? <View style={styles.emptyState}><Feather name={manageOnly ? 'package' : 'camera'} size={23} color="#82918B" /><Text style={styles.emptyTitle}>{manageOnly ? 'No listings to manage' : 'No listings yet'}</Text><Text style={styles.emptyText}>{manageOnly ? 'Post an item to manage it here.' : 'Be the first to post an item for your community.'}</Text></View> : <View style={[styles.listingGrid, manageOnly && styles.manageListingGrid]}>{listings.slice(0, visibleListingCount).map((listing) => (
           <View style={[styles.listingCard, manageOnly && styles.manageListingCard]} key={listing._id}>
             <TouchableOpacity style={styles.listingImageWrap} onPress={() => openListing(listing)}>
               {(listing.images?.[0] || listing.imageUrl) ? <Image source={{ uri: listing.images?.[0] || listing.imageUrl }} style={styles.listingImage} resizeMode="cover" /> : <View style={[styles.listingImage, styles.imagePlaceholder]}><Feather name="camera" size={24} color="#82918B" /></View>}
@@ -478,6 +474,11 @@ export default function CommunityMarketScreen({ manageOnly = false }: { manageOn
             </View>
           </View>
         ))}</View>}
+        {!loading && visibleListingCount < listings.length ? (
+          <TouchableOpacity style={styles.showMoreButton} onPress={() => setVisibleListingCount((count) => count + 12)} activeOpacity={0.8}>
+            <Text style={styles.showMoreText}>Show more listings</Text>
+          </TouchableOpacity>
+        ) : null}
         {refreshing ? <Text style={styles.refreshingText}>Refreshing listings…</Text> : null}
       </ScrollView>
       <Modal visible={categoryPickerOpen} transparent animationType="fade" onRequestClose={() => setCategoryPickerOpen(false)}>
@@ -598,6 +599,8 @@ const styles = StyleSheet.create({
   listingsHeader: { marginTop: 23, marginBottom: 12, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
   sectionTitle: { marginTop: 3, color: '#14231C', fontSize: 18, fontWeight: '800' },
   count: { color: '#748278', fontSize: 10 },
+  showMoreButton: { minHeight: 42, marginTop: 14, alignItems: 'center', justifyContent: 'center', borderRadius: 7, backgroundColor: '#E8F4EC' },
+  showMoreText: { color: '#087A4C', fontSize: 11, fontWeight: '800' },
   emptyState: { minHeight: 130, alignItems: 'center', justifyContent: 'center', gap: 7, borderWidth: 1, borderStyle: 'dashed', borderColor: '#CBD8CE', borderRadius: 7, backgroundColor: '#FFFFFF' },
   emptyTitle: { color: '#26392E', fontSize: 13, fontWeight: '800' },
   emptyText: { color: '#718077', fontSize: 10 },

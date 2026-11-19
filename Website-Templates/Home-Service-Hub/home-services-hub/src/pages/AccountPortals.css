@@ -1,0 +1,401 @@
+.ff-portal {
+  min-height: 100vh;
+  background: #f6f8fb;
+  color: #111a2e;
+  font-size: 14px;
+}
+
+.ff-portal-header {
+  display: flex;
+  min-height: 68px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 12px max(24px, calc((100vw - 1180px) / 2));
+  border-bottom: 1px solid #e3e9f0;
+  background: #fff;
+}
+
+.ff-portal-account {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  color: #58667c;
+  font-size: 12px;
+}
+
+.ff-portal-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: none;
+  color: #b74418;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ff-portal-content {
+  width: min(100% - 40px, 1000px);
+  margin: 0 auto;
+  padding: 38px 0 64px;
+}
+
+.ff-portal-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #58667c;
+  font-size: 12px;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.ff-portal-heading {
+  margin: 24px 0;
+}
+
+.ff-portal-kicker {
+  color: #c44a15;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.ff-portal-heading h1,
+.ff-auth-card h1 {
+  margin: 7px 0;
+  color: #111a2e;
+  font-size: clamp(26px, 4vw, 36px);
+  letter-spacing: -.04em;
+}
+
+.ff-portal-heading p,
+.ff-auth-card > p {
+  margin: 0;
+  color: #65738a;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.ff-portal-form {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+  border: 1px solid #e3e9f0;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.ff-portal-form label {
+  display: grid;
+  gap: 7px;
+  color: #344158;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ff-portal-form input,
+.ff-portal-form select,
+.ff-portal-form textarea,
+.ff-status-control select {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 11px;
+  border: 1px solid #dce3eb;
+  border-radius: 7px;
+  background: #fff;
+  color: #202c41;
+  font: inherit;
+}
+
+.ff-portal-form textarea {
+  resize: vertical;
+}
+
+.ff-booking-content {
+  max-width: 760px;
+}
+
+.ff-booking-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ff-form-wide {
+  grid-column: 1 / -1;
+}
+
+.ff-portal-submit {
+  min-height: 44px;
+  justify-self: start;
+  border: 0;
+}
+
+.ff-portal-submit:disabled {
+  cursor: wait;
+  opacity: .7;
+}
+
+.ff-portal-error {
+  margin: 0;
+  padding: 11px 12px;
+  border-radius: 7px;
+  background: #fff1ed;
+  color: #a83117;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.ff-portal-message {
+  color: #65738a;
+  font-size: 13px;
+}
+
+.ff-appointment-list,
+.ff-admin-list {
+  display: grid;
+  gap: 14px;
+}
+
+.ff-appointment-card {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid #e3e9f0;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.ff-appointment-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ff-appointment-top h2,
+.ff-admin-table-wrap > h2 {
+  margin: 0;
+  color: #202c41;
+  font-size: 16px;
+}
+
+.ff-appointment-top p {
+  margin: 5px 0 0;
+  color: #65738a;
+  font-size: 11px;
+  text-transform: capitalize;
+}
+
+.ff-status-badge {
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: #fff2e9;
+  color: #bd4d14;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.ff-status-scheduled,
+.ff-status-completed {
+  background: #e7f6ec;
+  color: #247343;
+}
+
+.ff-status-in-progress {
+  background: #eaf2ff;
+  color: #285d9c;
+}
+
+.ff-status-cancelled {
+  background: #f0f1f3;
+  color: #626c78;
+}
+
+.ff-appointment-card dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0 0;
+}
+
+.ff-appointment-card dl div {
+  min-width: 0;
+}
+
+.ff-appointment-card dt {
+  margin-bottom: 4px;
+  color: #79869a;
+  font-size: 10px;
+}
+
+.ff-appointment-card dd {
+  margin: 0;
+  color: #344158;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.ff-appointment-description {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid #edf0f4;
+  color: #526179;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.ff-portal-empty {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 48px 20px;
+  border: 1px dashed #cbd4df;
+  border-radius: 10px;
+  background: #fff;
+  text-align: center;
+}
+
+.ff-portal-empty h2,
+.ff-portal-empty p {
+  margin: 0;
+}
+
+.ff-portal-empty h2 {
+  font-size: 17px;
+}
+
+.ff-portal-empty p {
+  color: #65738a;
+  font-size: 12px;
+}
+
+.ff-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.ff-metric {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid #e3e9f0;
+  border-radius: 9px;
+  background: #fff;
+}
+
+.ff-metric span {
+  color: #65738a;
+  font-size: 10px;
+}
+
+.ff-metric strong {
+  color: #111a2e;
+  font-size: 24px;
+}
+
+.ff-admin-table-wrap {
+  padding: 20px;
+  border: 1px solid #e3e9f0;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.ff-admin-table-wrap > h2 {
+  margin-bottom: 16px;
+}
+
+.ff-admin-appointment {
+  display: grid;
+  gap: 10px;
+}
+
+.ff-status-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #65738a;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.ff-status-control select {
+  width: min(100%, 210px);
+  min-height: 36px;
+  padding: 7px 9px;
+  font-size: 11px;
+}
+
+.ff-auth-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  background: #f6f8fb;
+}
+
+.ff-auth-card {
+  display: grid;
+  width: min(100%, 460px);
+  gap: 14px;
+  padding: clamp(24px, 5vw, 42px);
+  border: 1px solid #e3e9f0;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 18px 50px rgba(17, 26, 46, .06);
+}
+
+.ff-auth-card > .ff-brand {
+  margin-bottom: 16px;
+}
+
+.ff-auth-card .ff-portal-form {
+  gap: 13px;
+  padding: 0;
+  border: 0;
+}
+
+.ff-auth-switch {
+  margin: 0;
+  color: #65738a;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.ff-auth-switch a {
+  color: #c44a15;
+  font-weight: 700;
+}
+
+@media (max-width: 700px) {
+  .ff-portal-header {
+    padding-inline: 18px;
+  }
+
+  .ff-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .ff-portal-content {
+    width: min(100% - 28px, 1000px);
+    padding-top: 26px;
+  }
+
+  .ff-portal-account > span {
+    display: none;
+  }
+
+  .ff-booking-form,
+  .ff-appointment-card dl {
+    grid-template-columns: 1fr;
+  }
+
+  .ff-admin-table-wrap {
+    padding: 14px;
+  }
+}

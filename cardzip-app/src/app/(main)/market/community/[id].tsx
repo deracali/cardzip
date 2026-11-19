@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Linking, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -24,6 +24,17 @@ import { recordCommunityCategoryInterest } from '../../../../services/communityP
 import { formatNaira } from '../../../../utils/currency';
 
 const callbackUrl = process.env.EXPO_PUBLIC_PAYSTACK_CALLBACK_URL?.trim();
+const EMPTY_REVIEW_SUMMARY: CommunityListingReviewSummary = { reviews: [], averageRating: 0, totalReviews: 0 };
+
+type ReviewData = {
+  key: string;
+  summary: CommunityListingReviewSummary;
+  myReview: CommunityListingReview | null;
+  rating: number;
+  comment: string;
+  error: string;
+};
+
 const ReviewStars = ({ rating, size = 14 }: { rating: number; size?: number }) => (
   <View style={styles.reviewStars} accessibilityLabel={`${rating} out of 5 stars`}>
     {Array.from({ length: 5 }, (_, index) => <MaterialCommunityIcons key={index} name={index < Math.round(rating) ? 'star' : 'star-outline'} size={size} color={index < Math.round(rating) ? '#D78A1F' : '#C6CFC9'} />)}
@@ -47,12 +58,26 @@ export default function CommunityListingDetailsScreen() {
   const [promotionError, setPromotionError] = useState('');
   const [notice, setNotice] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
-  const [reviewSummary, setReviewSummary] = useState<CommunityListingReviewSummary>({ reviews: [], averageRating: 0, totalReviews: 0 });
-  const [myReview, setMyReview] = useState<CommunityListingReview | null>(null);
-  const [reviewRating, setReviewRating] = useState(5);
-  const [reviewComment, setReviewComment] = useState('');
+  const [reviewData, setReviewData] = useState<ReviewData | null>(null);
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
-  const [reviewError, setReviewError] = useState('');
+  const reviewKey = `${listingId}:${token ?? ''}`;
+  const currentReviewData = reviewData?.key === reviewKey ? reviewData : null;
+  const reviewSummary = currentReviewData?.summary ?? EMPTY_REVIEW_SUMMARY;
+  const myReview = currentReviewData?.myReview ?? null;
+  const reviewRating = currentReviewData?.rating ?? 5;
+  const reviewComment = currentReviewData?.comment ?? '';
+  const reviewError = currentReviewData?.error ?? '';
+  const updateReviewData = useCallback((changes: Partial<Omit<ReviewData, 'key'>>) => {
+    setReviewData((current) => ({
+      key: reviewKey,
+      summary: current?.key === reviewKey ? current.summary : EMPTY_REVIEW_SUMMARY,
+      myReview: current?.key === reviewKey ? current.myReview : null,
+      rating: current?.key === reviewKey ? current.rating : 5,
+      comment: current?.key === reviewKey ? current.comment : '',
+      error: current?.key === reviewKey ? current.error : '',
+      ...changes,
+    }));
+  }, [reviewKey]);
   const ownerId = String(user?.id || '');
   const isOwner = Boolean(listing && listing.sellerId === ownerId);
   const images = useMemo(() => (
@@ -88,35 +113,22 @@ export default function CommunityListingDetailsScreen() {
 
   useEffect(() => {
     let active = true;
-    setReviewSummary({ reviews: [], averageRating: 0, totalReviews: 0 });
-    setMyReview(null);
-    setReviewRating(5);
-    setReviewComment('');
-    setReviewError('');
     void fetchCommunityListingReviewsApi(listingId)
-      .then((summary) => { if (active) setReviewSummary(summary); })
-      .catch((requestError: unknown) => { if (active) setReviewError(requestError instanceof Error ? requestError.message : 'Could not load reviews.'); });
+      .then((summary) => { if (active) updateReviewData({ summary }); })
+      .catch((requestError: unknown) => { if (active) updateReviewData({ error: requestError instanceof Error ? requestError.message : 'Could not load reviews.' }); });
     if (token) {
       void fetchMyCommunityListingReviewApi(token, listingId)
         .then((review) => {
-          if (!active) return;
-          setMyReview(review);
-          if (review) {
-            setReviewRating(review.rating);
-            setReviewComment(review.comment);
-          } else {
-            setReviewRating(5);
-            setReviewComment('');
-          }
+          if (active) updateReviewData({
+            myReview: review,
+            rating: review?.rating ?? 5,
+            comment: review?.comment ?? '',
+          });
         })
-        .catch((requestError: unknown) => { if (active) setReviewError(requestError instanceof Error ? requestError.message : 'Could not load your review.'); });
-    } else {
-      setMyReview(null);
-      setReviewRating(5);
-      setReviewComment('');
+        .catch((requestError: unknown) => { if (active) updateReviewData({ error: requestError instanceof Error ? requestError.message : 'Could not load your review.' }); });
     }
     return () => { active = false; };
-  }, [listingId, token]);
+  }, [listingId, token, updateReviewData]);
 
   const contactSeller = async (url: string) => {
     try {
@@ -180,15 +192,14 @@ export default function CommunityListingDetailsScreen() {
     }
     if (reviewComment.trim().length < 3 || reviewSubmitting) return;
     setReviewSubmitting(true);
-    setReviewError('');
+    updateReviewData({ error: '' });
     try {
       const saved = await saveCommunityListingReviewApi(token, listingId, reviewRating, reviewComment.trim());
-      setMyReview(saved);
-      setReviewComment(saved.comment);
+      updateReviewData({ myReview: saved, comment: saved.comment });
       const summary = await fetchCommunityListingReviewsApi(listingId);
-      setReviewSummary(summary);
+      updateReviewData({ summary });
     } catch (requestError) {
-      setReviewError(requestError instanceof Error ? requestError.message : 'Could not save your review.');
+      updateReviewData({ error: requestError instanceof Error ? requestError.message : 'Could not save your review.' });
     } finally {
       setReviewSubmitting(false);
     }

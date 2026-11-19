@@ -1,12 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowLeft, BadgeCheck, CalendarDays, Check, Clock3, CreditCard, MapPin, ShieldCheck, Star, Video, X } from 'lucide-react'
 import HomeHeader from '../components/HomeHeader'
 import HomeFooter from '../components/HomeFooter'
 import { doctors } from '../data/doctors'
 import './DoctorDetailsPage.css'
 
-function DoctorDetailsPage({ slug }) {
-  const doctor = doctors.find((item) => item.slug === slug)
+function DoctorDetailsPage({ slug, mode = 'local', apiBaseUrl = '' }) {
+  const starterDoctor = doctors.find((item) => item.slug === slug)
+  const [remoteDoctor, setRemoteDoctor] = useState(starterDoctor)
+  const [doctorLoading, setDoctorLoading] = useState(mode === 'api')
   const [visitType, setVisitType] = useState('in-person')
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedTime, setSelectedTime] = useState('')
@@ -15,6 +17,26 @@ function DoctorDetailsPage({ slug }) {
   const [paymentMethod, setPaymentMethod] = useState('card')
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
   const [bookingComplete, setBookingComplete] = useState(false)
+  const [bookingError, setBookingError] = useState('')
+  const [bookingSaving, setBookingSaving] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    if (mode !== 'api') return () => { active = false }
+    fetch(`${apiBaseUrl}/doctors/${encodeURIComponent(slug)}`)
+      .then(async (response) => {
+        const result = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(result.error || 'Doctor not found.')
+        if (active) setRemoteDoctor({ ...starterDoctor, ...result.doctor, image: starterDoctor?.image })
+      })
+      .catch(() => { if (active) setRemoteDoctor(null) })
+      .finally(() => { if (active) setDoctorLoading(false) })
+    return () => { active = false }
+  }, [apiBaseUrl, mode, slug, starterDoctor])
+
+  const doctor = mode === 'api' ? remoteDoctor : starterDoctor
+
+  if (doctorLoading) return <div className="doctor-not-found"><p>Loading provider details…</p></div>
 
   if (!doctor) {
     return (
@@ -31,10 +53,61 @@ function DoctorDetailsPage({ slug }) {
     setIsCheckoutOpen(true)
   }
 
-  const completeBooking = (event) => {
+  const completeBooking = async (event) => {
     event.preventDefault()
-    setIsCheckoutOpen(false)
-    setBookingComplete(true)
+    setBookingSaving(true)
+    setBookingError('')
+    try {
+      const [year, month, day] = selectedDate.split('-').map(Number)
+      const timeParts = selectedTime.match(/^(\d+):(\d+)\s*(AM|PM)$/i)
+      const hour = Number(timeParts?.[1] || 0) % 12 + (timeParts?.[3]?.toUpperCase() === 'PM' ? 12 : 0)
+      const appointmentDate = new Date(year, month - 1, day, hour, Number(timeParts?.[2] || 0))
+      if (mode === 'api') {
+        const response = await fetch(`${apiBaseUrl}/appointments`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ doctorSlug: doctor.slug, appointmentType: visitType, startsAt: appointmentDate.toISOString(), timeLabel: selectedTime }),
+        })
+        const result = await response.json().catch(() => ({}))
+        if (response.status === 401) {
+          const next = encodeURIComponent(`${window.location.pathname}${window.location.search}`)
+          window.location.replace(`/login?next=${next}`)
+          return
+        }
+        if (!response.ok) throw new Error(result.error || 'Unable to request this appointment.')
+      } else {
+        const dataKey = 'carewell-admin-demo-v1'
+        const existing = JSON.parse(localStorage.getItem(dataKey) || 'null')
+        const data = existing?.appointments && existing?.settings ? existing : {
+          appointments: [],
+          providers: [],
+          patients: [],
+          doctors: doctors.map((item, index) => ({ ...item, id: `doctor-demo-${index + 1}`, active: true })),
+          settings: { clinicName: 'Carewell', supportEmail: 'hello@carewell.example', appointmentNotice: 'Appointment requests are confirmed by the care team.' },
+        }
+        data.appointments.unshift({
+          id: `apt-${Date.now()}`,
+          reference: `CW-${String(Date.now()).slice(-6)}`,
+          patientName,
+          patientEmail,
+          doctorSlug: doctor.slug,
+          doctorName: doctor.name,
+          specialty: doctor.specialty,
+          appointmentType: visitType,
+          startsAt: appointmentDate.toISOString(),
+          fee: doctor.fee,
+          status: 'pending',
+        })
+        localStorage.setItem(dataKey, JSON.stringify(data))
+      }
+      setIsCheckoutOpen(false)
+      setBookingComplete(true)
+    } catch (error) {
+      setBookingError(error.message)
+    } finally {
+      setBookingSaving(false)
+    }
   }
 
   return (

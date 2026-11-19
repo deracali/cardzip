@@ -22,8 +22,8 @@ export default function Header() {
         </nav>
         <div className="header-actions">
           <a className="currency-link" href="/stays" aria-label="Choose currency">EN · USD <ChevronDown size={13} /></a>
-          <a className="sign-in-link" href="/signin">Sign in</a>
-          <a className="button button-primary button-small" href="/signup">Sign up</a>
+          <a className="sign-in-link" href="/client/dashboard">My trips</a>
+          <a className="button button-primary button-small" href="/signin">Sign in</a>
         </div>
         <button className="menu-toggle" type="button" aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>
           {menuOpen ? <X size={21} /> : <Menu size={21} />}

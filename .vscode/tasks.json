@@ -1,0 +1,113 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build Admin Buyer Guide PDF",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"Website-Templates/Admin/docs/build-buyer-guide.mjs"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Verify Admin Next.js Dashboards",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"Website-Templates/Admin/verify-nextjs-builds.ps1"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Install Digital Asset Hub API dependencies",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Set-Location 'Website-Templates/Digital-Asset-Hub/backend'; npm install"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Validate Digital Asset Hub Admin and Docs",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Set-Location 'C:\\Users\\hp\\Documents\\Cardzip\\Website-Templates\\Digital-Asset-Hub\\digital-asset-hub'; npm run build; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Set-Location '..\\nextjs'; npm run typecheck; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; npm run build; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Set-Location '..\\backend'; node --check server.js; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; node --check routes\\admin.js; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; node --check routes\\auth.js; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; node --check routes\\client.js; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Set-Location '..'; node .\\docs\\build-buyer-guide.mjs"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Validate Carewell Next.js",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Set-Location 'C:\\Users\\hp\\Documents\\Cardzip\\Website-Templates\\Doctor-booking-template\\nextjs'; npm run typecheck; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; npm run build"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Install Carewell backend dependencies",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Set-Location 'C:\\Users\\hp\\Documents\\Cardzip\\Website-Templates\\Doctor-booking-template\\backend'; npm install"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Validate Carewell React Backend Docs",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Set-Location 'C:\\Users\\hp\\Documents\\Cardzip\\Website-Templates\\Doctor-booking-template\\doctor-booking-template'; npm run build; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Set-Location '..\\backend'; node --check server.js; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; node --check routes\\admin.js; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; node --check routes\\auth.js; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; node --check routes\\appointments.js; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; node --check routes\\doctors.js; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Set-Location '..'; node .\\docs\\build-buyer-guide.mjs"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Validate Skillora Next.js shell",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Set-Location 'C:\\Users\\hp\\Documents\\Cardzip\\Website-Templates\\E-Learning\\nextjs'; npm run typecheck; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; npm run build"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Validate Skillora Full Stack and Guide",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Set-Location 'C:\\Users\\hp\\Documents\\Cardzip\\Website-Templates\\E-Learning\\backend'; npm install; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Set-Location '..\\E-Learning'; npm run build; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Set-Location '..\\nextjs'; npm run typecheck; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; npm run build; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Set-Location '..\\backend'; node --check server.js; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; node --check routes\\admin.js; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; node --check routes\\auth.js; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; node --check routes\\courses.js; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; node --check routes\\student.js; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; node --check routes\\instructor.js; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; Set-Location '..'; node .\\docs\\build-buyer-guide.mjs"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}

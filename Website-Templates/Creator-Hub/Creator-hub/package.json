@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
+    "guide:build": "node ../docs/build-buyer-guide.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

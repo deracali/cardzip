@@ -56,13 +56,13 @@ export default function YourOrdersScreen() {
   const mappedOrders: OrderItem[] = orders.map((order) => ({
     id: order._id ?? order.id ?? order.orderNumber,
     orderNumber: `#${order.orderNumber}`,
-    date: new Date(order.createdAt ?? Date.now()).toLocaleString('en-GB', {
+    date: order.createdAt ? new Date(order.createdAt).toLocaleString('en-GB', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-    }),
+    }) : 'Date unavailable',
     status: order.status === 'delivered' ? 'DELIVERED' : 'PROCESSING',
     itemsCount: order.items.reduce((sum, item) => sum + item.quantity, 0),
     itemList: order.items.map((item) => `${item.name} × ${item.quantity}`),

@@ -1,4 +1,4 @@
-import BookingPage from "../../src/pages/booking-page";
+import BookingPage from "../../src/views/booking-page";
 
 export default function Page() {
   return <BookingPage />;

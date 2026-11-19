@@ -89,18 +89,30 @@ export const fetchDigitalProductsApi = async (
   productType: 'website' | 'app' | 'ios_app' | 'full_stack' | 'admin' | 'all' = 'all',
   search = '',
   preferences?: StorefrontPreferences,
-): Promise<StoreProduct[]> => {
+  page = 1,
+  limit = 12,
+): Promise<PaginatedList<StoreProduct>> => {
   const types = productType === 'all' ? ['website', 'app', 'ios_app', 'full_stack', 'admin'] : [productType];
   const results = await Promise.all(types.map((type) => {
-    const query = new URLSearchParams({ productType: type, page: '1', limit: '50', sort: 'featured' });
+    const query = new URLSearchParams({ productType: type, page: String(page), limit: String(limit), sort: 'featured' });
     if (search.trim()) query.set('search', search.trim().slice(0, 100));
     if (preferences) query.set('preferences', JSON.stringify(preferences));
-    return requestList<StoreProduct>(`/api/store/products?${query.toString()}`, 1, 50);
+    return requestList<StoreProduct>(`/api/store/products?${query.toString()}`, page, limit);
   }));
-  return results.flatMap((result) => result.items).sort(
-    (left, right) => Number(Boolean(right.isPromoted)) - Number(Boolean(left.isPromoted))
-      || new Date(right.createdAt || 0).getTime() - new Date(left.createdAt || 0).getTime(),
-  );
+  return {
+    items: results.flatMap((result) => result.items).sort(
+      (left, right) => Number(Boolean(right.isPromoted)) - Number(Boolean(left.isPromoted))
+        || new Date(right.createdAt || 0).getTime() - new Date(left.createdAt || 0).getTime(),
+    ),
+    pagination: {
+      page,
+      limit: limit * types.length,
+      totalItems: results.reduce((total, result) => total + result.pagination.totalItems, 0),
+      totalPages: Math.max(...results.map((result) => result.pagination.totalPages)),
+      hasNextPage: results.some((result) => result.pagination.hasNextPage),
+      hasPreviousPage: page > 1,
+    },
+  };
 };
 
 export const fetchStoreProductBySlugApi = async (slug: string): Promise<StoreProduct> => {

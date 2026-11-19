@@ -25,14 +25,12 @@ export default function BankDetailsScreen() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
+  const visibleError = token ? error : 'Sign in to add your payout account.';
+  const isLoading = Boolean(token && loading);
 
   useEffect(() => {
     let active = true;
-    if (!token) {
-      setError('Sign in to add your payout account.');
-      setLoading(false);
-      return () => { active = false; };
-    }
+    if (!token) return () => { active = false; };
     void fetchWalletAccountApi(token)
       .then(({ user: accountUser }) => {
         if (!active || !accountUser.bankAccount) return;
@@ -93,7 +91,7 @@ export default function BankDetailsScreen() {
           <Text style={styles.introText}>Save the bank account you want to use for withdrawals. The same details will appear on the withdrawal page.</Text>
         </View>
 
-        {loading ? (
+        {isLoading ? (
           <View style={styles.loading}><ActivityIndicator color="#059669" /><Text style={styles.loadingText}>Loading saved account…</Text></View>
         ) : (
           <View style={styles.form}>
@@ -106,7 +104,7 @@ export default function BankDetailsScreen() {
             <Text style={styles.label}>Account number</Text>
             <TextInput style={styles.input} value={accountNumber} onChangeText={(value) => { setAccountNumber(value.replace(/\D/g, '').slice(0, 10)); setSaved(false); }} placeholder="10-digit account number" placeholderTextColor="#94A3B8" keyboardType="number-pad" maxLength={10} />
 
-            {error ? <Text style={styles.error} accessibilityRole="alert">{error}</Text> : null}
+            {visibleError ? <Text style={styles.error} accessibilityRole="alert">{visibleError}</Text> : null}
             {saved ? <View style={styles.savedNotice}><Feather name="check-circle" size={16} color="#047857" /><Text style={styles.savedText}>Payout account saved and ready for withdrawals.</Text></View> : null}
 
             <TouchableOpacity style={styles.saveButton} onPress={() => { void saveAccount(); }} disabled={saving} activeOpacity={0.85}>

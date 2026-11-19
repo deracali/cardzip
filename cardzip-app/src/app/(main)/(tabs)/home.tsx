@@ -6,6 +6,7 @@ import { Modal,
   Image,
   TouchableOpacity,
   ScrollView,
+  FlatList,
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -100,12 +101,12 @@ export default function HomeScreen() {
     const cancelIdle = globalThis.cancelIdleCallback ?? ((handle: number) => clearTimeout(handle));
     const preloadHandle = scheduleIdle(() => {
       void getStorefrontPreferences().then((preferences) => {
-        if (!active) return [];
-        void dispatch(fetchStoreProducts({ page: 1, limit: 50, preferences, force: true }));
-        return fetchDigitalProductsApi('all', '', preferences);
+        if (!active) return null;
+        void dispatch(fetchStoreProducts({ page: 1, limit: 12, preferences, force: true }));
+        return fetchDigitalProductsApi('all', '', preferences, 1, 10);
       }).then((digitalProducts) => {
-        if (!active) return;
-        setPromotedProducts(digitalProducts.filter((product) => product.isPromoted).slice(0, 50));
+        if (!active || !digitalProducts) return;
+        setPromotedProducts(digitalProducts.items.filter((product) => product.isPromoted).slice(0, 50));
         setPromotedProductsError('');
       }).catch((error: unknown) => {
         if (active) setPromotedProductsError(error instanceof Error ? error.message : 'Could not load promoted products.');
@@ -528,8 +529,16 @@ export default function HomeScreen() {
         {promotedProductsError ? <Text style={styles.txSub}>Promoted products are temporarily unavailable. Showing products picked for you.</Text> : null}
         {featuredProductsLoading && featuredProducts.length === 0 ? <CardzipLoader label="Loading store products…" compact /> : null}
         {!featuredProductsLoading && featuredProducts.length === 0 ? <Text style={styles.txSub}>No store products are available right now.</Text> : null}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.homeProductRow}>
-          {homeStoreProducts.map((product: StoreProduct) => {
+        <FlatList
+          horizontal
+          data={homeStoreProducts}
+          keyExtractor={(product) => String(product._id ?? product.id)}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.homeProductRow}
+          initialNumToRender={5}
+          maxToRenderPerBatch={5}
+          windowSize={3}
+          renderItem={({ item: product }) => {
             const image = product.image || product.images?.[0];
             const homePrice = product.productType && product.productType !== 'product'
               ? Number(product.price) > 0 ? product.price : product.usePrice || product.templatePrice || 0
@@ -545,8 +554,8 @@ export default function HomeScreen() {
                 <Text style={styles.homeProductCondition} numberOfLines={1}>{product.productType && product.productType !== 'product' ? 'Digital product' : product.isSold ? 'Sold' : product.condition === 'used' ? 'Used' : 'Brand new'}</Text>
               </TouchableOpacity>
             );
-          })}
-        </ScrollView>
+          }}
+        />
         <TouchableOpacity style={styles.homePromotionBanner} activeOpacity={0.85} onPress={() => router.push('/market/community' as never)}>
           <View style={styles.homePromotionTag}><Text style={styles.homePromotionTagText}>AD</Text></View>
           <View style={styles.homePromotionCopy}><Text style={styles.homePromotionTitle}>Promote your product to local buyers</Text><Text style={styles.homePromotionSubtitle}>Post a community listing. No Cardzip payment.</Text></View>

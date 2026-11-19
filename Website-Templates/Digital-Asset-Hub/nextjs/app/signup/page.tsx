@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { Auth } from "../../src/PortalApp.jsx";
+import { ClientSignupApp } from "../../src/ClientApp.jsx";
 
 export const metadata: Metadata = {
   title: "Create account | Digital Asset Hub",
 };
 
 export default function Page() {
-  return <Auth signup />;
+  return <ClientSignupApp />;
 }
