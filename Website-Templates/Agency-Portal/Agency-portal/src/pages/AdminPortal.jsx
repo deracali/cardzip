@@ -359,7 +359,7 @@ export default function AdminPortal() {
           {inquiryId && selectedInquiry && <section className="agency-admin-inquiry-detail">
             <a className="agency-admin-back-link" href="/admin/inquiries">← Back to inquiries</a>
             <article className="agency-admin-inquiry-card">
-              <div><span className="agency-admin-kicker">PROJECT INQUIRY</span><h2>{selectedInquiry.name}</h2><p>{selectedInquiry.company || 'Independent client'} · {new Date(selectedInquiry.createdAt).toLocaleString()}</p></div>
+              <div><span className="agency-admin-kicker">PROJECT INQUIRY</span>{selectedInquiry.isSample && <small className="agency-admin-sample-label">Sample record · saved in this browser</small>}<h2>{selectedInquiry.name}</h2><p>{selectedInquiry.company || 'Independent client'} · {new Date(selectedInquiry.createdAt).toLocaleString()}</p></div>
               <dl><div><dt>Email</dt><dd><a href={`mailto:${selectedInquiry.email}`}>{selectedInquiry.email}</a></dd></div><div><dt>Phone</dt><dd><a href={`tel:${selectedInquiry.phone || ''}`}>{selectedInquiry.phone || 'Not provided'}</a></dd></div><div><dt>Budget</dt><dd>{selectedInquiry.budget}</dd></div><div><dt>Status</dt><dd>{selectedInquiry.status}</dd></div></dl>
               <section><h3>Project details</h3><p>{selectedInquiry.project}</p></section>
               {selectedInquiry.response && <section><h3>Latest response sent to client</h3><p>{selectedInquiry.response}</p><small>{selectedInquiry.respondedAt ? new Date(selectedInquiry.respondedAt).toLocaleString() : ''}</small></section>}
@@ -369,7 +369,7 @@ export default function AdminPortal() {
           {inquiryId && !selectedInquiry && <p className="agency-admin-empty">{payload.inquiries ? 'Inquiry not found.' : 'Loading inquiry…'}</p>}
           {rowKey[section] && !(section === 'inquiries' && inquiryId) && <section className="agency-admin-list">
             {filteredRows.map((row) => <article className="agency-admin-record" key={row.id}>
-              <div><strong>{row.name || row.client || row.title || row.id}</strong><p>{section === 'inquiries' ? row.email : row.email || row.clientEmail || row.service || row.body || row.project || row.detail || row.company}</p>{section === 'inquiries' && <><small>{row.phone || 'Phone not provided'}</small><small>{row.project}</small></>}<small>{row.createdAt ? new Date(row.createdAt).toLocaleString() : row.date || row.due || ''}</small></div>
+              <div><strong>{row.name || row.client || row.title || row.id}</strong><p>{section === 'inquiries' ? row.email : row.email || row.clientEmail || row.service || row.body || row.project || row.detail || row.company}</p>{section === 'inquiries' && <><small>{row.phone || 'Phone not provided'}</small><small>{row.project}</small></>}<small>{row.createdAt ? new Date(row.createdAt).toLocaleString() : row.date || row.due || ''}</small>{row.isSample && <small className="agency-admin-sample-label">Sample record · saved in this browser</small>}</div>
               {section === 'messages' && <div className="agency-admin-message-actions"><span>{row.sender} · {row.read ? 'Read' : 'Unread'}</span>{!row.read && <button type="button" onClick={async () => { await agencyApi.admin.markMessageRead(row.id); refresh() }}>Mark read</button>}</div>}
               {section === 'messages' && row.sender === 'client' && <button className="agency-admin-reply-toggle" type="button" onClick={() => setReplyTo(replyTo === row.id ? null : row.id)}>{replyTo === row.id ? 'Cancel reply' : 'Reply'}</button>}
               {section === 'messages' && replyTo === row.id && <form className="agency-admin-reply-form" onSubmit={(event) => sendReply(event, row.clientEmail)}><label>Reply to {row.client}<textarea name="reply" maxLength={2000} required placeholder="Write your reply…" /></label><button className="agency-admin-primary-button" type="submit" disabled={busy}>{busy ? 'Sending…' : 'Send reply'}</button></form>}
@@ -390,6 +390,7 @@ export default function AdminPortal() {
 function Overview({ data }) {
   const metrics = data.metrics || {}
   return <section className="agency-admin-overview">
+    {data.hasSampleData && <p className="agency-admin-sample-note">Sample workspace records are stored in this browser. You can edit or remove them as you add real work.</p>}
     <div className="agency-admin-metrics">
       {[['Active projects', metrics.activeProjects || 0], ['Paid revenue', new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(metrics.monthlyRevenue || 0)], ['Active clients', metrics.activeClients || 0], ['Pending approvals', metrics.pendingApprovals || 0]].map(([label, value]) => <article key={label}><small>{label}</small><strong>{value}</strong></article>)}
     </div>

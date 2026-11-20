@@ -2,7 +2,7 @@
   min-height: 100vh;
   background: linear-gradient(180deg, #0b1120 0%, #101b2d 100%);
   color: #edf2ff;
-  font-family: Inter, 'Segoe UI', sans-serif;
+  font-family: 'Roboto', sans-serif;
 }
 
 .loading {

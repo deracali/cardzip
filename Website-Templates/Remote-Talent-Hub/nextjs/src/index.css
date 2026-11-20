@@ -2,3 +2,7 @@
 html, body, #root { min-width: 320px; min-height: 100%; margin: 0; }
 body { min-height: 100vh; }
 ::selection { color: #fff; background: #5146e5; }
+
+:root { --website-template-body-font: 'Roboto', sans-serif; --website-template-heading-font: 'Poppins', sans-serif; }
+body, button, input, select, textarea { font-family: var(--website-template-body-font) !important; }
+h1, h2, h3, h4, h5, h6 { font-family: var(--website-template-heading-font) !important; }

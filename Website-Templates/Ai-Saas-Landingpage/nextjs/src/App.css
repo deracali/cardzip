@@ -415,3 +415,17 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   .client-dashboard-panel { padding: 19px 15px; }
   .client-inquiry { padding: 15px; }
 }
+
+:root { --website-template-body-font: 'Roboto', sans-serif; --website-template-heading-font: 'Poppins', sans-serif; }
+body, button, input, select, textarea { font-family: var(--website-template-body-font) !important; }
+h1, h2, h3, h4, h5, h6 { font-family: var(--website-template-heading-font) !important; }
+ .docs-library { margin: 56px 0; }
+ .docs-detail { max-width: 860px; }
+ .docs-detail ol { display: grid; gap: 16px; max-width: 700px; margin: 30px auto; padding-left: 24px; color: #aab6cb; line-height: 1.7; }
+ .docs-article-section { margin: 18px 0; padding: 22px; border: 1px solid #29334b; border-radius: 12px; background: #101625; }
+ .docs-article-section h2 { margin: 0 0 12px; color: #eef2ff; font-size: 19px; }
+ .docs-article-section p, .docs-article-section li { color: #aab6cb; line-height: 1.8; }
+ .docs-article-section p { margin: 12px 0; }
+ .docs-article-section ul { display: grid; gap: 7px; padding-left: 22px; }
+ .docs-pdf-viewer { width: 100%; min-height: 75vh; margin-top: 24px; border: 1px solid #29334b; border-radius: 12px; background: #fff; }
+ .docs-text-viewer { overflow: auto; margin-top: 24px; padding: 24px; border: 1px solid #29334b; border-radius: 12px; background: #101625; color: #d7e0ef; white-space: pre-wrap; line-height: 1.7; }

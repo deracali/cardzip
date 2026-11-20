@@ -1,5 +1,5 @@
 :root {
-  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: 'Roboto', sans-serif;
   color: #172436;
   background: #fff;
   font-synthesis: none;
@@ -83,7 +83,7 @@ img { display: block; max-width: 100%; }
 .hero .eyebrow { color: #f4b588; }
 .eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: #f58948; }
 .hero h1 { margin: 20px 0 12px; font-size: clamp(38px, 5vw, 62px); font-weight: 650; letter-spacing: -3.2px; line-height: 1.04; }
-.hero h1 em, .seller-feature h2 em, .seller-join-hero h1 em { color: #f29a63; font-family: Georgia, "Times New Roman", serif; font-weight: 450; }
+.hero h1 em, .seller-feature h2 em, .seller-join-hero h1 em { color: #f29a63; font-family: 'Roboto', sans-serif; font-weight: 450; }
 .hero-copy > p { max-width: 440px; margin: 0; color: #c3ccd5; font-size: 13px; line-height: 1.8; }
 .hero-actions { display: flex; align-items: center; gap: 23px; margin-top: 25px; }
 .hero-text-link { display: inline-flex; align-items: center; gap: 8px; color: #eef1f4; font-size: 11px; font-weight: 600; text-decoration: none; }
@@ -342,7 +342,7 @@ img { display: block; max-width: 100%; }
 .seller-values b { font-size: 9px; }
 .seller-values small { color: #7f8993; font-size: 8px; }
 .seller-review-quote { margin-top: 35px; padding: 25px; border-radius: 7px; text-align: center; background: #f8f6f1; }
-.seller-review-quote p { margin: 11px auto 6px; color: #3c4a59; font-family: Georgia, "Times New Roman", serif; font-size: 17px; }
+.seller-review-quote p { margin: 11px auto 6px; color: #3c4a59; font-family: 'Roboto', sans-serif; font-size: 17px; }
 .seller-review-quote > span { color: #838d96; font-size: 9px; }
 
 .cart-layout { display: grid; grid-template-columns: minmax(0, 1fr) 295px; gap: 24px; align-items: start; }
@@ -844,3 +844,7 @@ img { display: block; max-width: 100%; }
   .faq-layout > aside h3 { grid-column: auto; }
   .toast-message { right: 13px; bottom: 13px; }
 }
+
+:root { --website-template-body-font: 'Roboto', sans-serif; --website-template-heading-font: 'Poppins', sans-serif; }
+body, button, input, select, textarea { font-family: var(--website-template-body-font) !important; }
+h1, h2, h3, h4, h5, h6 { font-family: var(--website-template-heading-font) !important; }

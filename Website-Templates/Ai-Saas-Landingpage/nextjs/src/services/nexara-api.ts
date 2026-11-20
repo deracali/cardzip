@@ -82,6 +82,63 @@ export type NexaraPlan = {
   updatedAt: string;
 };
 
+export type NexaraDocument = {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  filename: string;
+  contentType: "application/pdf" | "text/plain" | "text/markdown";
+  contentBase64?: string;
+  createdAt: string;
+};
+
+export type NexaraAgent = {
+  id: string;
+  slug: string;
+  name: string;
+  team: string;
+  description: string;
+  mode: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type NexaraWorkflow = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  trigger: string;
+  steps: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type NexaraIntegration = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  category: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type NexaraAdminAnalytics = {
+  totals: {
+    leads: number;
+    users: number;
+    pages: number;
+    plans: number;
+    documents: number;
+    agents: number;
+    workflows: number;
+    integrations: number;
+  };
+  activity: { date: string; count: number }[];
+};
+
 type AdminUser = NexaraUser;
 
 export const nexaraApi = {
@@ -101,6 +158,8 @@ export const nexaraApi = {
   publicPages: () => request<{ data: NexaraPage[] }>("/pages"),
   publicPage: (slug: string) => request<{ data: NexaraPage }>(`/pages/${encodeURIComponent(slug)}`),
   publicPlans: () => request<{ data: NexaraPlan[] }>("/plans"),
+  publicDocuments: () => request<{ data: NexaraDocument[] }>("/docs"),
+  publicDocument: (slug: string) => request<{ data: NexaraDocument }>(`/docs/${encodeURIComponent(slug)}`),
   adminPages: (token: string) => request<{ data: NexaraPage[] }>("/admin/pages", { token }),
   createPage: (token: string, page: Omit<NexaraPage, "id" | "updatedAt">) =>
     request<{ data: NexaraPage }>("/admin/pages", { method: "POST", body: page, token }),
@@ -115,6 +174,33 @@ export const nexaraApi = {
     request<{ data: NexaraPlan }>(`/admin/plans/${encodeURIComponent(id)}`, { method: "PATCH", body: plan, token }),
   deletePlan: (token: string, id: string) =>
     request<{ data: { id: string } }>(`/admin/plans/${encodeURIComponent(id)}`, { method: "DELETE", token }),
+  adminDocuments: (token: string) => request<{ data: NexaraDocument[] }>("/admin/docs", { token }),
+  uploadDocument: (token: string, document: Omit<NexaraDocument, "id" | "createdAt">) =>
+    request<{ data: NexaraDocument }>("/admin/docs", { method: "POST", body: document, token }),
+  deleteDocument: (token: string, id: string) =>
+    request<{ data: { id: string } }>(`/admin/docs/${encodeURIComponent(id)}`, { method: "DELETE", token }),
+  adminAnalytics: (token: string) => request<{ data: NexaraAdminAnalytics }>("/admin/analytics", { token }),
+  adminAgents: (token: string) => request<{ data: NexaraAgent[] }>("/admin/agents", { token }),
+  createAgent: (token: string, agent: Omit<NexaraAgent, "id" | "createdAt" | "updatedAt">) =>
+    request<{ data: NexaraAgent }>("/admin/agents", { method: "POST", body: agent, token }),
+  updateAgent: (token: string, id: string, agent: Omit<NexaraAgent, "id" | "createdAt" | "updatedAt">) =>
+    request<{ data: NexaraAgent }>(`/admin/agents/${encodeURIComponent(id)}`, { method: "PATCH", body: agent, token }),
+  deleteAgent: (token: string, id: string) =>
+    request<{ data: { id: string } }>(`/admin/agents/${encodeURIComponent(id)}`, { method: "DELETE", token }),
+  adminWorkflows: (token: string) => request<{ data: NexaraWorkflow[] }>("/admin/workflows", { token }),
+  createWorkflow: (token: string, workflow: Omit<NexaraWorkflow, "id" | "createdAt" | "updatedAt">) =>
+    request<{ data: NexaraWorkflow }>("/admin/workflows", { method: "POST", body: workflow, token }),
+  updateWorkflow: (token: string, id: string, workflow: Omit<NexaraWorkflow, "id" | "createdAt" | "updatedAt">) =>
+    request<{ data: NexaraWorkflow }>(`/admin/workflows/${encodeURIComponent(id)}`, { method: "PATCH", body: workflow, token }),
+  deleteWorkflow: (token: string, id: string) =>
+    request<{ data: { id: string } }>(`/admin/workflows/${encodeURIComponent(id)}`, { method: "DELETE", token }),
+  adminIntegrations: (token: string) => request<{ data: NexaraIntegration[] }>("/admin/integrations", { token }),
+  createIntegration: (token: string, integration: Omit<NexaraIntegration, "id" | "createdAt" | "updatedAt">) =>
+    request<{ data: NexaraIntegration }>("/admin/integrations", { method: "POST", body: integration, token }),
+  updateIntegration: (token: string, id: string, integration: Omit<NexaraIntegration, "id" | "createdAt" | "updatedAt">) =>
+    request<{ data: NexaraIntegration }>(`/admin/integrations/${encodeURIComponent(id)}`, { method: "PATCH", body: integration, token }),
+  deleteIntegration: (token: string, id: string) =>
+    request<{ data: { id: string } }>(`/admin/integrations/${encodeURIComponent(id)}`, { method: "DELETE", token }),
   adminUsers: (token: string) => request<{ data: AdminUser[] }>("/admin/users", { token }),
   updateUser: (token: string, id: string, user: Pick<AdminUser, "name" | "email">) =>
     request<{ data: AdminUser }>(`/admin/users/${encodeURIComponent(id)}`, { method: "PATCH", body: user, token }),

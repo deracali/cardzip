@@ -1,6 +1,7 @@
 const SESSION_KEY = 'nova-agency-session'
 const DATA_KEY = 'nova-agency-local-data-v1'
 const LOCAL_ADMIN_INVITE_CODE = 'LOCAL-ADMIN'
+const DEMO_DATA_VERSION = 2
 const IMAGE_SIZE_LIMIT = 10 * 1024 * 1024
 const collections = ['users', 'caseStudies', 'projects', 'clients', 'team', 'invoices', 'inquiries', 'messages', 'activity']
 
@@ -29,9 +30,178 @@ const emptyDatabase = () => ({
   settings: defaultSettings(),
 })
 
+const createDemoData = () => {
+  const dateAgo = (days) => new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()
+  const clientEmail = 'sample.client.one@example.test'
+  return {
+    caseStudies: [
+      {
+        id: 'sample-case-lumen',
+        slug: 'lumen-finance',
+        name: 'Lumen Finance Dashboard',
+        client: 'Fintech · +46% activation',
+        type: 'UI/UX',
+        visual: 'project-dashboard',
+        image: '',
+        alt: 'A dark finance analytics dashboard concept',
+        summary: 'A calmer way to see the whole business.',
+        description: 'We partnered with Lumen to make complex financial data feel clear and actionable.',
+        result: '+46% activation',
+        deliverables: ['Product strategy', 'UX research', 'Dashboard design system', 'Frontend engineering'],
+        createdAt: dateAgo(3),
+        isSample: true,
+      },
+      {
+        id: 'sample-case-kinetiq',
+        slug: 'kinetiq-store',
+        name: 'Kinetiq Streetwear Store',
+        client: 'E-commerce · 3.2× revenue',
+        type: 'E-commerce',
+        visual: 'project-fashion',
+        image: '',
+        alt: 'A designer handbag photographed for an e-commerce campaign',
+        summary: 'A digital flagship built to move culture.',
+        description: 'A storefront built around product storytelling and a faster path to checkout.',
+        result: '3.2× revenue',
+        deliverables: ['Brand direction', 'Commerce UX', 'Shopify build', 'Campaign art direction'],
+        createdAt: dateAgo(8),
+        isSample: true,
+      },
+      {
+        id: 'sample-case-pulse',
+        slug: 'pulse-brand',
+        name: 'Pulse Brand in Motion',
+        client: 'Branding · 12M views',
+        type: '3D Motion',
+        visual: 'project-pulse',
+        image: '',
+        alt: 'Colorful abstract brand artwork',
+        summary: 'A visual system with a pulse of its own.',
+        description: 'A flexible motion identity for product launches, social campaigns, and immersive web experiences.',
+        result: '12M campaign views',
+        deliverables: ['Visual identity', 'Motion language', '3D toolkit', 'Launch campaign'],
+        createdAt: dateAgo(14),
+        isSample: true,
+      },
+    ],
+    projects: [
+      {
+        id: 'sample-project-lumen',
+        name: 'Lumen Finance Dashboard',
+        client: 'Sample Client One',
+        clientEmail,
+        service: 'Product design & engineering',
+        due: 'Dec 2026',
+        budget: 32000,
+        status: 'In progress',
+        progress: 72,
+        createdAt: dateAgo(5),
+        isSample: true,
+      },
+      {
+        id: 'sample-project-kinetiq',
+        name: 'Kinetiq Commerce Refresh',
+        client: 'Sample Client Two',
+        clientEmail: 'sample.client.two@example.test',
+        service: 'E-commerce',
+        due: 'Jan 2027',
+        budget: 18500,
+        status: 'Review',
+        progress: 90,
+        createdAt: dateAgo(10),
+        isSample: true,
+      },
+    ],
+    clients: [
+      { id: 'sample-client-lumen', name: 'Sample Client One', company: 'Lumen Finance', email: clientEmail, status: 'Active', createdAt: dateAgo(6), isSample: true },
+      { id: 'sample-client-kinetiq', name: 'Sample Client Two', company: 'Kinetiq', email: 'sample.client.two@example.test', status: 'Onboarding', createdAt: dateAgo(11), isSample: true },
+    ],
+    team: [
+      { id: 'sample-team-1', name: 'Sample Team Member 1', role: 'Creative Director', email: 'team.member.one@example.test', status: 'Available', createdAt: dateAgo(20), isSample: true },
+      { id: 'sample-team-2', name: 'Sample Team Member 2', role: 'Product Designer', email: 'team.member.two@example.test', status: 'Available', createdAt: dateAgo(18), isSample: true },
+      { id: 'sample-team-3', name: 'Sample Team Member 3', role: 'Engineer', email: 'team.member.three@example.test', status: 'Available', createdAt: dateAgo(16), isSample: true },
+    ],
+    invoices: [
+      { id: 'INV-SAMPLE-001', client: 'Sample Client One', clientEmail, amount: 18500, date: 'Nov 12, 2026', status: 'Paid', createdAt: dateAgo(7), isSample: true },
+      { id: 'INV-SAMPLE-002', client: 'Sample Client Two', clientEmail: 'sample.client.two@example.test', amount: 6500, date: 'Nov 18, 2026', status: 'Due soon', createdAt: dateAgo(2), isSample: true },
+    ],
+    inquiries: [
+      {
+        id: 'sample-inquiry-lumen',
+        name: 'Sample Client One',
+        company: 'Lumen Finance',
+        email: clientEmail,
+        clientEmail,
+        phone: '',
+        budget: '$15k–$25k',
+        project: 'We need a clearer finance dashboard for our customers.',
+        status: 'New',
+        createdAt: dateAgo(1),
+        isSample: true,
+      },
+    ],
+    messages: [
+      { id: 'sample-message-client', clientEmail, client: 'Sample Client One', sender: 'client', body: 'Could you share the latest dashboard prototype?', read: false, createdAt: dateAgo(2), isSample: true },
+      { id: 'sample-message-admin', clientEmail, client: 'Sample Client One', sender: 'admin', body: 'Absolutely. The latest review is ready in your project workspace.', read: true, createdAt: dateAgo(1), isSample: true },
+    ],
+    activity: [
+      { id: 'sample-activity-1', title: 'Updated project progress', detail: 'Lumen Finance Dashboard', createdAt: dateAgo(1), isSample: true },
+      { id: 'sample-activity-2', title: 'Published a case study', detail: 'Kinetiq Streetwear Store', createdAt: dateAgo(3), isSample: true },
+      { id: 'sample-activity-3', title: 'Received a project inquiry', detail: 'Sample Client One · Lumen Finance', createdAt: dateAgo(4), isSample: true },
+    ],
+  }
+}
+
+const legacySampleNames = new Map([
+  ['Chidera Calistus', 'Sample Client'],
+  ['Maya Keller', 'Sample Client One'],
+  ['Jordan Lee', 'Sample Client Two'],
+  ['Avery Morgan', 'Sample Team Member 1'],
+  ['Riley Chen', 'Sample Team Member 2'],
+  ['Taylor Brooks', 'Sample Team Member 3'],
+])
+const legacySampleNamePattern = new RegExp(`\\b(?:${[...legacySampleNames.keys()].join('|')})\\b`, 'g')
+
+const migrateSampleNames = (data) => {
+  let changed = false
+  collections.filter((collection) => collection !== 'users').forEach((collection) => {
+    data[collection] = data[collection].map((record) => {
+      if (!record.isSample) return record
+      let updated = record
+      Object.entries(record).forEach(([key, value]) => {
+        if (typeof value !== 'string') return
+        const replacement = value.replace(legacySampleNamePattern, (name) => legacySampleNames.get(name))
+        if (replacement !== value) {
+          if (updated === record) updated = { ...record }
+          updated[key] = replacement
+          changed = true
+        }
+      })
+      return updated
+    })
+  })
+  return changed
+}
+
+const seedDemoData = (data) => {
+  if (data.demoDataVersion === DEMO_DATA_VERSION) return false
+  migrateSampleNames(data)
+  const demoData = createDemoData()
+  Object.entries(demoData).forEach(([collection, records]) => {
+    if (data[collection].length === 0) data[collection] = records
+  })
+  data.demoDataVersion = DEMO_DATA_VERSION
+  return true
+}
+
 const readDatabase = () => {
   const saved = localStorage.getItem(DATA_KEY)
-  if (!saved) return emptyDatabase()
+  if (!saved) {
+    const data = emptyDatabase()
+    seedDemoData(data)
+    saveDatabase(data)
+    return data
+  }
 
   let parsed
   try {
@@ -57,6 +227,7 @@ const readDatabase = () => {
   } else {
     data.settings = { ...defaultSettings(), ...data.settings }
   }
+  if (seedDemoData(data)) saveDatabase(data)
   return data
 }
 
@@ -290,7 +461,7 @@ const resetPassword = async (tokenInput, passwordInput) => {
   return { message: 'Password updated for this browser. You can now sign in.' }
 }
 
-const publicCaseStudies = () => ({ caseStudies: newestFirst(readDatabase().caseStudies) })
+const publicCaseStudies = async () => ({ caseStudies: newestFirst(readDatabase().caseStudies) })
 
 const submitInquiry = (input) => {
   const data = readDatabase()
@@ -315,18 +486,72 @@ const submitInquiry = (input) => {
   return { inquiry }
 }
 
-const clientDashboard = () => {
+const clientDashboard = async () => {
   const data = readDatabase()
   const user = getAuthenticatedUser(data, 'client')
   const matchesClient = (record) => String(record.clientEmail || '').toLowerCase() === user.email
+  if (!user.demoWorkspaceSeeded) {
+    const createdAt = new Date().toISOString()
+    const personalCollections = {
+      projects: [{
+        id: `sample-project-${user.id}`,
+        name: 'Sample Website Redesign',
+        client: 'Sample Client',
+        clientEmail: user.email,
+        service: 'Website design & development',
+        due: 'Dec 2026',
+        budget: 0,
+        status: 'In progress',
+        progress: 35,
+        createdAt,
+        isSample: true,
+      }],
+      invoices: [{
+        id: 'SAMPLE-INVOICE-001',
+        client: 'Sample Client',
+        clientEmail: user.email,
+        amount: 0,
+        date: 'Sample only',
+        status: 'Sample',
+        createdAt,
+        isSample: true,
+      }],
+      inquiries: [{
+        id: `sample-inquiry-${user.id}`,
+        name: 'Sample Client',
+        company: user.company,
+        email: user.email,
+        clientEmail: user.email,
+        budget: 'Not set',
+        project: 'This is a sample inquiry. Your real project requests will appear here.',
+        status: 'New',
+        createdAt,
+        isSample: true,
+      }],
+      messages: [
+        { id: `sample-message-studio-${user.id}`, clientEmail: user.email, client: 'Sample Client', sender: 'admin', body: 'Welcome to your sample workspace. Your studio messages will appear here.', read: true, createdAt, isSample: true },
+        { id: `sample-message-client-${user.id}`, clientEmail: user.email, client: 'Sample Client', sender: 'client', body: 'This is a sample message. Send a message to start your real conversation.', read: false, createdAt, isSample: true },
+      ],
+    }
+    Object.entries(personalCollections).forEach(([collection, records]) => {
+      if (!data[collection].some(matchesClient)) data[collection].push(...records)
+    })
+    user.demoWorkspaceSeeded = true
+    saveDatabase(data)
+  }
+  const projects = newestFirst(data.projects.filter(matchesClient))
+  const invoices = newestFirst(data.invoices.filter(matchesClient))
+  const inquiries = newestFirst(data.inquiries.filter(matchesClient))
+  const messages = data.messages.filter(matchesClient).slice().sort(
+    (left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime(),
+  )
   return {
     user: publicUser(user),
-    projects: newestFirst(data.projects.filter(matchesClient)),
-    invoices: newestFirst(data.invoices.filter(matchesClient)),
-    inquiries: newestFirst(data.inquiries.filter(matchesClient)),
-    messages: data.messages.filter(matchesClient).slice().sort(
-      (left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime(),
-    ),
+    projects,
+    invoices,
+    inquiries,
+    messages,
+    hasSampleData: [...projects, ...invoices, ...inquiries, ...messages].some((record) => record.isSample),
   }
 }
 
@@ -378,6 +603,8 @@ const adminDashboard = () => {
   const { data } = requireAdminDatabase()
   const projects = newestFirst(data.projects)
   return {
+    hasSampleData: ['caseStudies', 'projects', 'clients', 'team', 'invoices', 'inquiries', 'messages']
+      .some((collection) => data[collection].some((record) => record.isSample)),
     metrics: {
       activeProjects: data.projects.filter((project) => project.status !== 'Completed').length,
       monthlyRevenue: data.invoices

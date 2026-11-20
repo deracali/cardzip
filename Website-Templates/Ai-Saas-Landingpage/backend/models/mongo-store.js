@@ -87,7 +87,18 @@ export async function connectMongoStore(uri, databaseName, { dnsServers } = {}) 
       database.collection("users").createIndex({ email: 1 }, { unique: true }),
       database.collection("pages").createIndex({ slug: 1 }, { unique: true }),
       database.collection("plans").createIndex({ slug: 1 }, { unique: true }),
+      database.collection("documents").createIndex({ slug: 1 }, { unique: true }),
+      database.collection("users").createIndex({ createdAt: -1 }),
+      database.collection("pages").createIndex({ updatedAt: -1 }),
+      database.collection("plans").createIndex({ updatedAt: -1 }),
+      database.collection("documents").createIndex({ createdAt: -1 }),
       database.collection("leads").createIndex({ createdAt: -1 }),
+      database.collection("agents").createIndex({ slug: 1 }, { unique: true }),
+      database.collection("agents").createIndex({ createdAt: -1 }),
+      database.collection("workflows").createIndex({ slug: 1 }, { unique: true }),
+      database.collection("workflows").createIndex({ createdAt: -1 }),
+      database.collection("integrations").createIndex({ slug: 1 }, { unique: true }),
+      database.collection("integrations").createIndex({ createdAt: -1 }),
     ]);
   } catch (error) {
     await client.close();
@@ -112,6 +123,12 @@ export function createMongoStore(database) {
   const leads = database.collection("leads");
   const pages = database.collection("pages");
   const plans = database.collection("plans");
+  const documents = database.collection("documents");
+  const catalogs = {
+    agents: database.collection("agents"),
+    workflows: database.collection("workflows"),
+    integrations: database.collection("integrations"),
+  };
 
   return {
     async createLead(input) {
@@ -205,6 +222,80 @@ export function createMongoStore(database) {
     async deletePlan(id) {
       return (await plans.deleteOne({ id })).deletedCount > 0;
     },
+    async listDocuments() {
+      return documents.find({}, { projection: { _id: 0, contentBase64: 0 } }).sort({ title: 1 }).toArray();
+    },
+    async getDocument(slug) {
+      return documents.findOne({ slug }, { projection: { _id: 0 } });
+    },
+    async createDocument(input) {
+      const document = { id: makeId(), ...input, createdAt: new Date().toISOString() };
+      await documents.insertOne(document);
+      delete document._id;
+      return document;
+    },
+    async deleteDocument(id) {
+      return (await documents.deleteOne({ id })).deletedCount > 0;
+    },
+    async listCatalog(kind) {
+      return catalogs[kind].find({}, { projection: { _id: 0 } }).sort({ name: 1 }).toArray();
+    },
+    async createCatalog(kind, input) {
+      const now = new Date().toISOString();
+      const entry = { id: makeId(), ...input, createdAt: now, updatedAt: now };
+      await catalogs[kind].insertOne(entry);
+      delete entry._id;
+      return entry;
+    },
+    async updateCatalog(kind, id, changes) {
+      return catalogs[kind].findOneAndUpdate({ id }, { $set: { ...changes, updatedAt: new Date().toISOString() } }, {
+        returnDocument: "after",
+        projection: { _id: 0 },
+      });
+    },
+    async deleteCatalog(kind, id) {
+      return (await catalogs[kind].deleteOne({ id })).deletedCount > 0;
+    },
+    async getAdminAnalytics() {
+      return getMongoAdminAnalytics({
+        leads,
+        users,
+        pages,
+        plans,
+        documents,
+        ...catalogs,
+      });
+    },
+  };
+}
+
+async function getMongoAdminAnalytics(collections) {
+  const activityFields = { pages: "updatedAt", plans: "updatedAt" };
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const dates = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(today);
+    date.setUTCDate(today.getUTCDate() - (6 - index));
+    return date.toISOString().slice(0, 10);
+  });
+  const activityCounts = new Map(dates.map((date) => [date, 0]));
+  const entries = Object.entries(collections);
+  const counts = await Promise.all(entries.map(([name, collection]) => collection.countDocuments().then((count) => [name, count])));
+  const activity = await Promise.all(entries.map(async ([name, collection]) => {
+    const field = activityFields[name] || "createdAt";
+    return collection.aggregate([
+      { $match: { [field]: { $gte: `${dates[0]}T00:00:00.000Z` } } },
+      { $group: { _id: { $substrBytes: [`$${field}`, 0, 10] }, count: { $sum: 1 } } },
+    ]).toArray();
+  }));
+  for (const records of activity) {
+    for (const record of records) {
+      if (activityCounts.has(record._id)) activityCounts.set(record._id, activityCounts.get(record._id) + record.count);
+    }
+  }
+  return {
+    totals: Object.fromEntries(counts),
+    activity: dates.map((date) => ({ date, count: activityCounts.get(date) })),
   };
 }
 

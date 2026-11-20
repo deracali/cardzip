@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { authorizedClaims, createToken } from "../middleware/auth.js";
-import { duplicateAsConflict, notFound, publicLead, publicUser, requireObject, validateLead, validateLeadResponse, validatePage, validatePlan } from "./validation.js";
+import { duplicateAsConflict, notFound, publicDocument, publicLead, publicUser, requireObject, validateCatalogRecord, validateDocument, validateLead, validateLeadResponse, validatePage, validatePlan } from "./validation.js";
 
 const leadStatuses = new Set(["new", "contacted", "qualified", "closed"]);
 
@@ -135,6 +135,54 @@ export function createAdminController({ store, authSecret, adminEmail, adminPass
       authorize(request);
       if (!await store.deletePlan(match[1])) throw notFound("Plan was not found.");
       return { status: 200, body: { data: { id: match[1] } } };
+    },
+    documents: async (request) => {
+      authorize(request);
+      return { status: 200, body: { data: await store.listDocuments() } };
+    },
+    createDocument: async (request, body) => {
+      authorize(request);
+      try {
+        return { status: 201, body: { data: publicDocument(await store.createDocument(validateDocument(requireObject(body)))) } };
+      } catch (error) {
+        throw duplicateAsConflict(error);
+      }
+    },
+    deleteDocument: async (request, _body, match) => {
+      authorize(request);
+      if (!await store.deleteDocument(match[1])) throw notFound("Document was not found.");
+      return { status: 200, body: { data: { id: match[1] } } };
+    },
+    catalogs: async (request, _body, match) => {
+      authorize(request);
+      return { status: 200, body: { data: await store.listCatalog(match[1]) } };
+    },
+    createCatalog: async (request, body, match) => {
+      authorize(request);
+      try {
+        return { status: 201, body: { data: await store.createCatalog(match[1], validateCatalogRecord(match[1], requireObject(body))) } };
+      } catch (error) {
+        throw duplicateAsConflict(error);
+      }
+    },
+    updateCatalog: async (request, body, match) => {
+      authorize(request);
+      try {
+        const record = await store.updateCatalog(match[1], match[2], validateCatalogRecord(match[1], requireObject(body)));
+        if (!record) throw notFound("Catalog record was not found.");
+        return { status: 200, body: { data: record } };
+      } catch (error) {
+        throw duplicateAsConflict(error);
+      }
+    },
+    deleteCatalog: async (request, _body, match) => {
+      authorize(request);
+      if (!await store.deleteCatalog(match[1], match[2])) throw notFound("Catalog record was not found.");
+      return { status: 200, body: { data: { id: match[2] } } };
+    },
+    analytics: async (request) => {
+      authorize(request);
+      return { status: 200, body: { data: await store.getAdminAnalytics() } };
     },
   };
 }

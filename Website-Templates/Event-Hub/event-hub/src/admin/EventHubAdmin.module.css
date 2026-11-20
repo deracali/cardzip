@@ -1,8 +1,8 @@
-.shell { --ink:#f2f3fc; --muted:#9eabc5; --line:#28344d; --purple:#935bfa; display:flex; min-height:100vh; background:#0c1222; color:var(--ink); font-family:'DM Sans',sans-serif; }
+.shell { --ink:#f2f3fc; --muted:#9eabc5; --line:#28344d; --purple:#935bfa; display:flex; min-height:100vh; background:#0c1222; color:var(--ink); font-family: 'Roboto', sans-serif; }
 .sidebar { position:fixed; inset:0 auto 0 0; z-index:20; display:flex; width:248px; flex-direction:column; padding:22px 14px 15px; border-right:1px solid #222d44; background:#10182b; }
 .brand { display:flex; height:36px; align-items:center; gap:9px; padding:0 7px; color:#f4f3fc; text-decoration:none; }
 .brand img { width:28px; height:28px; border-radius:8px; }
-.brand strong { font-family:Manrope,sans-serif; font-size:16px; font-weight:800; }
+.brand strong { font-family: 'Roboto', sans-serif; font-size:16px; font-weight:800; }
 .workspace { display:flex; align-items:center; gap:9px; margin:27px 0 24px; padding:11px 9px; border:1px solid #2d3851; border-radius:7px; background:#18233a; }
 .workspace > span { display:grid; width:30px; height:30px; place-items:center; border-radius:7px; background:#293250; color:#b79aff; }
 .workspace b,.workspace small { display:block; }
@@ -33,7 +33,7 @@
 .content { width:min(100%,1440px); margin:0 auto; padding:28px 29px 20px; }
 .heading { display:flex; align-items:flex-end; justify-content:space-between; gap:15px; margin:1px 0 20px; }
 .heading > div > small { color:#a58fd6; font-size:8px; font-weight:800; letter-spacing:.1em; }
-.heading h1 { margin:7px 0 5px; font-family:Manrope,sans-serif; font-size:25px; font-weight:800; letter-spacing:-.04em; }
+.heading h1 { margin:7px 0 5px; font-family: 'Roboto', sans-serif; font-size:25px; font-weight:800; letter-spacing:-.04em; }
 .heading p { margin:0; color:#9ba8c0; font-size:10px; }
 .demoNotice,.error,.notice { display:flex; align-items:flex-start; gap:8px; margin-bottom:13px; padding:10px 12px; border-radius:5px; font-size:9px; line-height:1.55; }
 .demoNotice { border:1px solid #3d345b; background:#211d36; color:#c3b5ea; }
@@ -45,7 +45,7 @@
 .metric { display:grid; min-height:118px; grid-template-columns:34px 1fr; grid-template-rows:33px 1fr 18px; align-items:center; gap:2px 9px; padding:14px; border:1px solid #28354e; border-radius:6px; background:#141d31; }
 .metricIcon { display:grid; width:31px; height:31px; grid-row:1; place-items:center; border-radius:7px; }
 .metric > small { color:#a6b1c8; font-size:9px; }
-.metric > strong { grid-column:1/-1; align-self:end; padding-top:7px; font-family:Manrope,sans-serif; font-size:22px; font-weight:800; }
+.metric > strong { grid-column:1/-1; align-self:end; padding-top:7px; font-family: 'Roboto', sans-serif; font-size:22px; font-weight:800; }
 .metric > i { grid-column:1/-1; color:#8896b0; font-size:8px; font-style:normal; }
 .violet { background:#2d264a; color:#bd9cff; }
 .cyan { background:#183544; color:#62d7d2; }
@@ -55,7 +55,7 @@
 .panel { min-width:0; margin-bottom:13px; padding:17px; border:1px solid #28354e; border-radius:6px; background:#141d31; }
 .panelHeading { display:flex; min-height:37px; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
 .panelHeading > div > small { color:#92a0bb; font-size:8px; font-weight:800; letter-spacing:.1em; }
-.panelHeading h2 { margin:4px 0 0; font-family:Manrope,sans-serif; font-size:14px; font-weight:800; }
+.panelHeading h2 { margin:4px 0 0; font-family: 'Roboto', sans-serif; font-size:14px; font-weight:800; }
 .panelHeading > button { display:flex; align-items:center; gap:5px; border:0; background:transparent; color:#c1a6ff; cursor:pointer; font-size:9px; font-weight:700; white-space:nowrap; }
 .eventRow { display:flex; min-height:48px; align-items:center; justify-content:space-between; gap:10px; border-top:1px solid #253149; }
 .eventRow span { min-width:0; }
@@ -64,7 +64,7 @@
 .eventRow small { margin-top:3px; color:#98a6bf; font-size:8px; }
 .healthCard { padding:17px; border:1px solid #44386a; border-radius:6px; background:#201c37; }
 .healthCard > span { display:flex; align-items:center; gap:7px; color:#c3aeff; font-size:8px; font-weight:800; letter-spacing:.08em; }
-.healthCard h2 { max-width:240px; margin:15px 0 8px; color:#f0ebff; font-family:Manrope,sans-serif; font-size:15px; line-height:1.35; }
+.healthCard h2 { max-width:240px; margin:15px 0 8px; color:#f0ebff; font-family: 'Roboto', sans-serif; font-size:15px; line-height:1.35; }
 .healthCard p { margin:0; color:#b1a9cc; font-size:9px; line-height:1.6; }
 .actions { display:flex; align-items:center; gap:7px; }
 .searchBox { display:flex; width:min(210px,40vw); height:31px; align-items:center; gap:6px; padding:0 8px; border:1px solid #34415d; border-radius:4px; color:#9aa8c2; }
@@ -116,10 +116,10 @@
 .loginPage { display:grid; min-height:100vh; align-content:center; justify-items:center; gap:17px; padding:26px; background:radial-gradient(circle at 12% 14%,#30264f 0,transparent 30%),linear-gradient(135deg,#0d1426,#10182a 70%); color:#f2f3fc; }
 .loginBrand { display:flex; align-items:center; gap:8px; color:#f2f3fc; text-decoration:none; }
 .loginBrand img { width:29px; height:29px; border-radius:8px; }
-.loginBrand strong { font-family:Manrope,sans-serif; font-size:18px; }
+.loginBrand strong { font-family: 'Roboto', sans-serif; font-size:18px; }
 .loginPanel { display:grid; width:min(100%,390px); gap:9px; padding:27px; border:1px solid #303b54; border-radius:8px; background:#141d31; box-shadow:0 20px 60px #0004; }
 .loginPanel > small { color:#b39aff; font-size:8px; font-weight:800; letter-spacing:.1em; }
-.loginPanel h1 { margin:0; font-family:Manrope,sans-serif; font-size:22px; }
+.loginPanel h1 { margin:0; font-family: 'Roboto', sans-serif; font-size:22px; }
 .loginPanel p { margin:0 0 5px; color:#a8b4cd; font-size:9px; line-height:1.5; }
 .loginPanel label { margin-top:4px; color:#c3cce0; font-size:8px; font-weight:700; }
 .loginPanel input { height:35px; padding:0 9px; border:1px solid #35415a; border-radius:4px; background:#0f1728; color:#f2f3fc; font-size:10px; }
@@ -130,7 +130,7 @@
 .editor { width:min(100%,760px); max-height:min(90vh,850px); overflow:auto; padding:19px; border:1px solid #35415c; border-radius:8px; background:#141d31; box-shadow:0 28px 90px #0008; }
 .editorHeading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:13px; }
 .editorHeading small { color:#b59bff; font-size:8px; font-weight:800; letter-spacing:.1em; }
-.editorHeading h2 { margin:4px 0 0; font-family:Manrope,sans-serif; font-size:17px; }
+.editorHeading h2 { margin:4px 0 0; font-family: 'Roboto', sans-serif; font-size:17px; }
 .editorHeading button { display:grid; width:29px; height:29px; place-items:center; border:1px solid #36415a; border-radius:4px; background:#111a2d; color:#c4cce0; cursor:pointer; }
 .editorGrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px; }
 .editorGrid label { display:grid; gap:5px; color:#c1c9dd; font-size:8px; font-weight:700; }

@@ -1,4 +1,4 @@
-.clientShell { --ink:#1a3024; --muted:#75847a; --line:#e4eae5; --green:#087f5b; display:flex; min-height:100vh; background:#f3f6f4; color:var(--ink); font-family:'DM Sans',sans-serif; }
+.clientShell { --ink:#1a3024; --muted:#75847a; --line:#e4eae5; --green:#087f5b; display:flex; min-height:100vh; background:#f3f6f4; color:var(--ink); font-family: 'Roboto', sans-serif; }
 .sidebar { position:fixed; inset:0 auto 0 0; z-index:5; display:flex; width:230px; flex-direction:column; padding:22px 14px 15px; background:#10251e; color:#e8f1eb; }
 .clientBrand { display:flex; height:36px; align-items:center; padding:0 7px; }
 .clientBrand img { width:143px; height:auto; }
@@ -22,7 +22,7 @@
 .content { width:min(100%,1300px); margin:0 auto; padding:30px 32px 22px; }
 .heading { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:22px; }
 .heading small,.panelHeading small { color:#789083; font-size:8px; font-weight:800; letter-spacing:.11em; }
-.heading h1 { margin:7px 0 5px; font-family:'Space Grotesk',sans-serif; font-size:27px; font-weight:600; letter-spacing:0; }
+.heading h1 { margin:7px 0 5px; font-family: 'Roboto', sans-serif; font-size:27px; font-weight:600; letter-spacing:0; }
 .heading p { margin:0; color:var(--muted); font-size:10px; }
 .heading > a { display:flex; align-items:center; gap:6px; padding:9px 11px; border:1px solid #dfe9e1; border-radius:4px; color:#39734e; font-size:9px; font-weight:700; white-space:nowrap; }
 .heading > a:hover { background:#eff7f0; }
@@ -33,10 +33,10 @@
 .metric:nth-child(3) > span { background:#f8f0df; color:#9a762a; }
 .metric:nth-child(4) > span { background:#f8eae6; color:#ad5b4b; }
 .metric small { color:#78857e; font-size:9px; }
-.metric strong { grid-column:1/-1; align-self:end; font-family:'Space Grotesk',sans-serif; font-size:22px; font-weight:600; }
+.metric strong { grid-column:1/-1; align-self:end; font-family: 'Roboto', sans-serif; font-size:22px; font-weight:600; }
 .panel { min-width:0; margin-bottom:14px; padding:18px; border:1px solid var(--line); border-radius:5px; background:#fff; }
 .panelHeading { display:flex; min-height:36px; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
-.panelHeading h2 { margin:4px 0 0; font-family:'Space Grotesk',sans-serif; font-size:14px; font-weight:600; }
+.panelHeading h2 { margin:4px 0 0; font-family: 'Roboto', sans-serif; font-size:14px; font-weight:600; }
 .panelHeading > button { display:flex; align-items:center; gap:6px; border:0; background:transparent; color:#497a5c; cursor:pointer; font-size:9px; font-weight:700; }
 .records { display:flex; flex-direction:column; }
 .record { display:flex; min-height:65px; align-items:center; gap:11px; border-bottom:1px solid #edf1ee; }
@@ -76,12 +76,12 @@
 .loading { display:grid; min-height:100vh; place-content:center; justify-items:center; gap:12px; background:#f3f6f4; color:#65756a; font-size:10px; }
 .loading span { width:22px; height:22px; border:2px solid #d9e7dd; border-top-color:#16835d; border-radius:50%; animation:spin .75s linear infinite; }
 @keyframes spin { to { transform:rotate(360deg); } }
-.authPage { display:grid; min-height:100vh; align-content:center; justify-items:center; gap:16px; padding:28px; background:radial-gradient(circle at 15% 15%,#1d4736 0,transparent 32%),linear-gradient(135deg,#10271f,#09130f 72%); color:#edf5ef; font-family:'DM Sans',sans-serif; }
+.authPage { display:grid; min-height:100vh; align-content:center; justify-items:center; gap:16px; padding:28px; background:radial-gradient(circle at 15% 15%,#1d4736 0,transparent 32%),linear-gradient(135deg,#10271f,#09130f 72%); color:#edf5ef; font-family: 'Roboto', sans-serif; }
 .authBrand img { width:158px; }
 .authPanel { display:grid; width:min(100%,410px); gap:9px; padding:27px; border:1px solid #dfe8e1; border-radius:6px; background:#fff; color:#1e3528; box-shadow:0 24px 70px #0003; }
 .authIcon { display:grid; width:38px; height:38px; place-items:center; border-radius:4px; background:#e8f4eb; color:#28774a; }
 .eyebrow { margin-top:4px; color:#648170; font-size:8px; font-weight:800; letter-spacing:.11em; }
-.authPanel h1 { margin:0; font-family:'Space Grotesk',sans-serif; font-size:23px; font-weight:600; letter-spacing:0; }
+.authPanel h1 { margin:0; font-family: 'Roboto', sans-serif; font-size:23px; font-weight:600; letter-spacing:0; }
 .authPanel p { margin:0 0 5px; color:#7b8980; font-size:9px; line-height:1.6; }
 .authPanel label { margin-top:4px; color:#4b5e51; font-size:9px; font-weight:700; }
 .authPanel input { height:36px; padding:0 10px; border:1px solid #dfe7e1; border-radius:4px; color:#23392c; font-size:10px; }

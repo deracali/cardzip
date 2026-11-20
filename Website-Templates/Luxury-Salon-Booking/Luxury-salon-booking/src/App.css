@@ -942,3 +942,7 @@
     margin: 0 auto;
   }
 }
+
+:root { --website-template-body-font: 'Roboto', sans-serif; --website-template-heading-font: 'Poppins', sans-serif; }
+body, button, input, select, textarea { font-family: var(--website-template-body-font) !important; }
+h1, h2, h3, h4, h5, h6 { font-family: var(--website-template-heading-font) !important; }

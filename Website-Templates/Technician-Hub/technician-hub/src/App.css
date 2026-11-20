@@ -1,5 +1,5 @@
 :root {
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: 'Roboto', sans-serif;
   color: #f5f7fb;
   background: #0e1729;
   font-synthesis: none;
@@ -43,7 +43,7 @@ button,
 input,
 select,
 textarea {
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: 'Roboto', sans-serif;
 }
 
 button,
@@ -2517,3 +2517,7 @@ img {
     font-size: 15px;
   }
 }
+
+:root { --website-template-body-font: 'Roboto', sans-serif; --website-template-heading-font: 'Poppins', sans-serif; }
+body, button, input, select, textarea { font-family: var(--website-template-body-font) !important; }
+h1, h2, h3, h4, h5, h6 { font-family: var(--website-template-heading-font) !important; }

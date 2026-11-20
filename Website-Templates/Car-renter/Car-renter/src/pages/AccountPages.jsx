@@ -38,7 +38,7 @@ function PortalFrame({ children, section, sections, onSectionChange, roleLabel, 
     Settings,
   }
   return (
-    <div className="portal-shell">
+    <div className="portal-layout">
       <aside className="portal-sidebar">
         <a className="brand brand-light" href="/" aria-label="Voltigo home">
           <span className="brand-icon">ϟ</span><span className="brand-name">VOLTIGO<span>RENTAL + LOGISTICS</span></span>
@@ -163,6 +163,7 @@ export function AdminPortal() {
       <PortalHeading eyebrow="ADMINISTRATION" title={section} copy="A clear view of your fleet, customers, and upcoming trips." action={section === 'Fleet' && <button className="portal-button" type="button" onClick={() => setShowVehicleForm((open) => !open)}><Plus size={15} /> Add vehicle</button>} />
       {section === 'Overview' && <>
         <div className="portal-metrics"><MetricCard icon={CircleDollarSign} label="Booked revenue" value={`$${revenue.toLocaleString()}`} note="All non-cancelled reservations" /><MetricCard icon={ClipboardList} label="Reservations" value={bookings.length} note={`${pending} awaiting review`} /><MetricCard icon={CarFront} label="Active vehicles" value={fleet.length} note="Currently listed for booking" /><MetricCard icon={Users} label="Renter accounts" value={accounts.length} note="Registered customers" /></div>
+        <div className="portal-overview-grid"><section className="portal-card portal-activity-card"><header className="portal-card-header"><div><h2>Reservation activity</h2><p>Illustrative weekly trend for the local demo.</p></div><span className="portal-count">SAMPLE DATA</span></header><div className="portal-activity-chart" aria-label="Illustrative weekly reservation activity"><div className="portal-activity-bars">{[38, 57, 46, 74, 61, 88, 69].map((height, index) => <span key={index} style={{ height: `${height}%` }} />)}</div><div className="portal-activity-days">{['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => <small key={day}>{day}</small>)}</div></div><p className="portal-demo-caption">Live reservation totals and revenue above always reflect your saved bookings.</p></section><aside className="portal-card portal-quick-actions"><header className="portal-card-header"><div><h2>Quick actions</h2><p>Keep your operation moving.</p></div></header><button type="button" onClick={() => { setSection('Fleet'); setShowVehicleForm(true) }}><span><Plus size={15} /></span><div><strong>Add a vehicle</strong><small>Publish a new fleet listing</small></div><ArrowRight size={14} /></button><button type="button" onClick={() => setSection('Bookings')}><span><ClipboardList size={15} /></span><div><strong>Review reservations</strong><small>{pending} trips need attention</small></div><ArrowRight size={14} /></button><button type="button" onClick={() => setSection('Customers')}><span><Users size={15} /></span><div><strong>View renters</strong><small>{accounts.length} registered accounts</small></div><ArrowRight size={14} /></button></aside></div>
         <BookingTable bookings={bookings.slice(0, 6)} onStatusChange={changeStatus} />
       </>}
       {section === 'Bookings' && <BookingTable bookings={bookings} onStatusChange={changeStatus} />}

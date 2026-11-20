@@ -2371,3 +2371,26 @@
     padding: 10px;
   }
 }
+
+.how-it-works,.rental-locations{width:min(1160px,calc(100% - 48px));margin:72px auto}
+.how-it-works-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.how-it-works-grid article{position:relative;min-height:205px;padding:21px;border:1px solid #25334b;border-radius:12px;background:#101827}
+.how-step-number{position:absolute;top:17px;right:17px;color:#64738a;font-size:10px;font-weight:800;letter-spacing:.1em}
+.how-step-icon{display:grid;width:42px;height:42px;place-items:center;border:1px solid #2d4362;border-radius:11px;background:#17263d;color:#6ba3ff}
+.how-it-works-grid h3{margin:20px 0 8px;font-size:15px}
+.how-it-works-grid p,.business-cta p{margin:0;color:#9aa8bd;font-size:11px;line-height:1.7}
+.rental-location-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.rental-location-card{display:flex;align-items:center;gap:13px;padding:17px;border:1px solid #25334b;border-radius:10px;background:#101827;color:#87aaff;text-decoration:none}
+.rental-location-card>span{display:grid;flex:1;gap:5px}
+.rental-location-card strong{color:#f4f7ff;font-size:12px}
+.rental-location-card small{color:#9aa8bd;font-size:9px}
+.rental-location-card em{color:#58d4a9;font-size:9px;font-style:normal}
+.business-cta{display:flex;align-items:center;justify-content:space-between;gap:28px;width:min(1160px,calc(100% - 48px));margin:72px auto;padding:30px;border:1px solid #293754;border-radius:14px;background:linear-gradient(115deg,#121d33,#0d1728)}
+.business-cta>div:first-child{max-width:600px}
+.business-cta h2{margin:7px 0 10px;font-size:clamp(20px,3vw,30px)}
+.business-cta .button{margin-top:18px}
+.business-cta-stats{display:flex;gap:28px}
+.business-cta-stats span{display:grid;gap:5px}
+.business-cta-stats strong{color:#fff;font-size:21px}
+.business-cta-stats small{color:#94a3ba;font-size:9px}
+@media(max-width:760px){.how-it-works,.rental-locations,.business-cta{width:calc(100% - 32px);margin:48px auto}.how-it-works-grid{grid-template-columns:1fr}.how-it-works-grid article{min-height:170px}.rental-location-grid{grid-template-columns:1fr}.business-cta{align-items:flex-start;flex-direction:column;padding:23px}.business-cta-stats{width:100%;justify-content:space-between;gap:12px}}

@@ -8,7 +8,7 @@ import FeaturesPage from './pages/features-page';
 import IntegrationsPage from './pages/integrations-page';
 import PricingPage from './pages/pricing-page';
 import FAQPage from './pages/faq-page';
-import DocsPage from './pages/docs-page';
+import DocsPage, { DocumentDetailPage } from './pages/docs-page';
 import DemoPage from './pages/demo-page';
 import FormPage from './pages/form-page';
 import CheckoutPage from './pages/checkout-page';
@@ -33,6 +33,7 @@ export default function App() {
     "/signup": <FormPage mode="signup" />,
     "/login": <FormPage mode="login" />,
     "/contact": <FormPage mode="contact" />,
+    "/trial": <FormPage mode="trial" />,
     "/checkout": <CheckoutPage />,
     "/dashboard": <ClientDashboardPage />,
     "/privacy": <LegalPage type="privacy" />,
@@ -43,7 +44,7 @@ export default function App() {
     let active = true;
     setDynamicPage(null);
     setDynamicError('');
-    if (['/dashboard', '/login', '/signup', '/contact', '/checkout'].includes(path)) {
+    if (['/dashboard', '/login', '/signup', '/contact', '/trial', '/checkout'].includes(path) || path.startsWith('/docs/')) {
       return () => { active = false; };
     }
 
@@ -57,5 +58,6 @@ export default function App() {
     return () => { active = false; };
   }, [path]);
 
-  return <div className="app-shell"><Header />{dynamicError && <p className="cms-api-warning" role="status">{dynamicError}</p>}{dynamicPage ? <DynamicContentPage page={dynamicPage} /> : pages[path] ?? <NotFoundPage />}</div>;
+  const page = path.startsWith('/docs/') ? <DocumentDetailPage slug={decodeURIComponent(path.slice('/docs/'.length))} /> : pages[path] ?? <NotFoundPage />;
+  return <div className="app-shell"><Header />{dynamicError && <p className="cms-api-warning" role="status">{dynamicError}</p>}{dynamicPage ? <DynamicContentPage page={dynamicPage} /> : page}</div>;
 }

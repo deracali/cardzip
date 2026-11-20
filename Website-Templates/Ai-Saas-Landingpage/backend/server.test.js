@@ -122,6 +122,151 @@ test("creates and serves editable pages and plans from the data store", async ()
   assert.equal((await fetch(`${baseUrl}/admin/pages/${page.id}`, { method: "DELETE", headers: adminHeaders() })).status, 200);
 });
 
+test("publishes admin-uploaded docs without exposing document data in the index", async () => {
+  const documentInput = {
+    slug: "quick-start-guide",
+    title: "Quick start guide",
+    description: "Set up your first Nexara workflow.",
+    filename: "quick-start.pdf",
+    contentType: "application/pdf",
+    contentBase64: Buffer.from("%PDF-1.7 sample guide").toString("base64"),
+  };
+  const unauthorized = await fetch(`${baseUrl}/admin/docs`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(documentInput),
+  });
+  assert.equal(unauthorized.status, 401);
+
+  const created = await fetch(`${baseUrl}/admin/docs`, {
+    method: "POST",
+    headers: { ...adminHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(documentInput),
+  });
+  assert.equal(created.status, 201);
+  const document = (await created.json()).data;
+  assert.equal(document.contentBase64, undefined);
+
+  const index = await (await fetch(`${baseUrl}/docs`)).json();
+  assert.deepEqual(index.data.map(({ slug }) => slug), ["quick-start-guide"]);
+  assert.equal(index.data[0].contentBase64, undefined);
+  const detail = await (await fetch(`${baseUrl}/docs/quick-start-guide`)).json();
+  assert.equal(detail.data.contentBase64, documentInput.contentBase64);
+
+  const invalid = await fetch(`${baseUrl}/admin/docs`, {
+    method: "POST",
+    headers: { ...adminHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ ...documentInput, filename: "guide.html", contentType: "text/html" }),
+  });
+  assert.equal(invalid.status, 400);
+  assert.equal((await fetch(`${baseUrl}/admin/docs/${document.id}`, { method: "DELETE", headers: adminHeaders() })).status, 200);
+});
+
+test("manages agent, workflow, and integration catalog records through authenticated CRUD", async () => {
+  const unauthorized = await fetch(`${baseUrl}/admin/agents`);
+  assert.equal(unauthorized.status, 401);
+
+  const agentInput = {
+    slug: "support-triage",
+    name: "Support triage",
+    team: "Customer success",
+    description: "Prepare a response draft for teammate review.",
+    mode: "Human review",
+  };
+  const createdAgent = await fetch(`${baseUrl}/admin/agents`, {
+    method: "POST",
+    headers: { ...adminHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(agentInput),
+  });
+  assert.equal(createdAgent.status, 201);
+  const agent = (await createdAgent.json()).data;
+  assert.equal(agent.slug, agentInput.slug);
+
+  const duplicateAgent = await fetch(`${baseUrl}/admin/agents`, {
+    method: "POST",
+    headers: { ...adminHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(agentInput),
+  });
+  assert.equal(duplicateAgent.status, 409);
+
+  const invalidWorkflow = await fetch(`${baseUrl}/admin/workflows`, {
+    method: "POST",
+    headers: { ...adminHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ slug: "bad-workflow", name: "Bad workflow", description: "No steps", trigger: "New request", steps: [] }),
+  });
+  assert.equal(invalidWorkflow.status, 400);
+
+  const workflowInput = {
+    slug: "lead-qualification",
+    name: "Lead qualification",
+    description: "Prepare a follow-up brief for a new inquiry.",
+    trigger: "New website inquiry",
+    steps: ["Summarize the request", "Assign an owner"],
+  };
+  const workflowResponse = await fetch(`${baseUrl}/admin/workflows`, {
+    method: "POST",
+    headers: { ...adminHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(workflowInput),
+  });
+  assert.equal(workflowResponse.status, 201);
+  const workflow = (await workflowResponse.json()).data;
+  assert.deepEqual(workflow.steps, workflowInput.steps);
+
+  const integrationInput = {
+    slug: "google-drive",
+    name: "Google Drive",
+    description: "Bring approved documents into knowledge workflows.",
+    category: "Knowledge",
+  };
+  const integrationResponse = await fetch(`${baseUrl}/admin/integrations`, {
+    method: "POST",
+    headers: { ...adminHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(integrationInput),
+  });
+  assert.equal(integrationResponse.status, 201);
+  const integration = (await integrationResponse.json()).data;
+  assert.equal(integration.category, "Knowledge");
+
+  const updatedAgent = await fetch(`${baseUrl}/admin/agents/${agent.id}`, {
+    method: "PATCH",
+    headers: { ...adminHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ ...agentInput, mode: "Read only" }),
+  });
+  assert.equal((await updatedAgent.json()).data.mode, "Read only");
+
+  const listed = await fetch(`${baseUrl}/admin/integrations`, { headers: adminHeaders() });
+  assert.equal((await listed.json()).data[0].id, integration.id);
+  assert.equal((await fetch(`${baseUrl}/admin/workflows/${workflow.id}`, { method: "DELETE", headers: adminHeaders() })).status, 200);
+  assert.equal((await fetch(`${baseUrl}/admin/agents/${"0".repeat(32)}`, { method: "DELETE", headers: adminHeaders() })).status, 404);
+  assert.equal((await fetch(`${baseUrl}/admin/agents/${agent.id}`, { method: "DELETE", headers: adminHeaders() })).status, 200);
+  assert.equal((await fetch(`${baseUrl}/admin/integrations/${integration.id}`, { method: "DELETE", headers: adminHeaders() })).status, 200);
+});
+
+test("admin analytics reports stored totals and seven days of record activity", async () => {
+  const unauthorized = await fetch(`${baseUrl}/admin/analytics`);
+  assert.equal(unauthorized.status, 401);
+  const before = (await (await fetch(`${baseUrl}/admin/analytics`, { headers: adminHeaders() })).json()).data;
+  assert.equal(before.activity.length, 7);
+  assert.deepEqual(before.activity.map(({ date }) => date), before.activity.map(({ date }) => date).slice().sort());
+
+  const created = await fetch(`${baseUrl}/admin/agents`, {
+    method: "POST",
+    headers: { ...adminHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({
+      slug: "analytics-record",
+      name: "Analytics record",
+      team: "Operations",
+      description: "Created to verify live analytics.",
+      mode: "Read only",
+    }),
+  });
+  assert.equal(created.status, 201);
+  const after = (await (await fetch(`${baseUrl}/admin/analytics`, { headers: adminHeaders() })).json()).data;
+  assert.equal(after.totals.agents, before.totals.agents + 1);
+  assert.equal(after.activity.reduce((total, item) => total + item.count, 0), before.activity.reduce((total, item) => total + item.count, 0) + 1);
+  assert.equal((await fetch(`${baseUrl}/admin/agents/${(await created.json()).data.id}`, { method: "DELETE", headers: adminHeaders() })).status, 200);
+});
+
 test("records signups, keeps password hashes private, and exposes user administration", async () => {
   const signup = await fetch(`${baseUrl}/auth/signup`, {
     method: "POST",

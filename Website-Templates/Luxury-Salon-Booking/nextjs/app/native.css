@@ -1,5 +1,5 @@
 .salon-home {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Roboto', sans-serif;
 }
 
 .salon-nav {
@@ -23,7 +23,7 @@
 
 .salon-account-page {
   color: #2e2016;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Roboto', sans-serif;
 }
 
 .salon-account-card > a.salon-button {

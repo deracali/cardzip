@@ -242,7 +242,7 @@ function HomePage() {
     }
   }
   const testimonials = [
-    { quote: '“Nova took us from template hell to a site that actually sells. Pipeline up 212% in one quarter.”', person: 'Maya Keller, CMO — Vertex', detail: 'Verified client · SaaS project', initials: 'MK' },
+    { quote: '“Nova took us from template hell to a site that actually sells. Pipeline up 212% in one quarter.”', person: 'Sample Client, CMO — Vertex', detail: 'Sample testimonial · SaaS project', initials: 'SC' },
     { quote: '“The team understood our brand on day one and shipped an experience our customers love using.”', person: 'Isaac Newton, Founder — Nexora', detail: 'Verified client · Commerce project', initials: 'IN' },
     { quote: '“A rare creative partner who can make it beautiful and prove it works.”', person: 'Ava Chen, VP Product — Lumen', detail: 'Verified client · Product design', initials: 'AC' },
   ]
@@ -558,6 +558,7 @@ function ContactPage() {
           </section>
           <aside className="quote-aside client-conversation-card"><div className="conversation-heading"><span className="messages-heading-icon"><MessageSquare size={17} /></span><span><strong>Your conversation</strong><small>Messages with NOVA Studio</small></span><i>Private</i></div>
             <div className="conversation-thread" aria-live="polite">
+              {messages.some((message) => message.isSample) && <p className="dashboard-notice" role="status">Sample conversation data is saved in this browser; your real messages will replace it as you use the portal.</p>}
               {messagesLoaded ? messages.length ? messages.slice().reverse().map((message) => <article className={`client-record conversation-message ${message.sender === 'client' ? 'from-client' : 'from-studio'}`} key={message.id}><div><strong>{message.sender === 'client' ? 'You' : 'NOVA Studio'}</strong><small>{new Date(message.createdAt).toLocaleString()}</small></div><span>{message.body}</span></article>) : <p className="conversation-empty">Your conversation starts here. Send your first message and the studio’s replies will appear here.</p> : <p className="conversation-empty">Loading your conversation…</p>}
             </div>
             <a href="/dashboard">Open client dashboard <ArrowRight size={14} /></a>
@@ -646,7 +647,7 @@ function AuthPage({ signup = false }) {
             <>
               <h2>Create Account</h2><p className="auth-subtitle">Create an account to access your studio workspace.</p>
               <form className="auth-form" onSubmit={handleSubmit}>
-                <div className="auth-fields two-col"><label>Full Name<input name="name" autoComplete="name" placeholder="Maya Keller" required /></label><label>Company / Brand<input name="company" autoComplete="organization" placeholder="Vertex Inc." required /></label></div>
+                <div className="auth-fields two-col"><label>Full Name<input name="name" autoComplete="name" placeholder="Sample Client" required /></label><label>Company / Brand<input name="company" autoComplete="organization" placeholder="Vertex Inc." required /></label></div>
                 <label>Work Email<input name="email" type="email" autoComplete="email" placeholder="maya@vertex.co" required /></label>
                 <label>Create Password<span className="password-field"><input name="password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" minLength={8} placeholder="At least 8 characters" required /><button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? <EyeOff size={15} /> : <Eye size={15} />}</button></span><small className="field-tip">Use at least 8 characters for a stronger password.</small></label>
                 <label className="terms-check"><input type="checkbox" required /> <span>I agree to the <a href="/about">Terms</a> and <a href="/about">Privacy Policy</a></span></label>
@@ -748,6 +749,7 @@ function DashboardPage() {
         <header className="dashboard-topbar"><div className="mobile-dash-brand"><Brand compact /></div><div className="dashboard-breadcrumb">Workspace <ArrowRight size={12} /> {active}</div><div className="dashboard-top-actions"><div className="dashboard-notification-wrap"><button className="icon-action" type="button" aria-label={`Notifications${notifications.length ? `, ${notifications.length} updates` : ''}`} aria-expanded={notificationsOpen} onClick={() => setNotificationsOpen((open) => !open)}><Bell size={16} />{notifications.length > 0 && <i>{notifications.length > 9 ? '9+' : notifications.length}</i>}</button>{notificationsOpen && <section className="dashboard-notification-popover" aria-label="Notifications"><div className="dashboard-notification-heading"><strong>Updates</strong><span>{notifications.length}</span></div>{notifications.length ? notifications.map((notification) => <button type="button" key={notification.id} onClick={() => { setActive(notification.section); setNotificationsOpen(false) }}><strong>{notification.title}</strong><span>{notification.detail}</span></button>) : <p>You’re all caught up. New project, invoice, and chat updates will appear here.</p>}</section>}</div><a className="button button-cyan" href="/quote"><Plus size={14} /> New Project</a></div></header>
         <div className="dashboard-content">
           <div className="dashboard-greeting"><div><span className="section-kicker">CLIENT WORKSPACE</span><h1>Welcome back, {dashboard?.user?.name || '…'}</h1><p>Your live project updates, invoices, and messages.</p></div></div>
+          {dashboard?.hasSampleData && <p className="dashboard-notice" role="status">This workspace includes sample projects, invoices, inquiries, and messages saved in this browser.</p>}
           {error && <p className="dashboard-notice" role="alert">{error}</p>}
           {!dashboard && !error && <p className="dashboard-notice" role="status">Loading your workspace…</p>}
           {dashboard && active === 'Overview' && <section className="metrics-grid" aria-label="Workspace metrics">

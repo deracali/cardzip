@@ -1,4 +1,4 @@
-.page { min-height:100vh; background:#f4f8f6; color:#20332d; font-family:'DM Sans',sans-serif; }
+.page { min-height:100vh; background:#f4f8f6; color:#20332d; font-family: 'Roboto', sans-serif; }
 .header { display:flex; height:62px; align-items:center; justify-content:space-between; padding:0 max(calc((100vw - 1180px)/2),24px); border-bottom:1px solid #e1ebe6; background:#fff; }
 .brand { display:flex; align-items:center; gap:9px; color:#264a3e; }
 .brand > span { display:grid; width:29px; height:29px; place-items:center; border-radius:50%; background:#e1f3eb; color:#318875; }

@@ -8,6 +8,8 @@ export function createMemoryStore() {
   const leads = [];
   const pages = [];
   const plans = [];
+  const documents = [];
+  const catalogs = { agents: [], workflows: [], integrations: [] };
   return {
     async createLead(input) {
       const lead = { id: makeId(), ...clone(input), status: "new", createdAt: new Date().toISOString() };
@@ -61,6 +63,55 @@ export function createMemoryStore() {
     async createPlan(input) { return createUnique(plans, input, "slug"); },
     async updatePlan(id, changes) { return updateUnique(plans, id, changes, "slug"); },
     async deletePlan(id) { return removeById(plans, id); },
+    async listDocuments() { return clone(documents.map(({ contentBase64, ...document }) => document)); },
+    async getDocument(slug) { return clone(documents.find((entry) => entry.slug === slug) || null); },
+    async createDocument(input) { return createUnique(documents, input, "slug"); },
+    async deleteDocument(id) { return removeById(documents, id); },
+    async listCatalog(kind) { return clone(catalogs[kind].slice().sort((left, right) => left.name.localeCompare(right.name))); },
+    async createCatalog(kind, input) {
+      if (catalogs[kind].some((entry) => entry.slug === input.slug)) throw duplicateError("slug already exists.");
+      const now = new Date().toISOString();
+      const entry = { id: makeId(), ...clone(input), createdAt: now, updatedAt: now };
+      catalogs[kind].push(entry);
+      return clone(entry);
+    },
+    async updateCatalog(kind, id, changes) { return updateUnique(catalogs[kind], id, changes, "slug"); },
+    async deleteCatalog(kind, id) { return removeById(catalogs[kind], id); },
+    async getAdminAnalytics() {
+      return buildAdminAnalytics({
+        leads,
+        users,
+        pages,
+        plans,
+        documents,
+        agents: catalogs.agents,
+        workflows: catalogs.workflows,
+        integrations: catalogs.integrations,
+      });
+    },
+  };
+}
+
+function buildAdminAnalytics(collections) {
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const dates = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(today);
+    date.setUTCDate(today.getUTCDate() - (6 - index));
+    return date.toISOString().slice(0, 10);
+  });
+  const activityCounts = new Map(dates.map((date) => [date, 0]));
+  const activityFields = { pages: "updatedAt", plans: "updatedAt" };
+  for (const [name, records] of Object.entries(collections)) {
+    const field = activityFields[name] || "createdAt";
+    for (const record of records) {
+      const date = record[field]?.slice(0, 10);
+      if (activityCounts.has(date)) activityCounts.set(date, activityCounts.get(date) + 1);
+    }
+  }
+  return {
+    totals: Object.fromEntries(Object.entries(collections).map(([name, records]) => [name, records.length])),
+    activity: dates.map((date) => ({ date, count: activityCounts.get(date) })),
   };
 }
 

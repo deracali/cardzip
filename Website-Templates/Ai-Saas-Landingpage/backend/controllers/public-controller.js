@@ -1,7 +1,7 @@
 import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 import { authorizedClaims, createToken } from "../middleware/auth.js";
-import { duplicateAsConflict, notFound, publicLead, publicUser, requireObject, validateLead } from "./validation.js";
+import { duplicateAsConflict, notFound, publicDocument, publicLead, publicUser, requireObject, validateLead } from "./validation.js";
 
 const scrypt = promisify(scryptCallback);
 
@@ -15,6 +15,12 @@ export function createPublicController({ store, authSecret }) {
       return { status: 200, body: { data: page } };
     },
     plans: async () => ({ status: 200, body: { data: await store.listPlans() } }),
+    documents: async () => ({ status: 200, body: { data: await store.listDocuments() } }),
+    document: async (_request, _body, match) => {
+      const document = await store.getDocument(match[1]);
+      if (!document) throw notFound("Document was not found.");
+      return { status: 200, body: { data: publicDocument(document, true) } };
+    },
     submitLead: async (request, body) => {
       const input = validateLead(requireObject(body));
       const authorization = request.headers.authorization;

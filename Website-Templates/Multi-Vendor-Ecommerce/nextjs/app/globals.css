@@ -20,7 +20,7 @@ body {
   margin: 0;
   color: var(--market-ink);
   background: #fff;
-  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: 'Roboto', sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 button, input, textarea, select { font: inherit; }
@@ -83,7 +83,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 }
 .market-eyebrow { color: var(--market-green); font-size: 11px; font-weight: 800; letter-spacing: 1.15px; }
 .market-hero h1 { margin: 14px 0; font-size: clamp(42px, 7vw, 76px); line-height: 1.04; letter-spacing: -3px; }
-.market-hero h1 em { color: var(--market-orange); font-family: Georgia, serif; font-weight: 500; }
+.market-hero h1 em { color: var(--market-orange); font-family: 'Roboto', sans-serif; font-weight: 500; }
 .market-hero p { max-width: 520px; color: #5e6a76; font-size: 17px; line-height: 1.65; }
 .market-hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
 .market-button {
@@ -238,3 +238,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   .market-dashboard-grid .market-wide { grid-column: auto; }
   .market-footer { align-items: flex-start; flex-direction: column; padding: 22px 16px; }
 }
+
+:root { --website-template-body-font: 'Roboto', sans-serif; --website-template-heading-font: 'Poppins', sans-serif; }
+body, button, input, select, textarea { font-family: var(--website-template-body-font) !important; }
+h1, h2, h3, h4, h5, h6 { font-family: var(--website-template-heading-font) !important; }

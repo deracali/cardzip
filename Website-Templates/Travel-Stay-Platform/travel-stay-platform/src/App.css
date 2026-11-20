@@ -1,5 +1,5 @@
 :root {
-  font-family: Inter, Arial, sans-serif;
+  font-family: 'Roboto', sans-serif;
   color: #172239;
   background: #f7f8fa;
   font-synthesis: none;
@@ -416,3 +416,7 @@ img { display: block; max-width: 100%; }
   .payment-result-card { padding: 25px; }
   .payment-result-actions { align-items: stretch; flex-direction: column; }
 }
+
+:root { --website-template-body-font: 'Roboto', sans-serif; --website-template-heading-font: 'Poppins', sans-serif; }
+body, button, input, select, textarea { font-family: var(--website-template-body-font) !important; }
+h1, h2, h3, h4, h5, h6 { font-family: var(--website-template-heading-font) !important; }

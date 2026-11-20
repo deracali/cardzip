@@ -196,6 +196,9 @@ function HomePage() {
           <div><span className="service-icon"><ShieldCheck size={18} /></span><strong>Fully covered, always</strong><p>Every trip includes trusted protection.</p></div>
           <div><span className="service-icon"><Smartphone size={18} /></span><strong>Unlock and go</strong><p>Your phone is your key. No waiting.</p></div>
         </section>
+        <HowItWorksSection />
+        <RentalLocationsSection />
+        <section className="business-cta"><div><p className="section-kicker">FOR TEAMS &amp; OPERATORS</p><h2>One dashboard for every company vehicle.</h2><p>Manage drivers, recurring rentals, and delivery logistics in one place.</p><a className="button" href="/signup">Explore business rentals <ArrowRight size={14} /></a></div><div className="business-cta-stats"><span><strong>24/7</strong><small>fleet visibility</small></span><span><strong>50+</strong><small>pickup hubs</small></span><span><strong>1 tap</strong><small>trip changes</small></span></div></section>
         <ReviewsSection />
       </main>
       <SiteFooter />
@@ -206,6 +209,25 @@ function HomePage() {
 function VehicleGrid({ vehiclesToShow = getFleet(), limit }) {
   const visibleVehicles = limit ? vehiclesToShow.slice(0, limit) : vehiclesToShow
   return <div className="vehicle-grid">{visibleVehicles.map((vehicle) => <VehicleCard key={vehicle.name} vehicle={vehicle} />)}</div>
+}
+
+function HowItWorksSection() {
+  const steps = [
+    { icon: MapPin, title: 'Choose your pickup', copy: 'Select a nearby hub or have your ride delivered to your door.' },
+    { icon: CalendarDays, title: 'Set your trip dates', copy: 'Pick a schedule that works for your journey and see the price upfront.' },
+    { icon: KeyRound, title: 'Confirm and go', copy: 'Manage your reservation from My Trips and get ready to hit the road.' },
+  ]
+  return <section className="how-it-works"><div className="section-heading"><div><p className="section-kicker">A BETTER WAY TO MOVE</p><h2>From booking to driving in three steps</h2></div><a className="text-link" href="/fleet">Browse available vehicles <ArrowRight size={14} /></a></div><div className="how-it-works-grid">{steps.map(({ icon: Icon, title, copy }, index) => <article key={title}><span className="how-step-number">0{index + 1}</span><span className="how-step-icon"><Icon size={20} /></span><h3>{title}</h3><p>{copy}</p></article>)}</div></section>
+}
+
+function RentalLocationsSection() {
+  const hubs = [
+    { city: 'Los Angeles', area: 'Downtown · LAX · Santa Monica', vehicles: '42 vehicles nearby' },
+    { city: 'Chicago', area: 'The Loop · O’Hare · West Town', vehicles: '28 vehicles nearby' },
+    { city: 'Austin', area: 'Downtown · Airport · East Austin', vehicles: '19 vehicles nearby' },
+    { city: 'Miami', area: 'Brickell · MIA · Wynwood', vehicles: '31 vehicles nearby' },
+  ]
+  return <section className="rental-locations"><div className="section-heading"><div><p className="section-kicker">LOCAL WHEN YOU NEED US</p><h2>Find a ride in your city</h2></div><a className="text-link" href="/fleet">See the full fleet <ArrowRight size={14} /></a></div><div className="rental-location-grid">{hubs.map((hub) => <a className="rental-location-card" href="/fleet" key={hub.city}><MapPin size={17} /><span><strong>{hub.city}</strong><small>{hub.area}</small><em>{hub.vehicles}</em></span><ArrowRight size={15} /></a>)}</div></section>
 }
 
 function FleetPage() {
@@ -350,11 +372,13 @@ function CheckoutPage() {
   function confirmBooking(event) {
     event.preventDefault()
     setNotice('')
+    const currentUser = getCurrentUser()
+    if (!currentUser || currentUser.role !== 'renter') {
+      const returnToCheckout = `${window.location.pathname}${window.location.search}`
+      window.location.href = `/login?next=${encodeURIComponent(returnToCheckout)}`
+      return
+    }
     try {
-      const currentUser = getCurrentUser()
-      if (!currentUser || currentUser.role !== 'renter') {
-        throw new Error('Sign in with a renter account before confirming your reservation.')
-      }
       const form = new FormData(event.currentTarget)
       createBooking({ ...booking, protection, total }, { name: form.get('name') || currentUser.name })
       setConfirmed(true)
@@ -392,7 +416,7 @@ function CheckoutPage() {
                 </div>
               </section>
               <p className="demo-payment-note"><LockKeyhole size={13} /> Reservation request only. No payment details are collected or processed.</p>
-              {notice && <p className="auth-notice" role="alert">{notice} <a href="/login">Sign in</a> or <a href="/signup">create an account</a>.</p>}
+              {notice && <p className="auth-notice" role="alert">{notice}</p>}
               <button className="button continue-button" type="submit">Request reservation · ${total} <ArrowRight size={15} /></button>
             </form>
             <BookingSummary booking={booking} days={booking.days} subtotal={subtotal} protection={protection} total={total} payment />
@@ -417,7 +441,13 @@ function AuthPage({ signup = false }) {
       const account = signup
         ? registerRenter({ name: form.get('name'), email: form.get('email'), password: form.get('password') })
         : signIn(form.get('email'), form.get('password'))
-      window.location.href = account.role === 'admin' ? '/admin' : '/dashboard'
+      const requestedNext = new URLSearchParams(window.location.search).get('next')
+      let destination = account.role === 'admin' ? '/admin' : '/dashboard'
+      if (requestedNext) {
+        const url = new URL(requestedNext, window.location.origin)
+        if (url.origin === window.location.origin) destination = `${url.pathname}${url.search}${url.hash}`
+      }
+      window.location.href = destination
     } catch (error) {
       setNotice(error.message)
     }

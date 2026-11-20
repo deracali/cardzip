@@ -12,7 +12,7 @@ try {
   if (error.code !== "ENOENT") throw error;
 }
 
-const MAX_BODY_BYTES = 64 * 1024;
+const MAX_BODY_BYTES = 3 * 1024 * 1024;
 const json = (response, status, payload) => {
   response.writeHead(status, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
   response.end(JSON.stringify(payload));
@@ -36,7 +36,7 @@ async function readJson(request) {
 
 export function createAppServer({
   port = Number(process.env.PORT || 5001),
-  origins = (process.env.ALLOWED_ORIGINS || "http://localhost:3000").split(",").map((origin) => origin.trim()).filter(Boolean),
+  origins = (process.env.ALLOWED_ORIGINS || "http://localhost:3000,http://localhost:5173").split(",").map((origin) => origin.trim()).filter(Boolean),
   adminEmail = process.env.ADMIN_EMAIL,
   adminPassword = process.env.ADMIN_PASSWORD,
   authSecret = process.env.AUTH_SECRET,

@@ -1,7 +1,7 @@
 :root {
   color: #f3f6fb;
   background: #080d13;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -22,7 +22,7 @@
 .project-custom { background: radial-gradient(ellipse at 70% 25%, #215368, #111b31 55%, #080d13); }
 html { min-width: 320px; min-height: 100%; scroll-behavior: smooth; scroll-padding-top: 85px; background: var(--page); }
 body { min-width: 320px; min-height: 100vh; margin: 0; color: var(--text); background: var(--page); font-size: 14px; }
-body, button, input, textarea { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+body, button, input, textarea { font-family: 'Roboto', sans-serif; }
 button, input, textarea { font-size: inherit; }
 button, a { color: inherit; }
 a { text-decoration: none; }
@@ -764,3 +764,7 @@ img { display: block; max-width: 100%; }
   .client-message-form { flex-direction: column; }
   .client-message-form button { align-self: flex-end; }
 }
+
+:root { --website-template-body-font: 'Roboto', sans-serif; --website-template-heading-font: 'Poppins', sans-serif; }
+body, button, input, select, textarea { font-family: var(--website-template-body-font) !important; }
+h1, h2, h3, h4, h5, h6 { font-family: var(--website-template-heading-font) !important; }

@@ -9,6 +9,8 @@ export function createApiRouter(configuration) {
     ["GET", /^\/api\/pages$/, publicController.pages],
     ["GET", /^\/api\/pages\/([^/]+)$/, publicController.page],
     ["GET", /^\/api\/plans$/, publicController.plans],
+    ["GET", /^\/api\/docs$/, publicController.documents],
+    ["GET", /^\/api\/docs\/([a-z0-9-]+)$/, publicController.document],
     ["POST", /^\/api\/leads$/, publicController.submitLead],
     ["POST", /^\/api\/auth\/signup$/, publicController.signUp],
     ["POST", /^\/api\/auth\/login$/, publicController.login],
@@ -30,6 +32,14 @@ export function createApiRouter(configuration) {
     ["POST", /^\/api\/admin\/plans$/, adminController.createPlan],
     ["PATCH", /^\/api\/admin\/plans\/([a-f0-9]+)$/, adminController.updatePlan],
     ["DELETE", /^\/api\/admin\/plans\/([a-f0-9]+)$/, adminController.deletePlan],
+    ["GET", /^\/api\/admin\/docs$/, adminController.documents],
+    ["POST", /^\/api\/admin\/docs$/, adminController.createDocument],
+    ["DELETE", /^\/api\/admin\/docs\/([a-f0-9]+)$/, adminController.deleteDocument],
+    ["GET", /^\/api\/admin\/analytics$/, adminController.analytics],
+    ["GET", /^\/api\/admin\/(agents|workflows|integrations)$/, adminController.catalogs],
+    ["POST", /^\/api\/admin\/(agents|workflows|integrations)$/, adminController.createCatalog],
+    ["PATCH", /^\/api\/admin\/(agents|workflows|integrations)\/([a-f0-9]+)$/, adminController.updateCatalog],
+    ["DELETE", /^\/api\/admin\/(agents|workflows|integrations)\/([a-f0-9]+)$/, adminController.deleteCatalog],
   ];
 
   return async (request, body, url) => {

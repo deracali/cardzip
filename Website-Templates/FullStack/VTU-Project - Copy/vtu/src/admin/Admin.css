@@ -1,4 +1,4 @@
-.admin-app { --admin-bg: #eff3f8; --admin-border: #e4e9f0; --admin-green: #079b70; --admin-navy: #101a2e; display: flex; min-height: 100vh; background: var(--admin-bg); color: #17243a; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 11px; }
+.admin-app { --admin-bg: #eff3f8; --admin-border: #e4e9f0; --admin-green: #079b70; --admin-navy: #101a2e; display: flex; min-height: 100vh; background: var(--admin-bg); color: #17243a; font-family: 'Roboto', sans-serif; font-size: 11px; }
 .admin-sidebar-wrap { position: fixed; z-index: 20; inset: 0 auto 0 0; width: 215px; }
 .admin-sidebar { display: flex; height: 100%; flex-direction: column; padding: 14px 12px 10px; background: #0e1a31; color: white; }
 .admin-brand { display: flex; align-items: center; gap: 8px; padding: 1px 3px 20px; color: white; font-size: 11px; font-weight: 720; letter-spacing: -.025em; text-decoration: none; }
