@@ -308,14 +308,6 @@ export default function DigitalAssetDetailsPage({ digitalAssetSlug, onNavigate }
           </div>
         </section>
         <div className="digital-detail-layout">
-          <section className="digital-instructions-card">
-            <span className="digital-assets-kicker">ABOUT THIS {asset.productType === 'admin' ? 'ADMIN DASHBOARD' : asset.productType === 'full_stack' ? 'FULL-STACK PROJECT' : isApp ? 'APP' : 'WEBSITE'}</span>
-            <h2>What you get and how it works</h2>
-            <p className="digital-instructions">{asset.usageInstructions || 'Choose a use option or request the complete project template. Cardzip support will help coordinate setup.'}</p>
-            <div className="digital-instruction-note"><Check size={17} /><span>Full project template includes the backend plus two weeks of setup and upload support.</span></div>
-            {isAndroidApp && <p className="digital-instructions">For Android apps, Cardzip will provide the hosted APK after purchase and help with installation where needed.</p>}
-            {asset.productType === 'ios_app' && <p className="digital-instructions">For iOS apps, Cardzip will provide the hosted access link after purchase and help coordinate installation or account access.</p>}
-          </section>
           <aside className="digital-options-card">
             <span className="digital-assets-kicker">CHOOSE YOUR OPTION</span>
             {(receiptLoading || paidReceipt) && <section className="digital-paid-downloads" aria-live="polite">
@@ -379,6 +371,14 @@ export default function DigitalAssetDetailsPage({ digitalAssetSlug, onNavigate }
             </div>}
             <div className="digital-outright-contact"><strong>Want to buy it outright?</strong><span>Contact our team to discuss outright purchase and ownership.</span><button type="button" onClick={() => onNavigate?.('/support')}><LifeBuoy size={15} /> Contact Cardzip</button></div>
           </aside>
+          <section className="digital-instructions-card">
+            <span className="digital-assets-kicker">ABOUT THIS {asset.productType === 'admin' ? 'ADMIN DASHBOARD' : asset.productType === 'full_stack' ? 'FULL-STACK PROJECT' : isApp ? 'APP' : 'WEBSITE'}</span>
+            <h2>What you get and how it works</h2>
+            <p className="digital-instructions">{asset.usageInstructions || 'Choose a use option or request the complete project template. Cardzip support will help coordinate setup.'}</p>
+            <div className="digital-instruction-note"><Check size={17} /><span>Full project template includes the backend plus two weeks of setup and upload support.</span></div>
+            {isAndroidApp && <p className="digital-instructions">For Android apps, Cardzip will provide the hosted APK after purchase and help with installation where needed.</p>}
+            {asset.productType === 'ios_app' && <p className="digital-instructions">For iOS apps, Cardzip will provide the hosted access link after purchase and help coordinate installation or account access.</p>}
+          </section>
         </div>
         <button type="button" className="digital-back-link digital-bottom-back" onClick={() => onNavigate?.('/digital-assets')}><ArrowLeft size={15} /> Browse more digital products</button>
         <span className="digital-detail-code"><Code2 size={14} /> Secure Paystack checkout · Support included</span>

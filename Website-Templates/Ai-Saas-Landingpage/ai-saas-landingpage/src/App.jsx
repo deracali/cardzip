@@ -109,6 +109,7 @@ function Header() {
         <nav className={menuOpen ? 'main-nav is-open' : 'main-nav'} aria-label="Main navigation">
           {routeNames.map(([href, label]) => <a href={href} key={href} onClick={() => setMenuOpen(false)}>{label}</a>)}
           <a className="nav-login" href="/login" onClick={() => setMenuOpen(false)}>Log in</a>
+          <a className="button button-ghost button-small" href="/dashboard" onClick={() => setMenuOpen(false)}>Client dashboard</a>
           <a className="button button-small" href="/trial" onClick={() => setMenuOpen(false)}>Get started free <ArrowRight size={14} /></a>
         </nav>
       </div>
