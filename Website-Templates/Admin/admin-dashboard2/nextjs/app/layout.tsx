@@ -3,8 +3,11 @@ import "../src/index.css";
 import "../src/App.css";
 
 export const metadata: Metadata = {
-  title: "Cardzip Admin Dashboard 2",
-  description: "Cardzip administration dashboard",
+  title: "NeonForge | AI control plane",
+  description: "Monitor AI model usage, prompts, knowledge bases, and audit events in the NeonForge control plane.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

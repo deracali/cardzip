@@ -3,8 +3,11 @@ import "../src/index.css";
 import "../src/App.css";
 
 export const metadata: Metadata = {
-  title: "Cardzip Admin Dashboard 3",
-  description: "Cardzip administration dashboard",
+  title: "Northbeam Pay | Financial Operations",
+  description: "Monitor payments, settlements, virtual cards, payouts, and compliance from the Northbeam Pay operations console.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

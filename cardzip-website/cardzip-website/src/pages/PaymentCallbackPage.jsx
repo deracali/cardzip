@@ -252,7 +252,7 @@ export default function PaymentCallbackPage({ onNavigate }) {
         {downloadError && <p className="digital-download-unavailable" role="alert">{downloadError}</p>}
         {status === 'success' && sellerDigitalAsset && <section className="seller-digital-receipt">
           <h2>Your paid listing access</h2>
-          {sellerDigitalAsset.websiteUrl && <div className="seller-digital-preview"><iframe title={`Preview ${sellerDigitalAsset.productName}`} src={sellerDigitalAsset.websiteUrl} sandbox="allow-scripts allow-forms allow-popups" referrerPolicy="no-referrer" /></div>}
+          {sellerDigitalAsset.websiteUrl && <div className="seller-digital-preview"><iframe title={`Preview ${sellerDigitalAsset.productName}`} src={sellerDigitalAsset.websiteUrl} sandbox="allow-scripts allow-same-origin allow-forms allow-popups" referrerPolicy="no-referrer" /></div>}
           {sellerDigitalAsset.apkUrl && <a className="digital-access-link" href={sellerDigitalAsset.apkUrl} target="_blank" rel="noreferrer" download>Download Android APK</a>}
           {sellerDigitalAsset.iosAppUrl && <a className="digital-access-link" href={sellerDigitalAsset.iosAppUrl} target="_blank" rel="noreferrer">Open iOS app</a>}
           <div className="seller-digital-gallery">{sellerDigitalAsset.screenshots?.map((image, index) => <img key={`${image}-${index}`} src={image} alt={`${sellerDigitalAsset.productName} screenshot ${index + 1}`} loading="lazy" />)}</div>
@@ -270,7 +270,7 @@ export default function PaymentCallbackPage({ onNavigate }) {
               <div><span className="digital-assets-kicker">LIVE WEBSITE ACCESS</span><h2 id="payment-website-preview-title">Purchased website</h2></div>
               <button type="button" onClick={() => setWebsitePreviewOpen(false)} aria-label="Close website preview"><X size={20} /></button>
             </header>
-            <iframe title="Purchased website access" src={digitalProductAccess} referrerPolicy="no-referrer" sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads" />
+            <iframe title="Purchased website access" src={digitalProductAccess} referrerPolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads" />
           </section>
         </div>
       )}

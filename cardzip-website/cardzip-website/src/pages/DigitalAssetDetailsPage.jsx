@@ -1,10 +1,18 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, Code2, Download, Globe2, LifeBuoy, Smartphone, X, ZoomIn } from 'lucide-react'
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, Code2, Download, ExternalLink, Globe2, LifeBuoy, Smartphone, X, ZoomIn } from 'lucide-react'
 import { getUserToken, userApi } from '../services/api'
 import { formatNaira } from '../utils/currency'
 import CardzipLoader from '../components/CardzipLoader'
 import ReportListingButton from '../components/ReportListingButton'
 import './DigitalAssets.css'
+
+const getPreviewUrl = (value) => {
+  if (typeof value !== 'string' || !value.trim()) return ''
+  const trimmed = value.trim()
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  if (/^\/\//.test(trimmed)) return `https:${trimmed}`
+  return `https://${trimmed}`
+}
 
 export default function DigitalAssetDetailsPage({ digitalAssetSlug, onNavigate }) {
   const [asset, setAsset] = useState(null)
@@ -14,6 +22,7 @@ export default function DigitalAssetDetailsPage({ digitalAssetSlug, onNavigate }
   const [purchaseError, setPurchaseError] = useState('')
   const [purchaseType, setPurchaseType] = useState('')
   const [websitePreviewOpen, setWebsitePreviewOpen] = useState(false)
+  const [websitePreviewLoaded, setWebsitePreviewLoaded] = useState(false)
   const [downloadingFile, setDownloadingFile] = useState('')
   const [downloadError, setDownloadError] = useState('')
   const paymentReference = new URLSearchParams(window.location.search).get('reference')
@@ -29,8 +38,11 @@ export default function DigitalAssetDetailsPage({ digitalAssetSlug, onNavigate }
   const [ownerAssetId, setOwnerAssetId] = useState('')
   const [promotionType, setPromotionType] = useState('')
   const [promotionError, setPromotionError] = useState('')
+  const [relatedAssets, setRelatedAssets] = useState([])
+  const [relatedAssetsError, setRelatedAssetsError] = useState('')
   const isApp = asset?.productType === 'app' || asset?.productType === 'ios_app'
   const isAndroidApp = asset?.productType === 'app'
+  const previewUrl = getPreviewUrl(asset?.websiteUrl)
   const Icon = isApp ? Smartphone : Globe2
   const selectedImageIndex = imageSelection.slug === digitalAssetSlug ? imageSelection.index : 0
   const imageZoomOpen = zoomedAssetSlug === digitalAssetSlug
@@ -122,6 +134,33 @@ export default function DigitalAssetDetailsPage({ digitalAssetSlug, onNavigate }
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [digitalAssetSlug])
+
+  useEffect(() => {
+    if (!asset?._id) return undefined
+    let active = true
+    setRelatedAssets([])
+    setRelatedAssetsError('')
+    const query = new URLSearchParams({
+      productType: asset.productType,
+      page: '1',
+      limit: '12',
+      sort: 'featured',
+    })
+    if (asset.category) query.set('category', asset.category)
+    userApi.storeProducts(`?${query.toString()}`)
+      .then((result) => {
+        if (!active) return
+        const items = (result.data || [])
+          .filter((item) => String(item._id) !== String(asset._id))
+          .sort((left, right) => Number(right.category === asset.category) - Number(left.category === asset.category))
+          .slice(0, 4)
+        setRelatedAssets(items)
+      })
+      .catch((requestError) => {
+        if (active) setRelatedAssetsError(requestError.message || 'Could not load related digital products.')
+      })
+    return () => { active = false }
+  }, [asset?._id, asset?.category, asset?.productType])
 
   useEffect(() => {
     if (!asset?._id || !getUserToken()) return undefined
@@ -303,7 +342,7 @@ export default function DigitalAssetDetailsPage({ digitalAssetSlug, onNavigate }
             <span className="digital-asset-type"><Icon size={14} /> {isAndroidApp ? 'ANDROID APPLICATION' : asset.productType === 'ios_app' ? 'IOS APPLICATION' : asset.productType === 'full_stack' ? 'FULL STACK' : asset.productType === 'admin' ? 'ADMIN DASHBOARD' : 'WEBSITE'}</span>
             <h1>{asset.name}</h1>
             <p>{asset.description || 'A digital product from Cardzip, with clear usage and setup options.'}</p>
-            {asset.websiteUrl && <button className="digital-demo-link" type="button" onClick={() => setWebsitePreviewOpen(true)}>Visit website <Globe2 size={15} /></button>}
+            {previewUrl && <button className="digital-demo-link" type="button" onClick={() => { setWebsitePreviewLoaded(false); setWebsitePreviewOpen(true) }}>Visit website <Globe2 size={15} /></button>}
             {!isOwner && <ReportListingButton targetType="store_product" targetId={asset._id} targetTitle={asset.name} onNavigate={onNavigate} />}
           </div>
         </section>
@@ -380,10 +419,29 @@ export default function DigitalAssetDetailsPage({ digitalAssetSlug, onNavigate }
             {asset.productType === 'ios_app' && <p className="digital-instructions">For iOS apps, Cardzip will provide the hosted access link after purchase and help coordinate installation or account access.</p>}
           </section>
         </div>
+        <section className="digital-related-section" aria-labelledby="digital-related-heading">
+          <div className="digital-related-heading"><span className="digital-assets-kicker">DISCOVER MORE</span><h2 id="digital-related-heading">Related digital products</h2></div>
+          {relatedAssetsError && <p className="digital-assets-error" role="alert">{relatedAssetsError}</p>}
+          {relatedAssets.length > 0 ? <div className="digital-related-grid">
+            {relatedAssets.map((item) => {
+              const RelatedIcon = ['website', 'full_stack', 'admin'].includes(item.productType) ? Globe2 : Smartphone
+              const options = [Number(item.usePrice), Number(item.templatePrice)].filter((value) => value > 0)
+              const prices = item.isSellerListing
+                ? (options.length ? options : Number(item.price) > 0 ? [Number(item.price)] : [])
+                : options
+              return <button type="button" className="digital-related-card" key={item._id} onClick={() => onNavigate?.(`/digital-assets/${encodeURIComponent(item.slug)}`)}>
+                <span className="digital-related-image">{item.image ? <img src={item.image} alt="" loading="lazy" /> : <RelatedIcon size={28} />}</span>
+                <span className="digital-asset-type"><RelatedIcon size={12} /> {item.productType === 'ios_app' ? 'iOS app' : item.productType === 'app' ? 'Android app' : item.productType === 'full_stack' ? 'Full stack' : item.productType === 'admin' ? 'Admin' : 'Website'}</span>
+                <strong>{item.name}</strong>
+                <span className="digital-related-price">{prices.length ? `Options from ${formatNaira(Math.min(...prices))}` : 'Contact for options'}</span>
+              </button>
+            })}
+          </div> : !relatedAssetsError && <p className="digital-related-empty">More websites and apps will appear here.</p>}
+        </section>
         <button type="button" className="digital-back-link digital-bottom-back" onClick={() => onNavigate?.('/digital-assets')}><ArrowLeft size={15} /> Browse more digital products</button>
         <span className="digital-detail-code"><Code2 size={14} /> Secure Paystack checkout · Support included</span>
       </div>
-      {websitePreviewOpen && asset.websiteUrl && (
+      {websitePreviewOpen && previewUrl && (
         <div className="digital-website-preview-backdrop" onMouseDown={(event) => {
           if (event.target === event.currentTarget) setWebsitePreviewOpen(false)
         }}>
@@ -393,14 +451,21 @@ export default function DigitalAssetDetailsPage({ digitalAssetSlug, onNavigate }
                 <span className="digital-assets-kicker">LIVE PREVIEW</span>
                 <h2 id="digital-website-preview-title">{asset.name}</h2>
               </div>
-              <button type="button" onClick={() => setWebsitePreviewOpen(false)} aria-label="Close website preview"><X size={20} /></button>
+              <div className="digital-website-preview-actions">
+                <a href={previewUrl} target="_blank" rel="noopener noreferrer">Open in new tab <ExternalLink size={14} /></a>
+                <button type="button" onClick={() => setWebsitePreviewOpen(false)} aria-label="Close website preview"><X size={20} /></button>
+              </div>
             </header>
-            <iframe
-              title={`${asset.name} website preview`}
-              src={paidReceipt?.accessUrl || asset.websiteUrl}
-              referrerPolicy="no-referrer"
-              sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads"
-            />
+            <div className="digital-website-preview-frame">
+              {!websitePreviewLoaded && <div className="digital-website-preview-loading"><CardzipLoader compact label="Loading live website" /></div>}
+              <iframe
+                title={`${asset.name} website preview`}
+                src={getPreviewUrl(paidReceipt?.accessUrl) || previewUrl}
+                referrerPolicy="no-referrer"
+                onLoad={() => setWebsitePreviewLoaded(true)}
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads"
+              />
+            </div>
           </section>
         </div>
       )}

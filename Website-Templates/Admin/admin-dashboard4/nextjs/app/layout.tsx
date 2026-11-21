@@ -3,8 +3,11 @@ import "../src/index.css";
 import "../src/App.css";
 
 export const metadata: Metadata = {
-  title: "Cardzip Admin Dashboard 4",
-  description: "Cardzip administration dashboard",
+  title: "Nexus Market | Seller Central",
+  description: "Nexus Market seller administration dashboard for orders, inventory, vendors, and payouts.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

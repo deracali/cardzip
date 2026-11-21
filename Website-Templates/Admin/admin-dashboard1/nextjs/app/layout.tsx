@@ -3,8 +3,11 @@ import "../src/index.css";
 import "../src/App.css";
 
 export const metadata: Metadata = {
-  title: "Cardzip Admin Dashboard",
-  description: "Cardzip administration dashboard",
+  title: "Acme Corp | Admin",
+  description: "Manage your team, workspaces, billing, and security from the Acme Corp admin dashboard.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

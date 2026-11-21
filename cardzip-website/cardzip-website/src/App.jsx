@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { LifeBuoy } from 'lucide-react'
 import Header from './components/Header'
 import CardzipLoader from './components/CardzipLoader'
+import AppDownloadFooter from './components/AppDownloadFooter'
 const Overview = lazy(() => import('./pages/Overview'))
 const AboutPage = lazy(() => import('./pages/AboutPage'))
 const Login = lazy(() => import('./pages/Login'))
@@ -259,6 +260,7 @@ function App() {
           <Page key={productSlug || digitalAssetSlug || communityListingId || shopProductSlug || shopSlug || orderId || path} onNavigate={navigate} onLogout={logout} productSlug={productSlug} digitalAssetSlug={digitalAssetSlug} listingId={communityListingId} shopSlug={shopProductShopSlug || shopSlug} shopProductSlug={shopProductSlug} orderId={orderId} user={user} featureSettings={featureSettings} title={path === '/bills' ? 'Bill payments' : 'eSIM / virtual numbers'} />
         </Suspense>
       </main>
+      {(path === '/digital-assets' || path === '/digital-assets/sell' || digitalAssetSlug) && <AppDownloadFooter onNavigate={navigate} />}
       {path !== '/support' && <FloatingSupportButton onClick={() => navigate('/support')} />}
     </div>
   )

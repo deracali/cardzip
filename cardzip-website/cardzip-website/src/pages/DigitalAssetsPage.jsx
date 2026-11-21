@@ -7,6 +7,12 @@ import CardzipLoader from '../components/CardzipLoader'
 import './DigitalAssets.css'
 
 const typeLabels = { website: 'Website', app: 'Android app', ios_app: 'iOS app', full_stack: 'Full stack', admin: 'Admin' }
+const DESCRIPTION_LIMIT = 140
+
+const truncateDescription = (description) => {
+  const text = String(description || '').trim()
+  return text.length > DESCRIPTION_LIMIT ? `${text.slice(0, DESCRIPTION_LIMIT).trimEnd()}…` : text
+}
 
 export default function DigitalAssetsPage({ onNavigate }) {
   const [productType, setProductType] = useState('all')
@@ -81,7 +87,7 @@ export default function DigitalAssetsPage({ onNavigate }) {
                 <div className="digital-asset-card-content">
                   <span className="digital-asset-type"><Icon size={13} /> {typeLabels[asset.productType] || 'Digital product'}</span>
                   <h2>{asset.name}</h2>
-                  <p>{asset.description || asset.usageInstructions || 'Explore details, use options, and setup support.'}</p>
+                  <p>{truncateDescription(asset.description || asset.usageInstructions || 'Explore details, use options, and setup support.')}</p>
                   <div className="digital-asset-price">{price.length ? `Options from ${formatNaira(Math.min(...price))}` : 'Contact for options'}</div>
                   <button type="button" className="digital-asset-open" onClick={() => onNavigate?.(`/digital-assets/${encodeURIComponent(asset.slug)}`)}>Explore details <ArrowRight size={15} /></button>
                 </div>
