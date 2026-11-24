@@ -226,7 +226,10 @@ export const userApi = {
 
 export const sms4Api = {
   areas: () => apiRequest('/rent/sms4/areas'),
-  apps: () => apiRequest('/rent/sms4/apps'),
+  apps: ({ search = '', limit = 50, offset = 0 } = {}) => {
+    const params = new URLSearchParams({ search, limit: String(limit), offset: String(offset) })
+    return apiRequest(`/rent/sms4/apps?${params}`)
+  },
   durations: (appName) => apiRequest(`/rent/sms4/durations?appName=${encodeURIComponent(appName)}`),
   pricing: (appName, duration) => {
     const params = new URLSearchParams({ appName })

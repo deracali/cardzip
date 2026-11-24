@@ -152,4 +152,39 @@ test("candidate applications and employer jobs are isolated and admin-only manag
   const publicJobs = await request("/public/jobs");
   assert.equal(publicJobs.data.jobs.length, 1);
   assert.equal(publicJobs.data.jobs[0].ownerId, undefined);
+
+  const adminJob = await request("/admin/jobs", {
+    method: "POST",
+    token: adminLogin.data.token,
+    body: {
+      employerName: "Remote.ly",
+      title: "Platform Engineer",
+      category: "Engineering",
+      type: "Full-time",
+      workMode: "Remote",
+      location: "Worldwide",
+      currency: "USD",
+      minSalary: 130000,
+      maxSalary: 165000,
+      description: "Maintain dependable platform services for a global remote-first team.",
+      skills: "Node.js, MongoDB",
+      plan: "standard",
+    },
+  });
+  assert.equal(adminJob.status, 201);
+  assert.equal(adminJob.data.job.status, "pending_review");
+  assert.equal(adminJob.data.job.paymentStatus, "not_required");
+  const approvedAdminJob = await request(`/admin/jobs/${adminJob.data.job.id}`, {
+    method: "PATCH",
+    token: adminLogin.data.token,
+    body: { status: "approved" },
+  });
+  assert.equal(approvedAdminJob.status, 200);
+  const updatedAdminApplication = await request(`/admin/applications/${application.data.application.id}`, {
+    method: "PATCH",
+    token: adminLogin.data.token,
+    body: { status: "reviewed" },
+  });
+  assert.equal(updatedAdminApplication.status, 200);
+  assert.equal(updatedAdminApplication.data.application.status, "reviewed");
 });

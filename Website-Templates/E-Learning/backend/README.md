@@ -27,9 +27,9 @@ Set `SKILLORA_FRONTEND_URL` to the exact public Skillora site origin. Configure 
 - `POST /api/webhooks/paystack`
 - `POST /api/webhooks/stripe`
 
-The student checkout API reads course amount and currency from MongoDB, creates hosted provider checkout, and verifies a successful transaction/session against the provider API before granting enrollment. Signed webhooks use the same server-side verification and can safely retry. Card details stay on provider-hosted pages. Browser redirects alone never grant access. Free-course enrollment, login cookies and roles are unchanged; paid memberships remain demo-only.
+The student checkout API reads course amount and currency from MongoDB, creates hosted provider checkout, and verifies a successful transaction/session against the provider API before granting enrollment. Signed webhooks use the same server-side verification and can safely retry. Card details stay on provider-hosted pages. Browser redirects alone never grant access. Free-course enrollment, login cookies and roles are unchanged. Checkout charges once for one course; recurring memberships are not implemented.
 
-The API listens on port 5300 by default. Check `http://localhost:5300/health` for database status. On initial startup it seeds the Skillora course catalog and creates the administrator from the private environment values.
+The API listens on port 5300 by default. Check `http://localhost:5300/health` for database status. If the machine's system DNS refuses MongoDB Atlas SRV or shard-host lookups, startup retries with the fallback resolvers in `MONGODB_DNS_SERVERS` (Cloudflare and Google DNS by default); override them with resolvers allowed by your network. On initial startup it seeds the Skillora course catalog and creates the administrator from the private environment values.
 
 ## Account roles and checkout
 

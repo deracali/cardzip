@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { ArrowLeft, ShieldCheck } from 'lucide-react'
 import Logo from '../components/Logo'
-import { imageUrl } from '../data/stays'
 import { escapesApi, saveSession } from '../services/escapesApi'
 
 export default function AuthPage({ signup = false }) {
@@ -29,7 +28,7 @@ export default function AuthPage({ signup = false }) {
 
   return (
     <main className="auth-page">
-      <section className="auth-photo" style={{ backgroundImage: `linear-gradient(180deg, transparent 30%, rgba(10,20,30,.76)), url("${imageUrl(signup ? 'photo-1564013799919-ab600027ffc6' : 'photo-1571896349842-33c89424de2d', 1200)}")` }}>
+      <section className="auth-photo" style={{ backgroundImage: 'linear-gradient(180deg, transparent 30%, rgba(10,20,30,.76)), url("/hero-resort.jpg")' }}>
         <Logo light />
         <div><span className="eyebrow">YOUR NEXT CHAPTER STARTS HERE</span><h1>{signup ? 'Earn from your extraordinary space.' : 'Your getaway is just around the corner.'}</h1><p>Discover stays that make the journey as memorable as the destination.</p></div>
       </section>

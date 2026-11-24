@@ -3,14 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { eventHubApi, type EventItem } from "../lib/eventHubApi";
-import { starterEvents } from "../lib/eventData";
+import { starterEvents, withEventFallback } from "../lib/eventData";
 
 const categories = ["All Events", "Concert", "Festival", "Conference", "Workshop"];
 
 export function EventCard({ event }: { event: EventItem }) {
   return (
     <article className="event-card">
-      <Link className="event-image" href={`/events/${event.slug}`} style={{ backgroundImage: `linear-gradient(180deg,transparent 35%,rgba(7,12,25,.75)),url("${event.image}")` }}>
+      <Link className="event-image" href={`/events/${event.slug}`}>
+        <img src={event.image || "/event-placeholder.svg"} alt="" onError={(error) => { error.currentTarget.src = "/event-placeholder.svg"; }} />
         <span>{event.tag}</span><b>{event.date}</b>
       </Link>
       <div className="event-card-body">
@@ -32,7 +33,7 @@ export default function EventBrowser({ compact = false }: { compact?: boolean })
   useEffect(() => {
     let active = true;
     eventHubApi.listEvents()
-      .then((result) => { if (active && result.events.length) setEvents(result.events); })
+      .then((result) => { if (active && result.events.length) setEvents(result.events.map(withEventFallback)); })
       .catch((requestError) => { if (active) setError(requestError instanceof Error ? requestError.message : "Could not load events."); });
     return () => { active = false; };
   }, []);

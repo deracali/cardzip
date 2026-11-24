@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import EventHubAdmin from './admin/EventHubAdmin'
 import EventHubPortals from './admin/EventHubPortals'
+import { demoAccountsStorageKey, demoSessionStorageKey, withEventFallback } from './data/eventData'
 import './App.css'
 
 const events = [
@@ -129,6 +130,13 @@ const pageTitles = {
   '/login': 'Sign In — PulseLive',
   '/signup': 'Create an Account — PulseLive',
   '/forgot-password': 'Reset Password — PulseLive',
+  '/dashboard': 'Attendee Dashboard — PulseLive',
+  '/dashboard/tickets': 'My Tickets — PulseLive',
+  '/dashboard/profile': 'Account Profile — PulseLive',
+  '/organizer/dashboard': 'Organizer Dashboard — PulseLive',
+  '/organizer/dashboard/events': 'My Events — PulseLive',
+  '/organizer/dashboard/bookings': 'Booking Activity — PulseLive',
+  '/organizer/dashboard/profile': 'Organizer Profile — PulseLive',
 }
 const eventBySlug = (slug) => events.find((event) => event.slug === slug)
 const money = (amount) => `$${amount.toFixed(2)}`
@@ -172,7 +180,7 @@ function Footer() {
         <a href="/events">Explore events</a>
         <a href="/about">About us</a>
         <a href="/host">Host an event</a>
-        <a href="/login">Your tickets</a>
+        <a href="/dashboard/tickets">Your tickets</a>
       </nav>
       <small>© 2027 PulseLive. Made for moments that move you.</small>
     </footer>
@@ -182,7 +190,8 @@ function Footer() {
 function EventCard({ event }) {
   return (
     <article className="event-card">
-      <a className="event-card-image" href={`/events/${event.slug}`} style={{ backgroundImage: `linear-gradient(180deg, transparent 38%, rgba(9, 14, 30, .78)), url("${event.image}")` }} aria-label={`View ${event.title}`}>
+      <a className="event-card-image" href={`/events/${event.slug}`} aria-label={`View ${event.title}`}>
+        <img src={event.image || '/event-placeholder.svg'} alt="" onError={(error) => { error.currentTarget.src = '/event-placeholder.svg' }} />
         <span className="event-tag">{event.tag}</span>
         <span className="event-date"><CalendarDays size={13} /> {event.date}</span>
       </a>
@@ -206,7 +215,7 @@ function EventGrid({ items }) {
   return <div className="event-grid">{items.map((event) => <EventCard key={event.slug} event={event} />)}</div>
 }
 
-function HomePage({ eventList = events }) {
+function HomePage({ eventList = events, dataWarning = '' }) {
   const [category, setCategory] = useState('All Events')
   const [search, setSearch] = useState('')
   const featured = useMemo(() => eventList.filter((event) => {
@@ -226,6 +235,7 @@ function HomePage({ eventList = events }) {
     <>
       <Header />
       <main>
+        {dataWarning && <p className="api-error data-warning" role="status">Showing the included event data. {dataWarning}</p>}
         <section className="hero">
           <div className="hero-backdrop" />
           <div className="hero-content">
@@ -285,7 +295,7 @@ function HomePage({ eventList = events }) {
   )
 }
 
-function EventsPage({ eventList = events }) {
+function EventsPage({ eventList = events, dataWarning = '' }) {
   const params = new URLSearchParams(window.location.search)
   const initialCategory = categories.includes(params.get('category')) ? params.get('category') : 'All Events'
   const [category, setCategory] = useState(initialCategory)
@@ -298,6 +308,7 @@ function EventsPage({ eventList = events }) {
     <>
       <Header />
       <main className="page-main">
+        {dataWarning && <p className="api-error data-warning" role="status">Showing the included event data. {dataWarning}</p>}
         <div className="page-heading"><span className="eyebrow">FIND YOUR PEOPLE</span><h1>Explore live events</h1><p>Big nights, new ideas, and the moments you’ll talk about tomorrow.</p></div>
         <label className="listing-search"><Search size={18} /><span className="sr-only">Search events</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search events, artists, or venues" /><span>{filtered.length} events</span></label>
         <div className="category-tabs" role="group" aria-label="Filter events by type">{categories.map((item) => <button key={item} type="button" className={category === item ? 'category-tab is-active' : 'category-tab'} aria-pressed={category === item} onClick={() => setCategory(item)}>{item}</button>)}</div>
@@ -315,7 +326,8 @@ function EventDetailPage({ event }) {
       <Header />
       <main className="event-detail">
         <a className="back-link" href="/events"><ArrowLeft size={15} /> All events</a>
-        <section className="detail-hero" style={{ backgroundImage: `linear-gradient(90deg, rgba(10, 15, 31, .96), rgba(10, 15, 31, .66) 48%, rgba(10, 15, 31, .12)), url("${event.image}")` }}>
+        <section className="detail-hero">
+          <img className="detail-hero-image" src={event.image || '/event-placeholder.svg'} alt="" onError={(error) => { error.currentTarget.src = '/event-placeholder.svg' }} />
           <div><span className="event-detail-tag">{event.category} <span>·</span> {event.tag}</span><h1>{event.title}</h1><p>{event.description}</p><div className="detail-meta"><span><CalendarDays size={16} />{event.date} · {event.time}</span><span><MapPin size={16} />{event.location}</span></div><a className="button button-primary" href={`/checkout/${event.slug}`}>Choose tickets from ${event.price} <ArrowRight size={16} /></a></div>
         </section>
         <div className="detail-columns">
@@ -344,7 +356,7 @@ function SchedulePage() {
           <section className="session-list" aria-label={`${day} sessions`}>{sessions.map((session, index) => <article className="session-card" key={session.title}><div className="session-time"><strong>{day === 'Day 1' ? session.time : `${String(9 + index).padStart(2, '0')}:00 AM`}</strong><span>{session.end}</span></div><div className="session-info"><span className="session-track">{session.track} <span>·</span> {session.kind}</span><h2>{day === 'Day 1' ? session.title : [`Build What Matters`, `Finding Your Creative Edge`, `Small Teams, Big Ideas`, `The Future of Live`, `Closing Conversation`][index]}</h2><p><Users size={14} />{session.speaker}</p></div><button className={savedSessions.includes(session.title) ? 'save-session is-saved' : 'save-session'} type="button" aria-label={savedSessions.includes(session.title) ? 'Remove session from schedule' : 'Add session to schedule'} aria-pressed={savedSessions.includes(session.title)} onClick={() => toggleSession(session.title)}>{savedSessions.includes(session.title) ? <Check size={16} /> : <Plus size={16} />}</button></article>)}</section>
           <aside className="my-schedule"><span className="eyebrow">YOUR DAY, YOUR WAY</span><h2>My schedule</h2><p>{savedSessions.length ? `${savedSessions.length} session${savedSessions.length === 1 ? '' : 's'} saved for later.` : 'Tap the plus on a session to save it here.'}</p>{savedSessions.length > 0 && <ul>{savedSessions.map((item) => <li key={item}><Check size={14} />{item}</li>)}</ul>}<div className="schedule-ticket"><Ticket size={17} /><div><strong>Still need your pass?</strong><span>Join us at Global Tech Summit.</span></div></div><a className="button button-primary button-full" href="/checkout/global-tech-summit">Get your pass <ArrowRight size={15} /></a></aside>
         </div>
-        <section className="section speaker-section"><div className="section-heading"><div><span className="eyebrow">THE PEOPLE BEHIND THE IDEAS</span><h2>Meet the <span>speakers.</span></h2></div><a className="text-link" href="/events/global-tech-summit">Summit details <ArrowRight size={15} /></a></div><div className="speaker-grid">{speakers.map((speaker) => <article className="speaker-card" key={speaker.name}><img src={imageUrl(speaker.image, 420)} alt={speaker.name} /><h3>{speaker.name}</h3><p>{speaker.role}</p><span><Users size={13} /> Global Tech Summit</span></article>)}</div></section>
+        <section className="section speaker-section"><div className="section-heading"><div><span className="eyebrow">THE PEOPLE BEHIND THE IDEAS</span><h2>Meet the <span>speakers.</span></h2></div><a className="text-link" href="/events/global-tech-summit">Summit details <ArrowRight size={15} /></a></div><div className="speaker-grid">{speakers.map((speaker) => <article className="speaker-card" key={speaker.name}><img src={imageUrl(speaker.image, 420)} alt={speaker.name} onError={(error) => { error.currentTarget.src = '/event-placeholder.svg' }} /><h3>{speaker.name}</h3><p>{speaker.role}</p><span><Users size={13} /> Global Tech Summit</span></article>)}</div></section>
       </main>
       <Footer />
     </>
@@ -416,7 +428,7 @@ function CheckoutPage({ event, mode = 'local', apiBaseUrl = '' }) {
             </div>
             <form className="checkout-panel guest-form" onSubmit={submitOrder}><div className="checkout-panel-heading"><span className="checkout-step">02</span><div><h2>Who’s coming?</h2><p>Your tickets will be sent to this email address.</p></div></div><div className="form-grid"><label>Full name<input name="name" autoComplete="name" placeholder="Your name" required /></label><label>Email address<input name="email" type="email" autoComplete="email" placeholder="you@example.com" required /></label></div><label className="demo-card-label">Payment method</label><div className="demo-card"><ShieldCheck size={17} /><span>Demo card payment</span><small>Secure checkout preview</small></div><p className="demo-notice">This is a demo. Submitting will not charge a card or create a real ticket.</p><button className="button button-primary button-full" type="submit">Confirm demo booking · {money(total)} <ArrowRight size={16} /></button>{error && <p className="form-error" role="alert">{error}</p>}</form>
           </section>
-          <aside className="order-summary"><span className="eyebrow">ORDER SUMMARY</span><div className="summary-event-image" style={{ backgroundImage: `url("${selectedEvent.image}")` }} /><h2>{selectedEvent.title}</h2><p><CalendarDays size={14} />{selectedEvent.date}</p><p><MapPin size={14} />{selectedEvent.location}</p><div className="summary-line"><span>{quantity} × {ticketType}</span><strong>{money(subtotal)}</strong></div><div className="summary-line"><span>Service fee</span><strong>{money(serviceFee)}</strong></div><div className="summary-total"><span>Total</span><strong>{money(total)}</strong></div><span className="secure-note"><ShieldCheck size={13} />Encrypted, secure demo checkout</span></aside>
+          <aside className="order-summary"><span className="eyebrow">ORDER SUMMARY</span><div className="summary-event-image"><img src={selectedEvent.image || '/event-placeholder.svg'} alt="" onError={(error) => { error.currentTarget.src = '/event-placeholder.svg' }} /></div><h2>{selectedEvent.title}</h2><p><CalendarDays size={14} />{selectedEvent.date}</p><p><MapPin size={14} />{selectedEvent.location}</p><div className="summary-line"><span>{quantity} × {ticketType}</span><strong>{money(subtotal)}</strong></div><div className="summary-line"><span>Service fee</span><strong>{money(serviceFee)}</strong></div><div className="summary-total"><span>Total</span><strong>{money(total)}</strong></div><span className="secure-note"><ShieldCheck size={13} />Encrypted, secure demo checkout</span></aside>
         </div>
       </main>
       <Footer />
@@ -432,8 +444,29 @@ function AuthPage({ page, mode = 'local', apiBaseUrl = '' }) {
   const title = isForgot ? 'Reset your password' : isSignup ? 'Create your account' : 'Welcome back'
   const submit = async (event) => {
     event.preventDefault()
-    if (mode === 'api' && !isForgot) {
+    if (!isForgot) {
       const form = new FormData(event.currentTarget)
+      const email = String(form.get('email') || '').trim().toLowerCase()
+      if (mode === 'local') {
+        try {
+          const accounts = JSON.parse(localStorage.getItem(demoAccountsStorageKey) || '[]')
+          const existing = accounts.find((account) => account.email?.toLowerCase() === email)
+          const account = isSignup
+            ? { name: String(form.get('name') || '').trim(), email, role: accountType, organizerStatus: accountType === 'organizer' ? 'pending' : 'not-applicable' }
+            : existing || { name: email.split('@')[0] || 'PulseLive guest', email, role: 'attendee', organizerStatus: 'not-applicable' }
+          if (isSignup) {
+            const updatedAccounts = [...accounts.filter((item) => item.email?.toLowerCase() !== email), account]
+            localStorage.setItem(demoAccountsStorageKey, JSON.stringify(updatedAccounts))
+          }
+          localStorage.setItem(demoSessionStorageKey, JSON.stringify(account))
+          const target = account.role === 'organizer' ? '/organizer/dashboard' : '/dashboard/tickets'
+          window.location.replace(target)
+        } catch (requestError) {
+          setMessage(`Unable to save the local demo account: ${requestError.message}`)
+        }
+        return
+      }
+      if (mode === 'api') {
       try {
         const response = await fetch(`${apiBaseUrl}/auth/${isSignup ? 'register' : 'login'}`, {
           method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -442,18 +475,25 @@ function AuthPage({ page, mode = 'local', apiBaseUrl = '' }) {
         const result = await response.json().catch(() => ({}))
         if (!response.ok) throw new Error(result.error || 'Unable to access your PulseLive account.')
         const next = new URLSearchParams(window.location.search).get('next')
-        const nextPath = next?.startsWith('/') && !next.startsWith('//') ? next : null
-        const target = result.user.role === 'admin' ? '/admin' : result.user.role === 'organizer' ? '/organizer/dashboard' : '/dashboard'
+        const role = result.user.role
+        const rolePath = role === 'admin'
+          ? next === '/admin' || next?.startsWith('/admin/')
+          : role === 'organizer'
+            ? next === '/organizer/dashboard' || next?.startsWith('/organizer/dashboard/')
+            : next === '/dashboard' || next?.startsWith('/dashboard/') || next?.startsWith('/checkout/')
+        const nextPath = next?.startsWith('/') && !next.startsWith('//') && rolePath ? next : null
+        const target = result.user.role === 'admin' ? '/admin' : result.user.role === 'organizer' ? '/organizer/dashboard' : '/dashboard/tickets'
         window.location.replace(nextPath || target)
       } catch (requestError) { setMessage(requestError.message) }
       return
+      }
     }
     setMessage(isForgot ? 'If that email is registered, reset instructions are on their way.' : isSignup ? 'Your demo account is ready. Welcome to PulseLive!' : 'You’re signed in for this demo session.')
   }
   return (
     <main className="auth-page">
       <section className="auth-art"><div className="auth-art-image" /><a className="brand" href="/"><img className="brand-mark" src="/favicon.svg" alt="" /><span>Pulse<span>Live</span></span></a><div className="auth-art-copy"><span className="eyebrow">THE SHOW DOESN’T END HERE</span><h1>Access your event passes, saved shows &amp; more.</h1><p>Your next favorite memory is just around the corner.</p><div className="hero-pills"><span><Ticket size={13} /> 2M+ tickets</span><span><Users size={13} /> 40k organizers</span><span><Check size={13} /> Instant entry</span></div></div></section>
-      <section className="auth-area"><div className="auth-card"><a className="auth-back" href="/"><ArrowLeft size={15} /> Back to PulseLive</a><span className="eyebrow">{isForgot ? 'A FRESH START' : isSignup ? 'JOIN THE CROWD' : 'GOOD TO SEE YOU'}</span><h2>{title}</h2><p>{isForgot ? 'Enter your email and we’ll help you get back in.' : isSignup ? 'Create an account to keep your tickets and favorite events together.' : 'Sign in to find your tickets and event schedule.'}</p><form onSubmit={submit}>{isSignup && <><div className="event-account-type" role="group" aria-label="Choose account type"><button className={accountType === 'attendee' ? 'is-selected' : ''} type="button" onClick={() => setAccountType('attendee')}>Attendee</button><button className={accountType === 'organizer' ? 'is-selected' : ''} type="button" onClick={() => setAccountType('organizer')}>Organizer</button></div><label>Full name<input name="name" autoComplete="name" placeholder="Your name" required /></label></>}<label>Email address<input name="email" type="email" autoComplete="email" placeholder="you@example.com" required /></label>{!isForgot && <label>Password<input name="password" type="password" autoComplete={isSignup ? 'new-password' : 'current-password'} minLength={isSignup ? 8 : undefined} placeholder={isSignup ? 'At least 8 characters' : 'Your password'} required /></label>}{!isSignup && !isForgot && <a className="forgot-link" href="/forgot-password">Forgot password?</a>}<button className="button button-primary button-full" type="submit">{isForgot ? 'Send reset link' : isSignup ? 'Create account' : 'Sign in'} <ArrowRight size={15} /></button></form>{message && <p className="form-success" role="status">{message}</p>}<p className="auth-switch">{isForgot ? 'Remembered your password? ' : isSignup ? 'Already have an account? ' : 'New to PulseLive? '}<a href={isForgot ? '/login' : isSignup ? '/login' : '/signup'}>{isForgot ? 'Sign in' : isSignup ? 'Sign in' : 'Create an account'}</a></p><span className="secure-note"><ShieldCheck size={13} />Your information stays private and secure.</span></div></section>
+      <section className="auth-area"><div className="auth-card"><a className="auth-back" href="/"><ArrowLeft size={15} /> Back to PulseLive</a><span className="eyebrow">{isForgot ? 'A FRESH START' : isSignup ? 'JOIN THE CROWD' : 'GOOD TO SEE YOU'}</span><h2>{title}</h2><p>{isForgot ? 'Enter your email and we’ll help you get back in.' : isSignup ? 'Create an account to keep your tickets and favorite events together.' : 'Sign in to find your tickets and event schedule.'}</p><form onSubmit={submit}>{isSignup && <><div className="event-account-type" role="radiogroup" aria-label="Choose account type"><button className={accountType === 'attendee' ? 'is-selected' : ''} type="button" role="radio" aria-checked={accountType === 'attendee'} onClick={() => setAccountType('attendee')}><strong>Attendee</strong><small>Discover events and manage tickets</small></button><button className={accountType === 'organizer' ? 'is-selected' : ''} type="button" role="radio" aria-checked={accountType === 'organizer'} onClick={() => setAccountType('organizer')}><strong>Organizer</strong><small>Host events · approval required</small></button></div><label>Full name<input name="name" autoComplete="name" placeholder="Your name" required /></label></>}<label>Email address<input name="email" type="email" autoComplete="email" placeholder="you@example.com" required /></label>{!isForgot && <label>Password<input name="password" type="password" autoComplete={isSignup ? 'new-password' : 'current-password'} minLength={isSignup ? 8 : undefined} placeholder={isSignup ? 'At least 8 characters' : 'Your password'} required /></label>}{!isSignup && !isForgot && <a className="forgot-link" href="/forgot-password">Forgot password?</a>}<button className="button button-primary button-full" type="submit">{isForgot ? 'Send reset link' : isSignup ? 'Create account' : 'Sign in'} <ArrowRight size={15} /></button></form>{message && <p className="form-success" role="status">{message}</p>}<p className="auth-switch">{isForgot ? 'Remembered your password? ' : isSignup ? 'Already have an account? ' : 'New to PulseLive? '}<a href={isForgot ? '/login' : isSignup ? '/login' : '/signup'}>{isForgot ? 'Sign in' : isSignup ? 'Sign in' : 'Create an account'}</a></p><span className="secure-note"><ShieldCheck size={13} />Your information stays private and secure.</span></div></section>
     </main>
   )
 }
@@ -490,18 +530,22 @@ function NotFoundPage() {
 function App({ mode = 'local', apiBaseUrl = '' }) {
   const { pathname } = window.location
   const [eventList, setEventList] = useState(events)
+  const [eventLoadError, setEventLoadError] = useState('')
   useEffect(() => {
     let active = true
     if (mode !== 'api') return () => { active = false }
     fetch(`${apiBaseUrl}/events`).then(async (response) => {
       const result = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(result.error || 'Unable to load events.')
-      if (active) setEventList(result.events.map((event) => ({ ...events.find((item) => item.slug === event.slug), ...event })))
-    }).catch(() => {})
+      if (!Array.isArray(result.events)) throw new Error('PulseLive API returned an invalid event list.')
+      if (active && result.events.length) setEventList(result.events.map(withEventFallback))
+    }).catch((requestError) => { if (active) setEventLoadError(requestError.message) })
     return () => { active = false }
   }, [apiBaseUrl, mode])
   const eventMatch = pathname.match(/^\/events\/([^/]+)\/?$/)
   const checkoutMatch = pathname.match(/^\/checkout(?:\/([^/]+))?\/?$/)
+  const attendeeDashboardMatch = pathname.match(/^\/dashboard(?:\/(tickets|profile))?\/?$/)
+  const organizerDashboardMatch = pathname.match(/^\/organizer\/dashboard(?:\/(events|bookings|profile))?\/?$/)
   const detail = eventMatch ? eventList.find((event) => event.slug === decodeURIComponent(eventMatch[1])) : null
   const checkoutEvent = checkoutMatch?.[1] ? eventList.find((event) => event.slug === decodeURIComponent(checkoutMatch[1])) : eventList[0]
   useEffect(() => {
@@ -509,10 +553,10 @@ function App({ mode = 'local', apiBaseUrl = '' }) {
   }, [checkoutEvent, checkoutMatch, detail, pathname])
 
   if (pathname === '/admin' || pathname === '/admin/login') return <EventHubAdmin mode={mode} apiBaseUrl={apiBaseUrl} />
-  if (pathname === '/dashboard' && mode === 'api') return <EventHubPortals mode="attendee" apiBaseUrl={apiBaseUrl} />
-  if (pathname === '/organizer/dashboard' && mode === 'api') return <EventHubPortals mode="organizer" apiBaseUrl={apiBaseUrl} />
-  if (pathname === '/') return <HomePage eventList={eventList} />
-  if (pathname === '/events') return <EventsPage eventList={eventList} />
+  if (attendeeDashboardMatch) return <EventHubPortals mode="attendee" storageMode={mode} apiBaseUrl={apiBaseUrl} section={attendeeDashboardMatch[1] || 'overview'} />
+  if (organizerDashboardMatch) return <EventHubPortals mode="organizer" storageMode={mode} apiBaseUrl={apiBaseUrl} section={organizerDashboardMatch[1] || 'overview'} />
+  if (pathname === '/') return <HomePage eventList={eventList} dataWarning={eventLoadError} />
+  if (pathname === '/events') return <EventsPage eventList={eventList} dataWarning={eventLoadError} />
   if (pathname === '/schedule') return <SchedulePage />
   if (eventMatch) return <EventDetailPage event={detail} />
   if (checkoutMatch) return <CheckoutPage event={checkoutEvent} mode={mode} apiBaseUrl={apiBaseUrl} />

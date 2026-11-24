@@ -4,7 +4,7 @@ import {
   GraduationCap, LayoutDashboard, LogOut, Menu, Search, Settings, ShieldCheck,
   Sparkles, Users, X,
 } from 'lucide-react'
-import { enrollmentPlans, learningCourses, learningInstructors } from '../data/learningData'
+import { learningCourses, learningInstructors } from '../data/learningData'
 import styles from './SkilloraAdmin.module.css'
 
 const DATA_KEY = 'skillora-admin-demo-v1'

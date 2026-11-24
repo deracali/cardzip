@@ -126,7 +126,21 @@ export default function DigitalAssetDetailsScreen() {
   }, [purchaseHistoryKey]);
   const setReceipt = (value: DigitalProductReceipt | null) => updatePurchaseHistory({ receipt: value });
   const setSellerReceipt = (value: SellerReceipt | null) => updatePurchaseHistory({ sellerReceipt: value });
-  const setPaidOptions = (value: { use: boolean; template: boolean }) => updatePurchaseHistory({ paidOptions: value });
+  const setPaidOptions = (value: React.SetStateAction<PurchaseHistoryData['paidOptions']>) => {
+    if (typeof value !== 'function') {
+      updatePurchaseHistory({ paidOptions: value });
+      return;
+    }
+    setPurchaseHistory((current) => {
+      const currentHistory = current?.key === purchaseHistoryKey ? current : {
+        key: purchaseHistoryKey,
+        paidOptions: { use: false, template: false },
+        receipt: null,
+        sellerReceipt: null,
+      };
+      return { ...currentHistory, paidOptions: value(currentHistory.paidOptions) };
+    });
+  };
   const setPurchaseError = useCallback((message: string) => {
     setPurchaseErrorState({ key: purchaseHistoryKey, message });
   }, [purchaseHistoryKey]);

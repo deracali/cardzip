@@ -4,6 +4,10 @@ import CreatorAuthPage from './pages/CreatorAuthPage'
 import CreatorInfoPage from './pages/CreatorInfoPage'
 import CreatorProfilePage from './pages/CreatorProfilePage'
 import SiteContentPage from './pages/SiteContentPage'
+import CreatorDashboardPage from './pages/CreatorDashboardPage'
+import CreatorPricing from './components/CreatorPricing'
+import CreatorHubHeader from './components/CreatorHubHeader'
+import CreatorHubFooter from './components/CreatorHubFooter'
 import { featuredCreators } from './pages/creatorPageContent'
 
 const infoPages = new Set(['/features', '/creators', '/resources', '/about', '/help', '/terms', '/privacy'])
@@ -47,6 +51,9 @@ function App() {
 
   if (pathname === '/login') return <CreatorAuthPage />
   if (pathname === '/signup') return <CreatorAuthPage signUp />
+  if (pathname === '/pricing') return <div className="creator-hub"><CreatorHubHeader /><main><CreatorPricing /></main><CreatorHubFooter /></div>
+  if (pathname === '/dashboard') return <CreatorDashboardPage />
+  if (pathname === '/admin' || pathname === '/admin/login') return <CreatorDashboardPage admin />
   const creator = featuredCreators.find((item) => `/${item.handle}` === pathname)
   if (creator) return <CreatorProfilePage creator={creator} />
   if (pathname === '/blog') return <SiteContentPage page="blog" />

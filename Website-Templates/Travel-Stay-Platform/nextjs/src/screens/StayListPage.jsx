@@ -1,17 +1,29 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, Search, ShieldCheck } from 'lucide-react'
 import PageShell from '../components/PageShell'
 import StayCard from '../components/StayCard'
 import { stays } from '../data/stays'
+import { escapesApi } from '../services/escapesApi'
 
 export default function StayListPage() {
   const params = new URLSearchParams(window.location.search)
   const [destination, setDestination] = useState(params.get('destination') || '')
   const [maxPrice, setMaxPrice] = useState(500)
   const [style, setStyle] = useState(params.get('style') || 'All stays')
-  const filteredStays = useMemo(() => stays.filter((stay) => stay.price <= maxPrice
+  const [properties, setProperties] = useState(stays)
+  const [catalogError, setCatalogError] = useState('')
+  useEffect(() => {
+    let active = true
+    escapesApi.publicStays()
+      .then(({ stays: remoteStays }) => {
+        if (active) setProperties([...stays, ...remoteStays.filter((remoteStay) => !stays.some((stay) => stay.slug === remoteStay.slug))])
+      })
+      .catch((error) => { if (active) setCatalogError(error.message) })
+    return () => { active = false }
+  }, [])
+  const filteredStays = useMemo(() => properties.filter((stay) => stay.price <= maxPrice
     && (!destination || `${stay.area} ${stay.name}`.toLowerCase().includes(destination.toLowerCase().split(',')[0].trim()))
-    && (style === 'All stays' || (['Beachfront', 'Private pool', 'Eco stay'].includes(style) ? stay.type === style : stay.categories.includes(style)))), [destination, maxPrice, style])
+    && (style === 'All stays' || (['Beachfront', 'Private pool', 'Eco stay'].includes(style) ? stay.type === style : stay.categories.includes(style)))), [destination, maxPrice, style, properties])
 
   return (
     <PageShell>
@@ -26,6 +38,7 @@ export default function StayListPage() {
             <div className="filter-note"><ShieldCheck size={15} /><span><strong>Guest favorite</strong><br />Top-rated stays loved by guests.</span></div>
           </aside>
           <section className="results-area" id="stay-results">
+            {catalogError && <p className="form-error" role="status">New properties could not be loaded: {catalogError}</p>}
             <div className="results-heading"><div><strong>{filteredStays.length} stays found</strong><p>Find your next favorite place to stay.</p></div><select aria-label="Sort stays"><option>Recommended</option><option>Price: low to high</option><option>Guest rating</option></select></div>
             {filteredStays.length ? <div className="results-grid">{filteredStays.map((stay) => <StayCard key={stay.slug} stay={stay} />)}</div> : <div className="empty-state"><Search size={26} /><h2>No stays match those filters</h2><p>Try a different destination, property type, or price range.</p><button className="button button-primary" type="button" onClick={() => { setDestination(''); setMaxPrice(500); setStyle('All stays') }}>Clear filters</button></div>}
             <nav className="pagination" aria-label="Stay results pages"><a href="/stays" aria-label="Previous page">‹</a><a className="active" href="/stays">1</a><a href="/stays?page=2">2</a><a href="/stays?page=3">3</a><a href="/stays?page=2" aria-label="Next page">Next <ArrowRight size={13} /></a></nav>

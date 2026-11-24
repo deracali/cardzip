@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { MongoClient } from "mongodb";
 
 export function createInitialState() {
-  return { users: [], reservations: [] };
+  return { users: [], reservations: [], stays: [] };
 }
 
 export function createMemoryStore(initialState = createInitialState()) {
@@ -54,7 +54,7 @@ export function createMongoStore(uri, { databaseName = "escapes_travel_stay" } =
     await connect();
     const record = await collection().findOne({ _id: "primary" });
     if (!record) throw new Error("Escapes application data was not initialized.");
-    return record.state;
+    return { ...createInitialState(), ...record.state };
   }
 
   function update(mutator) {
@@ -63,7 +63,7 @@ export function createMongoStore(uri, { databaseName = "escapes_travel_stay" } =
       for (let attempt = 0; attempt < 8; attempt += 1) {
         const record = await collection().findOne({ _id: "primary" });
         if (!record) throw new Error("Escapes application data was not initialized.");
-        const draft = structuredClone(record.state);
+        const draft = { ...createInitialState(), ...structuredClone(record.state) };
         const result = await mutator(draft);
         const saved = await collection().replaceOne(
           { _id: "primary", revision: record.revision },

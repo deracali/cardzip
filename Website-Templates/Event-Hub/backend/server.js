@@ -5,18 +5,23 @@ import cors from 'cors'
 import helmet from 'helmet'
 import mongoose from 'mongoose'
 import bcrypt from 'bcryptjs'
+import { isIP } from 'node:net'
 import { events as starterEvents } from '../event-hub/src/data/eventData.js'
 import User from './src/models/User.js'
 import Event from './src/models/Event.js'
 import apiRoutes from './routes/api-routes.js'
+import { handlePaystackWebhook, handleStripeWebhook } from './controllers/payments-controller.js'
+import { connectToMongo } from './src/utils/mongoConnection.js'
 
 function configuration() {
   const missing = ['MONGODB_URI', 'JWT_SECRET'].filter((key) => !process.env[key]?.trim())
   if (missing.length) throw new Error(`Missing required settings: ${missing.join(', ')}.`)
   if (process.env.JWT_SECRET.length < 32) throw new Error('JWT_SECRET must be at least 32 characters.')
   const origins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:3000').split(',').map((origin) => origin.trim()).filter(Boolean)
+  const dnsServers = (process.env.MONGODB_DNS_SERVERS || '1.1.1.1,8.8.8.8').split(',').map((server) => server.trim()).filter(Boolean)
+  if (dnsServers.some((server) => !isIP(server))) throw new Error('MONGODB_DNS_SERVERS must contain comma-separated DNS server IP addresses.')
   if (process.env.NODE_ENV === 'production' && (!process.env.ALLOWED_ORIGINS || origins.some((origin) => origin.includes('localhost')))) throw new Error('Set ALLOWED_ORIGINS to the production website origin.')
-  return { origins, port: Number(process.env.PORT) || 5400 }
+  return { origins, dnsServers, port: Number(process.env.PORT) || 5400 }
 }
 
 function createApp(config) {
@@ -29,6 +34,8 @@ function createApp(config) {
     error.status = 403
     return callback(error)
   }, credentials: true }))
+  app.post('/api/webhooks/paystack', express.raw({ type: 'application/json', limit: '100kb' }), handlePaystackWebhook)
+  app.post('/api/webhooks/stripe', express.raw({ type: 'application/json', limit: '100kb' }), handleStripeWebhook)
   app.use(express.json({ limit: '100kb' }))
   app.use(cookieParser())
   app.get('/health', (_request, response) => response.json({ status: 'ok', database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected' }))
@@ -63,7 +70,11 @@ async function seedEvents() {
 
 async function start() {
   const config = configuration()
-  await mongoose.connect(process.env.MONGODB_URI)
+  await connectToMongo(mongoose, process.env.MONGODB_URI, config.dnsServers, {
+    onFallback() {
+      console.warn('System DNS refused the MongoDB Atlas SRV lookup; retrying with fallback DNS.')
+    },
+  })
   await seedEvents()
   await seedAdmin()
   createApp(config).listen(config.port, () => console.log(`PulseLive API listening on http://localhost:${config.port}`))

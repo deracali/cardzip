@@ -2,16 +2,17 @@ import { useMemo, useState } from 'react'
 import { ArrowRight, Search, ShieldCheck } from 'lucide-react'
 import PageShell from '../components/PageShell'
 import StayCard from '../components/StayCard'
-import { stays } from '../data/stays'
+import { getStays } from '../services/escapesApi'
 
 export default function StayListPage() {
   const params = new URLSearchParams(window.location.search)
   const [destination, setDestination] = useState(params.get('destination') || '')
   const [maxPrice, setMaxPrice] = useState(500)
   const [style, setStyle] = useState(params.get('style') || 'All stays')
-  const filteredStays = useMemo(() => stays.filter((stay) => stay.price <= maxPrice
+  const [properties] = useState(getStays)
+  const filteredStays = useMemo(() => properties.filter((stay) => stay.price <= maxPrice
     && (!destination || `${stay.area} ${stay.name}`.toLowerCase().includes(destination.toLowerCase().split(',')[0].trim()))
-    && (style === 'All stays' || (['Beachfront', 'Private pool', 'Eco stay'].includes(style) ? stay.type === style : stay.categories.includes(style)))), [destination, maxPrice, style])
+    && (style === 'All stays' || (['Beachfront', 'Private pool', 'Eco stay'].includes(style) ? stay.type === style : stay.categories.includes(style)))), [destination, maxPrice, style, properties])
 
   return (
     <PageShell>

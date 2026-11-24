@@ -57,7 +57,9 @@ export const stays = [
   },
 ]
 
-export const imageUrl = (id, width = 900) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${width}&q=85`
+export const imageUrl = (id, width = 900) => id.startsWith('https://')
+  ? id
+  : `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${width}&q=85`
 
 export function getDefaultDates() {
   const checkIn = new Date()

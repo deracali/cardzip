@@ -1,4 +1,5 @@
 import 'dotenv/config'
+import dns from 'node:dns'
 import express from 'express'
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
@@ -10,6 +11,7 @@ import AdminRecord from './src/models/AdminRecord.js'
 import authRoutes from './routes/auth.js'
 import adminRoutes from './routes/admin.js'
 import clientRoutes from './routes/client.js'
+import paymentRoutes from './routes/payments.js'
 
 function configuration() {
   const missing = ['MONGODB_URI', 'JWT_SECRET'].filter((key) => !process.env[key]?.trim())
@@ -20,10 +22,17 @@ function configuration() {
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean)
+  const dnsServers = (process.env.MONGODB_DNS_SERVERS || '')
+    .split(',')
+    .map((server) => server.trim())
+    .filter(Boolean)
+  if (dnsServers.length && dnsServers.some((server) => !/^(?:\d{1,3}\.){3}\d{1,3}$|^[\da-fA-F:]+$/.test(server))) {
+    throw new Error('MONGODB_DNS_SERVERS must be a comma-separated list of DNS server IP addresses.')
+  }
   if (process.env.NODE_ENV === 'production' && (!process.env.ALLOWED_ORIGINS || origins.some((origin) => origin.includes('localhost')))) {
     throw new Error('Set ALLOWED_ORIGINS to the production website origin.')
   }
-  return { origins, port: Number(process.env.PORT) || 5000 }
+  return { origins, dnsServers, port: Number(process.env.PORT) || 5000 }
 }
 
 function createApp(config) {
@@ -39,7 +48,12 @@ function createApp(config) {
     },
     credentials: true,
   }))
-  app.use(express.json({ limit: '100kb' }))
+  app.use(express.json({
+    limit: '100kb',
+    verify(request, _response, buffer) {
+      if (request.originalUrl === '/api/payments/paystack/webhook') request.rawBody = buffer
+    },
+  }))
   app.use(cookieParser())
   app.get('/health', (_request, response) => {
     response.json({ status: 'ok', database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected' })
@@ -47,6 +61,7 @@ function createApp(config) {
   app.use('/api/auth', authRoutes)
   app.use('/api/admin', adminRoutes)
   app.use('/api/client', clientRoutes)
+  app.use('/api/payments', paymentRoutes)
   app.use((_request, response) => response.status(404).json({ error: 'API route not found.' }))
   app.use((error, _request, response, _next) => {
     if (error?.type === 'entity.parse.failed') return response.status(400).json({ error: 'Request must contain valid JSON.' })
@@ -86,6 +101,7 @@ async function seedDemoRecords() {
 
 async function start() {
   const config = configuration()
+  if (config.dnsServers.length) dns.setServers(config.dnsServers)
   await mongoose.connect(process.env.MONGODB_URI)
   await seedAdmin()
   await seedDemoRecords()

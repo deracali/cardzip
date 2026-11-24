@@ -178,7 +178,7 @@ export const fetchRentalAreas = async (): Promise<NumberHubOption[]> =>
 export const fetchRentalApps = async (): Promise<NumberHubOption[]> => {
 	const entries = serviceEntriesFrom(await request<unknown>('/apps'))
 		.map((entry) => entry.trim())
-		.filter((entry) => entry && !/^(allservices|\d+allservices)$/i.test(entry) && !/^\d{2,}/.test(entry));
+		.filter((entry) => entry && !/^(allservices|\d+allservices)$/i.test(entry));
 	const uniqueEntries = [...new Map(entries.map((entry) => [entry.toLowerCase(), entry])).values()];
 	const preferred = ['whatsapp', 'telegram', 'google', 'razorpay', 'opay', 'palmpay', 'moniepoint', 'paystack', 'flutterwave', 'walmart', 'woocommerce', 'jumia', 'konga', 'amazon', 'facebook', 'instagram', 'tiktok', 'bolt', 'uber'];
 	uniqueEntries.sort((first, second) => {
@@ -186,7 +186,7 @@ export const fetchRentalApps = async (): Promise<NumberHubOption[]> => {
 		const secondIndex = preferred.indexOf(cleanServiceName(second).toLowerCase());
 		return (firstIndex < 0 ? Number.MAX_SAFE_INTEGER : firstIndex) - (secondIndex < 0 ? Number.MAX_SAFE_INTEGER : secondIndex);
 	});
-	return uniqueEntries.slice(0, 19).map((entry) => ({ value: entry.toLowerCase(), label: cleanServiceName(entry) }));
+	return uniqueEntries.map((entry) => ({ value: entry.toLowerCase(), label: cleanServiceName(entry) }));
 };
 
 export const fetchRentalDurations = async (appName: string): Promise<RentalDuration[]> => {

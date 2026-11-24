@@ -20,12 +20,15 @@ export function createApiRouter({ store, secret, env, payments, allowedOrigins }
   router.post("/auth/login", authRateLimit, auth.login);
   router.get("/auth/me", requireUser, auth.me);
 
+  router.get("/public/stays", bookings.publicStays);
+  router.get("/public/stays/:slug", bookings.publicStay);
   router.get("/client/payment/providers", ...client, bookings.providers);
   router.post("/client/bookings/checkout", ...client, bookingRateLimit, bookings.createCheckout);
   router.post("/client/bookings/verify", ...client, bookingRateLimit, bookings.verify);
   router.get("/client/dashboard", ...client, bookings.clientDashboard);
   router.get("/admin/dashboard", ...admin, bookings.adminDashboard);
   router.patch("/admin/bookings/:id", ...admin, bookings.updateReservation);
+  router.post("/admin/stays", ...admin, bookings.createStay);
   router.webhooks = {
     stripe: (req, res) => bookings.webhook(req, res, "stripe"),
     paystack: (req, res) => bookings.webhook(req, res, "paystack"),

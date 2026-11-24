@@ -27,6 +27,9 @@ import CarewellAdmin from './admin/CarewellAdmin'
 import CarewellPortal from './admin/CarewellPortal'
 import './App.css'
 
+const DEMO_USERS_KEY = 'carewell-demo-users-v1'
+const DEMO_SESSION_KEY = 'carewell-demo-session-v1'
+
 function AuthPage({ mode = 'local', apiBaseUrl = '' }) {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -73,9 +76,33 @@ function AuthPage({ mode = 'local', apiBaseUrl = '' }) {
       }
       return
     }
-    setNotice(isSignUp
-      ? 'Account creation is ready to connect to your registration service.'
-      : 'This sign-in form is ready to connect to your account service.')
+    const formData = new FormData(event.currentTarget)
+    const email = String(formData.get('email') || '').trim().toLowerCase()
+    const users = JSON.parse(localStorage.getItem(DEMO_USERS_KEY) || '[]')
+    let user
+    if (isSignUp) {
+      if (users.some((item) => item.email === email)) {
+        setNotice('A local preview account already uses this email. Sign in instead.')
+        return
+      }
+      user = {
+        id: `demo-${Date.now()}`,
+        name: String(formData.get('name') || '').trim(),
+        email,
+        phone: String(formData.get('phone') || '').trim(),
+        role: accountType,
+        providerStatus: accountType === 'provider' ? 'approved' : 'not-applicable',
+      }
+      localStorage.setItem(DEMO_USERS_KEY, JSON.stringify([...users, user]))
+    } else {
+      user = users.find((item) => item.email === email)
+      if (!user) {
+        setNotice('No local preview account was found for this email. Create an account first.')
+        return
+      }
+    }
+    localStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(user))
+    window.location.replace(user.role === 'provider' ? '/provider/dashboard' : '/dashboard')
   }
 
   return (
@@ -113,7 +140,9 @@ function AuthPage({ mode = 'local', apiBaseUrl = '' }) {
 
           <h2>{isSignUp ? 'Create Your Account' : 'Sign In to Your Account'}</h2>
           <p className="card-subtitle">
-            {isSignUp ? 'Your care journey starts with one simple step.' : 'Manage appointments and medical records'}
+            {mode === 'local'
+              ? 'Local preview only: account details stay in this browser; passwords are not verified or stored.'
+              : isSignUp ? 'Your care journey starts with one simple step.' : 'Manage appointments and medical records'}
           </p>
 
           <form onSubmit={handleSubmit}>
@@ -288,6 +317,8 @@ function AuthPage({ mode = 'local', apiBaseUrl = '' }) {
 function App({ mode = 'local', apiBaseUrl = '' }) {
   const { pathname } = window.location
   const doctorProfile = pathname.match(/^\/doctors\/([^/]+)$/)
+  const patientDashboard = pathname.match(/^\/dashboard(?:\/(appointments|profile))?$/)
+  const providerDashboard = pathname.match(/^\/provider\/dashboard(?:\/(schedule|patients|profile))?$/)
   const selectedDoctor = doctors.find((doctor) => doctor.slug === doctorProfile?.[1])
 
   useEffect(() => {
@@ -305,15 +336,19 @@ function App({ mode = 'local', apiBaseUrl = '' }) {
       document.title = 'Create Your Account | Carewell'
     } else if (pathname === '/login') {
       document.title = 'Sign In | Carewell'
+    } else if (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) {
+      document.title = 'Patient dashboard | Carewell'
+    } else if (pathname === '/provider/dashboard' || pathname.startsWith('/provider/dashboard/')) {
+      document.title = 'Provider dashboard | Carewell'
     } else if (doctorProfile) {
       document.title = selectedDoctor ? `${selectedDoctor.name} | Carewell` : 'Doctor Profile | Carewell'
     }
   }, [doctorProfile, pathname, selectedDoctor])
 
   if (pathname === '/admin' || pathname === '/admin/login') return <CarewellAdmin mode={mode} apiBaseUrl={apiBaseUrl} />
-  if (pathname === '/dashboard' && mode === 'api') return <CarewellPortal role="patient" apiBaseUrl={apiBaseUrl} />
-  if (pathname === '/provider/dashboard' && mode === 'api') return <CarewellPortal role="provider" apiBaseUrl={apiBaseUrl} />
-  if (pathname === '/') return <HomePage />
+  if (patientDashboard) return <CarewellPortal role="patient" section={patientDashboard[1] || 'overview'} mode={mode} apiBaseUrl={apiBaseUrl} />
+  if (providerDashboard) return <CarewellPortal role="provider" section={providerDashboard[1] || 'overview'} mode={mode} apiBaseUrl={apiBaseUrl} />
+  if (pathname === '/') return <HomePage mode={mode} apiBaseUrl={apiBaseUrl} />
   if (pathname === '/book-now') return <BookNowPage />
   if (pathname === '/about') return <CarewellAboutPage />
   if (pathname === '/specialties') return <CarewellSpecialtiesPage />
@@ -321,7 +356,7 @@ function App({ mode = 'local', apiBaseUrl = '' }) {
   if (doctorProfile) return <DoctorDetailsPage slug={doctorProfile[1]} mode={mode} apiBaseUrl={apiBaseUrl} />
   if (pathname === '/login' || pathname === '/signup') return <AuthPage mode={mode} apiBaseUrl={apiBaseUrl} />
 
-  return <HomePage />
+  return <HomePage mode={mode} apiBaseUrl={apiBaseUrl} />
 }
 
 export default App

@@ -89,12 +89,13 @@
 .status_completed { background:#e8f1f7; color:#4c7996; }
 .status_cancelled,.status_rejected,.status_suspended { background:#f9e9e7; color:#a9544b; }
 .status_not-applicable { background:#f1f3f1; color:#7c8881; }
-.inlineSelect { max-width:165px; height:30px; padding:0 6px; border:1px solid var(--line); border-radius:3px; background:#fff; color:#52665b; font-size:8px; }
+.inlineSelect { max-width:165px; min-height:30px; padding:0 25px 0 8px; border:1px solid var(--line); border-radius:7px; color:#52665b; font-size:8px; }
+.providerSelect { width:min(165px,100%); }
 .feeField { display:flex; width:80px; height:29px; align-items:center; gap:4px; padding:0 6px; border:1px solid var(--line); border-radius:3px; color:#788a80; font-size:8px; }
 .feeField input { width:100%; min-width:0; border:0; outline:0; color:#40584b; font-size:8px; }
 .statusControl { position:relative; display:inline-flex; min-width:95px; align-items:center; }
-.statusControl select { position:absolute; inset:0; width:100%; border:0; appearance:none; background:transparent; color:transparent; cursor:pointer; font-size:8px; }
-.statusControl > svg { position:absolute; right:6px; color:#7b8b83; pointer-events:none; }
+.statusSelect { min-width:90px; min-height:25px; justify-content:space-between; padding:5px 7px; border:0; border-radius:99px; font-size:7px; text-transform:capitalize; }
+.statusSelect > svg { width:11px; height:11px; color:currentColor; }
 .rowActions { display:flex; gap:5px; }
 .rowActions button,.approveButton,.textAction { padding:6px 8px; border:1px solid #d5e8dd; border-radius:3px; background:#f1f8f3; color:#347451; cursor:pointer; font-size:7.5px; font-weight:700; white-space:nowrap; }
 .rowActions button:disabled,.approveButton:disabled,.textAction:disabled { opacity:.5; cursor:wait; }

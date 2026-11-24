@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ArrowUpRight, Copy, ChevronDown, Check, RefreshCw, Search, X } from 'lucide-react'
-import { sms4Api } from '../services/api'
+import { getUserToken, sms4Api } from '../services/api'
 import CardzipLoader from '../components/CardzipLoader'
 
 const listFrom = (response, keys) => {
@@ -43,10 +43,15 @@ const formatPrice = (pricing) => {
   return `${currency ? `${currency} ` : ''}${amount}`
 }
 
+const preferredServices = ['whatsapp', 'telegram', 'google', 'razorpay', 'opay', 'palmpay', 'moniepoint', 'paystack', 'flutterwave', 'walmart', 'woocommerce', 'jumia', 'konga', 'amazon', 'facebook', 'instagram', 'tiktok', 'bolt', 'uber']
+
 export default function VirtualNumbersPage() {
+  const appPickerRef = useRef(null)
   const [copied, setCopied] = useState(false)
   const [areas, setAreas] = useState([])
   const [apps, setApps] = useState([])
+  const [hasMoreApps, setHasMoreApps] = useState(false)
+  const [loadingApps, setLoadingApps] = useState(false)
   const [durations, setDurations] = useState([])
   const [rentals, setRentals] = useState([])
   const [messages, setMessages] = useState([])
@@ -58,6 +63,8 @@ export default function VirtualNumbersPage() {
   const [pricingLoading, setPricingLoading] = useState(false)
   const [appPickerOpen, setAppPickerOpen] = useState(false)
   const [appSearch, setAppSearch] = useState('')
+  const appSearchRequest = useRef(0)
+  const lastAppSearch = useRef('')
   const [paymentMethod, setPaymentMethod] = useState('wallet')
   const [showPaymentChoice, setShowPaymentChoice] = useState(false)
   const [purchaseOutcome, setPurchaseOutcome] = useState('')
@@ -77,16 +84,26 @@ export default function VirtualNumbersPage() {
   const selectedRental = rentals.find((rental) => rentalIdOf(rental) === selectedRentalId)
   const phoneNumber = valueOf(selectedRental, ['phoneNumber', 'number', 'phone'])
   const selectedPrice = formatPrice(durationPrices[selectedDuration])
+  const usableApps = (response) => listFrom(response, ['apps', 'applications', 'items', 'results'])
+    .filter((app) => {
+      const name = appName(app).trim()
+      return name && !/^(allservices|\d+allservices)$/i.test(name)
+    })
   const orderedApps = [...apps].sort((first, second) => {
-    const priority = (name) => {
-      const normalized = name.toLowerCase()
-      if (normalized.includes('whatsapp')) return 0
-      if (normalized.includes('telegram')) return 1
-      if (normalized.includes('google')) return 2
-      return 3
-    }
-    return priority(appName(first)) - priority(appName(second))
+    const firstPriority = preferredServices.indexOf(appName(first).toLowerCase())
+    const secondPriority = preferredServices.indexOf(appName(second).toLowerCase())
+    return (firstPriority < 0 ? Number.MAX_SAFE_INTEGER : firstPriority)
+      - (secondPriority < 0 ? Number.MAX_SAFE_INTEGER : secondPriority)
   }).filter((app) => appName(app).toLowerCase().includes(appSearch.trim().toLowerCase()))
+
+  useEffect(() => {
+    if (!appPickerOpen) return undefined
+    const closeOnOutsideClick = (event) => {
+      if (!appPickerRef.current?.contains(event.target)) setAppPickerOpen(false)
+    }
+    document.addEventListener('pointerdown', closeOnOutsideClick)
+    return () => document.removeEventListener('pointerdown', closeOnOutsideClick)
+  }, [appPickerOpen])
 
   const loadRentals = async () => {
     const response = await sms4Api.numbers(true)
@@ -97,26 +114,71 @@ export default function VirtualNumbersPage() {
       : rentalIdOf(nextRentals[0]))
   }
 
+  const loadMoreApps = async () => {
+    const requestId = ++appSearchRequest.current
+    const search = appSearch.trim()
+    setLoadingApps(true)
+    try {
+      const response = await sms4Api.apps({ search, limit: 50, offset: apps.length })
+      if (requestId !== appSearchRequest.current) return
+      setApps((current) => [...current, ...usableApps(response)])
+      setHasMoreApps(Boolean(response.pagination?.hasMore))
+    } catch (requestError) {
+      if (requestId === appSearchRequest.current) setError(requestError.message)
+    } finally {
+      if (requestId === appSearchRequest.current) setLoadingApps(false)
+    }
+  }
+
   useEffect(() => {
     let mounted = true
-    Promise.all([sms4Api.areas(), sms4Api.apps(), sms4Api.numbers(true)])
-      .then(([areaResponse, appResponse, rentalResponse]) => {
+    Promise.all([sms4Api.areas(), sms4Api.apps({ limit: 50, offset: 0 })])
+      .then(([areaResponse, appResponse]) => {
         if (!mounted) return
         const nextAreas = listFrom(areaResponse, ['areas', 'locations', 'items', 'results'])
-        const nextApps = listFrom(appResponse, ['apps', 'applications', 'items', 'results'])
-        const nextRentals = listFrom(rentalResponse, ['rentals', 'numbers', 'items', 'results'])
+        const nextApps = usableApps(appResponse)
         setAreas(nextAreas)
         setApps(nextApps)
-        setRentals(nextRentals)
+        setHasMoreApps(Boolean(appResponse.pagination?.hasMore))
         setSelectedArea(areaValue(nextAreas.find(isUnitedStatesArea) || nextAreas[0]))
-        setSelectedApp(appName(nextApps[0]))
-        setSelectedRentalId(rentalIdOf(nextRentals[0]))
-        setAutoRenew(Boolean(nextRentals[0]?.auto_renew ?? nextRentals[0]?.autoRenew))
+        setSelectedApp(appName(nextApps[0]).toLowerCase())
       })
       .catch((requestError) => { if (mounted) setError(requestError.message) })
       .finally(() => { if (mounted) setLoading(false) })
+    if (getUserToken()) {
+      sms4Api.numbers(true)
+        .then((response) => {
+          if (!mounted) return
+          const nextRentals = listFrom(response, ['rentals', 'numbers', 'items', 'results'])
+          setRentals(nextRentals)
+          setSelectedRentalId(rentalIdOf(nextRentals[0]))
+          setAutoRenew(Boolean(nextRentals[0]?.auto_renew ?? nextRentals[0]?.autoRenew))
+        })
+        .catch((requestError) => { if (mounted) setError(requestError.message) })
+    }
     return () => { mounted = false }
   }, [])
+
+  useEffect(() => {
+    const search = appSearch.trim()
+    if (search === lastAppSearch.current) return undefined
+    const timer = window.setTimeout(async () => {
+      const requestId = ++appSearchRequest.current
+      lastAppSearch.current = search
+      setLoadingApps(true)
+      try {
+        const response = await sms4Api.apps({ search, limit: 50, offset: 0 })
+        if (requestId !== appSearchRequest.current) return
+        setApps(usableApps(response))
+        setHasMoreApps(Boolean(response.pagination?.hasMore))
+      } catch (requestError) {
+        if (requestId === appSearchRequest.current) setError(requestError.message)
+      } finally {
+        if (requestId === appSearchRequest.current) setLoadingApps(false)
+      }
+    }, 250)
+    return () => window.clearTimeout(timer)
+  }, [appSearch])
 
   useEffect(() => {
     if (!selectedApp) {
@@ -285,7 +347,7 @@ export default function VirtualNumbersPage() {
 
             <div className="form-field">
               <label className="field-label">Choose an app</label>
-              <div className="sms4-app-picker">
+              <div className="sms4-app-picker" ref={appPickerRef}>
                 <button type="button" className="sms4-app-select" aria-haspopup="listbox" aria-expanded={appPickerOpen} disabled={loading || apps.length === 0} onClick={() => setAppPickerOpen((open) => !open)}>
                   <span>{selectedApp || (loading ? <CardzipLoader compact label="Loading apps" /> : 'Select an app')}</span>
                   <ChevronDown size={16} />
@@ -298,10 +360,10 @@ export default function VirtualNumbersPage() {
                   <div className="sms4-app-options" role="listbox" aria-label="Available apps">
                     {orderedApps.map((app, index) => {
                       const name = appName(app)
-                      const selected = selectedApp === name
+                      const selected = selectedApp === name.toLowerCase()
                       const stock = valueOf(app, ['stock', 'available', 'availableStock', 'count'])
                       return <button type="button" role="option" aria-selected={selected} key={`${name}-${index}`} className={`sms4-app-option ${selected ? 'selected' : ''}`} onClick={() => {
-                        setSelectedApp(name)
+                        setSelectedApp(name.toLowerCase())
                         setSelectedDuration('')
                         setAppPickerOpen(false)
                         setAppSearch('')
@@ -310,7 +372,8 @@ export default function VirtualNumbersPage() {
                         {selected && <Check size={15} />}
                       </button>
                     })}
-                    {orderedApps.length === 0 && <p className="sms4-app-empty">No matching apps.</p>}
+                    {orderedApps.length === 0 && <p className="sms4-app-empty">{loadingApps ? 'Searching apps…' : 'No matching apps.'}</p>}
+                    {hasMoreApps && <button type="button" className="sms4-app-option" disabled={loadingApps} onClick={() => { void loadMoreApps() }}>{loadingApps ? 'Loading apps…' : 'Load more apps'}</button>}
                   </div>
                 </div>}
               </div>

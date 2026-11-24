@@ -44,3 +44,42 @@ export const starterEvents: EventItem[] = [
     lineup: "DJ Kairo · Luna Grey · Niko Flores", tag: "Almost gone",
   },
 ];
+
+export type EventSession = {
+  time: string;
+  track: string;
+  title: string;
+  speaker: string;
+};
+
+export type EventSpeaker = {
+  name: string;
+  role: string;
+  image: string;
+};
+
+export const starterSessions: EventSession[] = [
+  { time: "09:00 AM", track: "MAIN STAGE", title: "Opening Keynote: The Live Era", speaker: "Maya Chen · PulseLive" },
+  { time: "10:15 AM", track: "STUDIO A", title: "Designing for Real-World Audiences", speaker: "James Park · Northstar" },
+  { time: "11:30 AM", track: "MAIN STAGE", title: "Creative Teams That Break Boundaries", speaker: "Amara Okafor · FutureForm" },
+  { time: "01:30 PM", track: "STUDIO B", title: "From First Note to Festival Set", speaker: "DJ Kairo · Independent artist" },
+  { time: "03:00 PM", track: "MAIN STAGE", title: "Make Room for the Unexpected", speaker: "Lina Moreau · Common Ground" },
+];
+
+export const starterSpeakers: EventSpeaker[] = [
+  { name: "Maya Chen", role: "Creative Director", image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=420&q=85" },
+  { name: "James Park", role: "Founder, Northstar", image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=420&q=85" },
+  { name: "Amara Okafor", role: "Artist & Speaker", image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=420&q=85" },
+  { name: "Lina Moreau", role: "Design Lead", image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=420&q=85" },
+];
+
+export function withEventFallback(event: EventItem): EventItem {
+  const fallback = starterEvents.find((item) => item.slug === event.slug)
+    || starterEvents.find((item) => item.category === event.category)
+    || starterEvents[0];
+  return {
+    ...fallback,
+    ...event,
+    image: typeof event.image === "string" && event.image.trim() ? event.image : fallback.image,
+  };
+}

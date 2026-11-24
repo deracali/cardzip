@@ -10,7 +10,10 @@
     "ios": {
       "icon": "./assets/images/cardzip-app-icon.png",
       "bundleIdentifier": "com.ios.cardzip",
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.deracali.cardzipapp",

@@ -10,6 +10,6 @@ Independent Next.js App Router frontend for the Escapes Travel Stay template. Ea
 
 The default API URL is `http://localhost:5000/api`; set `NEXT_PUBLIC_API_BASE_URL` when the API uses another origin. Browser-dependent screens are loaded on the client to avoid server-rendering `window` access. Screen files stay outside the reserved `pages/` directory so this project uses only the App Router.
 
-The frontend includes stay discovery, booking checkout, guest signup/sign-in, a client dashboard and invitation-only admin routes. Reservation reads and admin changes are authorized by the backend, not only by frontend route visibility.
+The frontend includes stay discovery, booking checkout, guest signup/sign-in, a client dashboard and invitation-only admin routes. Admin overview, reservations, property listings, and guest accounts are separate pages under `/admin`. Administrators can add properties with a nightly rate and HTTPS photo URL; the API stores them and exposes them in stay discovery and detail/booking routes. Reservation reads and admin changes are authorized by the backend, not only by frontend route visibility.
 
 Run `npm run typecheck` and `npm run build` before deployment. See the parent README and `../docs/BUYER-GUIDE.md` for complete setup and buyer details.

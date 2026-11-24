@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { eventHubApi, type EventItem } from "../lib/eventHubApi";
-import { starterEvents } from "../lib/eventData";
+import { starterEvents, withEventFallback } from "../lib/eventData";
 import BookingForm from "./BookingForm";
 
 export default function EventCheckout({ slug }: { slug: string }) {
@@ -12,7 +12,7 @@ export default function EventCheckout({ slug }: { slug: string }) {
   useEffect(() => {
     let active = true;
     eventHubApi.getEvent(slug)
-      .then((result) => { if (active) setEvent(result.event); })
+      .then((result) => { if (active) setEvent(withEventFallback(result.event)); })
       .catch((requestError) => { if (active) setError(requestError instanceof Error ? requestError.message : "Could not load this event."); });
     return () => { active = false; };
   }, [slug]);

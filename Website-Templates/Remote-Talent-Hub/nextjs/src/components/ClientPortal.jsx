@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, BriefcaseBusiness, CheckCircle2 } from "lucide-react";
+import { ArrowRight, BriefcaseBusiness, CheckCircle2, ShieldCheck } from "lucide-react";
 import PageShell from "./PageShell";
 import { apiRequest, clearToken, getToken } from "../services/api";
 
@@ -63,16 +63,27 @@ export default function ClientPortal() {
   const records = employer ? data.jobs : data.applications;
   return (
     <PageShell>
-      <main className="wrap account-page">
-        <div className="account-heading"><div><span className="eyebrow">{employer ? "EMPLOYER WORKSPACE" : "CANDIDATE WORKSPACE"}</span><h1>Welcome, {data.user.name}</h1><p>{employer ? "Manage your listings and review applicants for your approved jobs." : "Track the applications you have submitted."}</p></div><button className="button button-outline" onClick={signOut}>Sign out</button></div>
-        {error && <p className="api-notice api-notice-error" role="alert">{error}</p>}
-        <section className="account-summary"><article><BriefcaseBusiness /><strong>{records.length}</strong><span>{employer ? "Job listings" : "Applications"}</span></article><article><CheckCircle2 /><strong>{records.filter((item) => item.status === "approved" || item.status === "submitted").length}</strong><span>{employer ? "Approved or in review" : "Submitted"}</span></article></section>
-        <section className="info-panel account-panel"><div className="section-title-row"><div><h2>{employer ? "Your job listings" : "Your applications"}</h2><p>Only records linked to your account are returned by the API.</p></div>{employer && <Link className="button button-purple" href="/post-job">Post a job <ArrowRight size={14} /></Link>}</div>
-          {records.length === 0 ? <p className="empty-account">{employer ? "You have not posted a job yet." : "You have not submitted an application yet."}</p> :
-            <div className="account-record-list">{records.map((item) => <article key={item.id} className="account-record"><div><strong>{employer ? item.title : item.jobTitle}</strong><small>{employer ? `${item.category} · ${item.location}` : new Date(item.createdAt).toLocaleDateString()}</small>{employer && item.paymentStatus !== "paid" && <small>Payment integration is required before this listing can appear publicly.</small>}</div><span className={`status-pill status-${item.status}`}>{item.status.replaceAll("_", " ")}</span></article>)}</div>}
-        </section>
-        {employer && <section className="info-panel account-panel"><h2>Applications for your listings</h2>{data.applications.length === 0 ? <p className="empty-account">Applications for your approved listings will appear here.</p> : <div className="account-record-list">{data.applications.map((application) => <article key={application.id} className="account-record account-record-admin"><div><strong>{application.candidateName} · {application.jobTitle}</strong><small>{application.candidateEmail} · {new Date(application.createdAt).toLocaleDateString()}</small><span className={`status-pill status-${application.status}`}>{application.status}</span></div><div className="admin-actions"><button className="button button-outline" disabled={busyId === application.id} onClick={() => updateApplication(application.id, "rejected")}>Reject</button><button className="button button-purple" disabled={busyId === application.id} onClick={() => updateApplication(application.id, "shortlisted")}>{busyId === application.id ? "Saving..." : "Shortlist"}</button></div></article>)}</div>}</section>}
-      </main>
+      <div className="workspace-layout">
+        <aside className="workspace-sidebar">
+          <Link className="workspace-sidebar-brand" href="/"><BriefcaseBusiness size={22} /><span>Remote Talent<small>{employer ? "Employer workspace" : "Candidate workspace"}</small></span></Link>
+          <span className="workspace-nav-label">WORKSPACE</span>
+          <nav aria-label="Client dashboard">
+            <Link className="is-active" href="/dashboard"><BriefcaseBusiness size={17} /> Overview</Link>
+            {employer ? <><Link href="/post-job"><CheckCircle2 size={17} /> Post a job</Link><Link href="/talent"><ShieldCheck size={17} /> Browse talent</Link><Link href="/dashboard#applications"><CheckCircle2 size={17} /> Applications</Link></> : <><Link href="/jobs"><BriefcaseBusiness size={17} /> Find jobs</Link><Link href="/dashboard#applications"><CheckCircle2 size={17} /> My applications</Link><Link href="/talent"><ShieldCheck size={17} /> Browse talent</Link></>}
+          </nav>
+          <div className="workspace-sidebar-footer"><Link href="/"><ArrowRight size={14} /> Back to marketplace</Link><span><i /> Secure workspace</span></div>
+        </aside>
+        <main className="wrap account-page client-workspace">
+          <div className="account-heading"><div><span className="eyebrow">{employer ? "EMPLOYER WORKSPACE" : "CANDIDATE WORKSPACE"}</span><h1>Welcome, {data.user.name}</h1><p>{employer ? "Manage your listings and review applicants for your approved jobs." : "Track the applications you have submitted."}</p></div><button className="button button-outline" onClick={signOut}>Sign out</button></div>
+          {error && <p className="api-notice api-notice-error" role="alert">{error}</p>}
+          <section className="account-summary"><article><BriefcaseBusiness /><strong>{records.length}</strong><span>{employer ? "Job listings" : "Applications"}</span></article><article><CheckCircle2 /><strong>{records.filter((item) => item.status === "approved" || item.status === "submitted").length}</strong><span>{employer ? "Approved or in review" : "Submitted"}</span></article></section>
+          <section className="info-panel account-panel" id={employer ? "listings" : "applications"}><div className="section-title-row"><div><h2>{employer ? "Your job listings" : "Your applications"}</h2><p>Only records linked to your account are returned by the API.</p></div>{employer && <Link className="button button-purple" href="/post-job">Post a job <ArrowRight size={14} /></Link>}</div>
+            {records.length === 0 ? <p className="empty-account">{employer ? "You have not posted a job yet." : "You have not submitted an application yet."}</p> :
+              <div className="account-record-list">{records.map((item) => <article key={item.id} className="account-record"><div><strong>{employer ? item.title : item.jobTitle}</strong><small>{employer ? `${item.category} · ${item.location}` : new Date(item.createdAt).toLocaleDateString()}</small>{employer && item.paymentStatus !== "paid" && <small>Payment integration is required before this listing can appear publicly.</small>}</div><span className={`status-pill status-${item.status}`}>{item.status.replaceAll("_", " ")}</span></article>)}</div>}
+          </section>
+          {employer && <section className="info-panel account-panel" id="applications"><h2>Applications for your listings</h2>{data.applications.length === 0 ? <p className="empty-account">Applications for your approved listings will appear here.</p> : <div className="account-record-list">{data.applications.map((application) => <article key={application.id} className="account-record account-record-admin"><div><strong>{application.candidateName} · {application.jobTitle}</strong><small>{application.candidateEmail} · {new Date(application.createdAt).toLocaleDateString()}</small><span className={`status-pill status-${application.status}`}>{application.status}</span></div><div className="admin-actions"><button className="button button-outline" disabled={busyId === application.id} onClick={() => updateApplication(application.id, "rejected")}>Reject</button><button className="button button-purple" disabled={busyId === application.id} onClick={() => updateApplication(application.id, "shortlisted")}>{busyId === application.id ? "Saving..." : "Shortlist"}</button></div></article>)}</div>}</section>}
+        </main>
+      </div>
     </PageShell>
   );
 }

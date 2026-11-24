@@ -198,22 +198,201 @@
   font-size: 12px;
 }
 
+.reviews-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 15px;
+}
+
+.reviews-section-heading h2 {
+  margin: 5px 0 0;
+}
+
+.reviews-section-heading > strong {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #d89a2e;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.reviews-section-heading > strong small {
+  color: #8290a0;
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.review-eyebrow {
+  color: #0e978b;
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: .08em;
+}
+
+.patient-reviews-list {
+  display: grid;
+}
+
+.patient-review {
+  padding: 15px 0;
+  border-top: 1px solid #edf1f3;
+}
+
 .patient-review-stars {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 7px;
   color: #efa936;
-  letter-spacing: 1px;
+  font-size: 14px;
+  letter-spacing: 2px;
+}
+
+.patient-review > p {
+  margin: 0;
+  color: #68798e;
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
 }
 
 .patient-review footer {
-  margin-top: 11px;
-  color: #34445a;
-  font-size: 11px;
+  display: flex;
+  gap: 5px;
+  margin-top: 10px;
+  color: #8290a0;
+  font-size: 10px;
 }
 
-.patient-review footer span {
+.patient-review footer strong {
+  color: #34445a;
+}
+
+.reviews-empty {
+  margin: 0;
+  padding: 17px 0;
+  border-top: 1px solid #edf1f3;
   color: #8290a0;
-  font-weight: 400;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.review-form {
+  display: grid;
+  gap: 9px;
+  margin-top: 14px;
+  padding-top: 16px;
+  border-top: 1px solid #e8eef0;
+}
+
+.review-form h3 {
+  margin: 0 0 2px;
+  color: #2b3c50;
+  font-size: 14px;
+}
+
+.review-form > label {
+  color: #405269;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.review-star-picker {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin: -4px 0 4px;
+}
+
+.review-star-picker button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #e9a735;
+  cursor: pointer;
+}
+
+.review-star-picker button:hover,
+.review-star-picker button:focus-visible {
+  background: #fff7e9;
+}
+
+.review-star-picker > span {
+  margin-left: 7px;
+  color: #8794a3;
+  font-size: 10px;
+}
+
+.review-form textarea {
+  width: 100%;
+  min-height: 100px;
+  resize: vertical;
+  padding: 11px 12px;
+  border: 1px solid #dfe7ec;
+  border-radius: 8px;
+  color: #35465b;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.review-form textarea:focus {
+  border-color: #79bfb3;
+  outline: 3px solid #0e978b20;
+}
+
+.review-demo-note {
+  color: #8a7953;
+  font-size: 9px;
+}
+
+.review-submit {
+  min-height: 39px;
+  justify-self: start;
+  padding: 0 15px;
+  border: 0;
+  border-radius: 8px;
+  background: #0e978b;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.review-submit:disabled {
+  opacity: .65;
+  cursor: wait;
+}
+
+.review-signin-prompt,
+.review-message {
+  margin: 13px 0 0;
+  padding: 10px 12px;
+  border-radius: 7px;
+  background: #f4f8f6;
+  color: #667b70;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.review-signin-prompt a {
+  color: #0e8174;
+  font-weight: 700;
+}
+
+.review-error {
+  background: #fff3f1;
+  color: #9c4a42;
+}
+
+.review-success {
+  background: #edf8f1;
+  color: #3c7954;
 }
 
 .booking-card {
@@ -624,6 +803,17 @@
   color: #886b32;
   font-size: 10px;
   line-height: 1.55;
+}
+
+.booking-checkout-error {
+  margin: 10px 0;
+  padding: 10px 11px;
+  border: 1px solid #f0d7d2;
+  border-radius: 8px;
+  background: #fff4f2;
+  color: #9c4a42;
+  font-size: 11px;
+  line-height: 1.5;
 }
 
 .booking-checkout-submit {

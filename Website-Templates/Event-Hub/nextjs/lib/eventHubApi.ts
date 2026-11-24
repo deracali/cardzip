@@ -8,6 +8,7 @@ export type EventItem = {
   time: string;
   location: string;
   price: number;
+  currency?: string;
   image: string;
   description: string;
   lineup: string;
@@ -28,13 +29,30 @@ export type Booking = {
   _id: string;
   reference: string;
   eventTitle: string;
+  eventSlug?: string;
   ticketType: string;
   quantity: number;
   total: number;
   status: string;
+  paymentStatus?: string;
+  currency?: string;
   attendeeName?: string;
   attendeeEmail?: string;
   createdAt: string;
+};
+
+export type PaymentProvider = "paystack" | "stripe";
+
+export type PaymentProviderOptions = {
+  currency: string;
+  providers: PaymentProvider[];
+};
+
+export type BookingCheckout = {
+  bookingReference: string;
+  checkoutUrl: string;
+  provider: PaymentProvider;
+  reference: string;
 };
 
 const apiBaseUrl = (process.env.NEXT_PUBLIC_EVENT_HUB_API_URL || "http://localhost:5400/api").replace(/\/+$/, "");
@@ -82,6 +100,11 @@ export const eventHubApi = {
   currentUser: () => request<{ user: EventUser }>("/auth/me"),
   createBooking: (body: { eventSlug: string; ticketType: string; quantity: number }) =>
     request<{ booking: Booking; message: string }>("/bookings", { method: "POST", body }),
+  paymentProviders: () => request<PaymentProviderOptions>("/payments/providers"),
+  startBookingCheckout: (body: { eventSlug: string; ticketType: string; quantity: number; provider: PaymentProvider }) =>
+    request<BookingCheckout>("/bookings/checkout", { method: "POST", body }),
+  verifyBookingPayment: (body: { provider: PaymentProvider; reference: string }) =>
+    request<{ status: "paid"; booking: Booking }>("/bookings/verify", { method: "POST", body }),
   myBookings: () => request<{ bookings: Booking[] }>("/bookings/mine"),
   organizerEvents: () => request<{ events: EventItem[] }>("/organizer/events"),
   organizerBookings: () => request<{ bookings: Booking[] }>("/organizer/bookings"),

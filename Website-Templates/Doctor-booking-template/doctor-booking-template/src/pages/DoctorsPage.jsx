@@ -1,17 +1,31 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, MapPin, Search, SlidersHorizontal, Star } from 'lucide-react'
+import CustomSelect from '../components/CustomSelect'
 import HomeHeader from '../components/HomeHeader'
 import HomeFooter from '../components/HomeFooter'
 import { doctors, specialties } from '../data/doctors'
 import './DoctorsPage.css'
 
+function getLocalDoctorDirectory() {
+  try {
+    const profiles = JSON.parse(localStorage.getItem('carewell-demo-provider-profiles-v1') || '{}') || {}
+    const localProfiles = Object.values(profiles).filter((profile) => profile?.active && profile?.slug)
+    return { doctors: [...doctors, ...localProfiles.filter((profile) => !doctors.some((doctor) => doctor.slug === profile.slug))], error: '' }
+  } catch (error) {
+    return { doctors, error: `Unable to load local provider profiles: ${error.message}` }
+  }
+}
+
 function DoctorsPage({ bookingMode = false, mode = 'local', apiBaseUrl = '' }) {
   const searchParams = new URLSearchParams(window.location.search)
+  const [localDirectory] = useState(() => mode === 'api' ? null : getLocalDoctorDirectory())
   const [query, setQuery] = useState(searchParams.get('q') || '')
   const [specialty, setSpecialty] = useState(searchParams.get('specialty') || '')
   const [location, setLocation] = useState(searchParams.get('location') || '')
   const [sortBy, setSortBy] = useState('recommended')
-  const [doctorList, setDoctorList] = useState(doctors)
+  const [doctorList, setDoctorList] = useState(() => localDirectory?.doctors || [])
+  const [doctorsLoading, setDoctorsLoading] = useState(mode === 'api')
+  const [loadError, setLoadError] = useState(localDirectory?.error || '')
 
   useEffect(() => {
     let active = true
@@ -20,9 +34,13 @@ function DoctorsPage({ bookingMode = false, mode = 'local', apiBaseUrl = '' }) {
       .then((response) => response.json().then((result) => ({ response, result })))
       .then(({ response, result }) => {
         if (!response.ok) throw new Error(result.error || 'Unable to load doctors.')
-        if (active) setDoctorList(result.doctors.map((doctor) => ({ ...doctors.find((item) => item.slug === doctor.slug), ...doctor, image: doctors.find((item) => item.slug === doctor.slug)?.image })))
+        if (active) setDoctorList(result.doctors.map((doctor) => {
+          const starterDoctor = doctors.find((item) => item.slug === doctor.slug)
+          return { ...starterDoctor, ...doctor, image: doctor.image || starterDoctor?.image || '' }
+        }))
       })
-      .catch(() => {})
+      .catch((error) => { if (active) setLoadError(error.message) })
+      .finally(() => { if (active) setDoctorsLoading(false) })
     return () => { active = false }
   }, [apiBaseUrl, mode])
 
@@ -30,7 +48,7 @@ function DoctorsPage({ bookingMode = false, mode = 'local', apiBaseUrl = '' }) {
     const normalizedQuery = query.trim().toLowerCase()
     const filtered = doctorList.filter((doctor) => {
       const matchesQuery = !normalizedQuery ||
-        `${doctor.name} ${doctor.specialty} ${doctor.credentials}`.toLowerCase().includes(normalizedQuery)
+        `${doctor.name} ${doctor.specialty} ${doctor.credentials || ''}`.toLowerCase().includes(normalizedQuery)
       const matchesSpecialty = !specialty || doctor.specialty === specialty
       const matchesLocation = !location || doctor.location.toLowerCase().includes(location.trim().toLowerCase())
       return matchesQuery && matchesSpecialty && matchesLocation
@@ -69,10 +87,14 @@ function DoctorsPage({ bookingMode = false, mode = 'local', apiBaseUrl = '' }) {
               </label>
               <label className="doctors-filter-specialty">
                 <SlidersHorizontal size={17} />
-                <select value={specialty} onChange={(event) => setSpecialty(event.target.value)} aria-label="Filter by specialty">
-                  <option value="">All specialties</option>
-                  {specialties.map((item) => <option key={item}>{item}</option>)}
-                </select>
+                <CustomSelect
+                  className="doctors-filter-select"
+                  triggerClassName="doctors-filter-select-trigger"
+                  value={specialty}
+                  onChange={setSpecialty}
+                  ariaLabel="Filter by specialty"
+                  options={[{ value: '', label: 'All specialties' }, ...specialties.map((item) => ({ value: item, label: item }))]}
+                />
               </label>
               <button type="submit"><Search size={16} /> Search</button>
             </form>
@@ -83,23 +105,28 @@ function DoctorsPage({ bookingMode = false, mode = 'local', apiBaseUrl = '' }) {
           <div className="doctors-results-heading">
             <div><h2>{bookingMode ? 'Choose a doctor' : 'Available specialists'}</h2><p>{filteredDoctors.length} trusted {filteredDoctors.length === 1 ? 'doctor' : 'doctors'} ready to see you</p></div>
             <label>Sort by
-              <select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
-                <option value="recommended">Recommended</option>
-                <option value="rating">Highest rated</option>
-              </select>
+              <CustomSelect
+                className="doctors-sort-select"
+                triggerClassName="doctors-sort-select-trigger"
+                value={sortBy}
+                onChange={setSortBy}
+                ariaLabel="Sort doctors"
+                options={[{ value: 'recommended', label: 'Recommended' }, { value: 'rating', label: 'Highest rated' }]}
+              />
             </label>
           </div>
 
-          {filteredDoctors.length ? (
+          {loadError && <p className="doctors-load-error" role="alert">{loadError}</p>}
+          {doctorsLoading ? <div className="doctors-loading">Loading doctor profiles…</div> : filteredDoctors.length ? (
             <div className="doctors-directory-grid">
               {filteredDoctors.map((doctor) => (
                 <article className="directory-doctor-card" key={doctor.slug}>
                   <a className="directory-doctor-image" href={`/doctors/${doctor.slug}`} aria-label={`View ${doctor.name}'s profile`}>
-                    <img src={doctor.image} alt={doctor.name} />
+                    {doctor.image ? <img src={doctor.image} alt={doctor.name} /> : <div className="directory-doctor-image-placeholder">{doctor.name?.slice(0, 1) || 'D'}</div>}
                     <span><i /> Accepting patients</span>
                   </a>
                   <div className="directory-doctor-body">
-                    <div className="directory-rating"><Star size={14} fill="currentColor" /> {doctor.rating} <span>({doctor.reviews} reviews)</span></div>
+                    <div className="directory-rating"><Star size={14} fill="currentColor" /> {Number(doctor.rating || 0).toFixed(1)} <span>({doctor.reviews || 0} reviews)</span></div>
                     <h3><a href={`/doctors/${doctor.slug}`}>{doctor.name}</a></h3>
                     <p className="directory-specialty">{doctor.specialty} <span>·</span> {doctor.credentials}</p>
                     <p className="directory-location"><MapPin size={14} /> {doctor.location} <span>·</span> {doctor.experience} experience</p>

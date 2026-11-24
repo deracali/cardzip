@@ -18,9 +18,10 @@ Set `NEXT_PUBLIC_SKILLORA_API_URL` if the API is not at `http://localhost:5300/a
 - `/courses` — course catalog
 - `/learn/:courseId` — enrolled course lesson player
 - `/login` and `/signup` — student/instructor authentication
-- `/dashboard` — authenticated student enrollments and progress
-- `/instructor/dashboard` — approved instructor course and learner view
+- `/dashboard` — student overview, with API-backed `/dashboard/courses`, `/dashboard/progress`, and `/dashboard/profile` pages
+- `/instructor/dashboard` — tutor overview, with API-backed `/instructor/dashboard/courses`, `/instructor/dashboard/learners`, and `/instructor/dashboard/profile` pages
 - `/admin` — authenticated platform administration
-- `/checkout` — free enrollment or provider-hosted NGN paid-course checkout when a configured provider account supports NGN; memberships remain demo-only
+- `/pricing` — API-backed course prices, purchase terms, and course inclusions
+- `/checkout?course=:courseId` — free enrollment or hosted NGN Paystack/Stripe checkout for one course
 
-See `../backend/README.md` for Paystack/Stripe configuration and webhook setup. Paid enrollment is activated only after server-side provider verification; if no provider has NGN configured, paid checkout is unavailable.
+See `../backend/README.md` for Paystack/Stripe configuration and webhook setup. Students pay once per selected course; recurring memberships are not offered. Paid enrollment is activated only after server-side provider verification; if no provider has NGN configured, paid checkout is unavailable. The lesson text and video player are sample content and must be replaced with real materials before live sales.

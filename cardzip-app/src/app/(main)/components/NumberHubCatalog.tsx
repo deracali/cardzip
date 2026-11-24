@@ -60,7 +60,6 @@ export default function NumberHubCatalog({
     ? '🇺🇸'
     : selectedArea?.code ?? selectedArea?.label.slice(0, 2).toUpperCase() ?? '--';
   const selectedApp = apps.find((app) => app.value === selectedService) ?? apps[0];
-  const selectedDurationOption = durations.find((duration) => duration.value === selectedDuration) ?? durations[0];
   const otherAreas = areas.filter((area) => area.value !== selectedArea?.value).slice(0, 2);
   const preferredServices = ['whatsapp', 'telegram', 'google', 'razorpay', 'opay', 'palmpay', 'moniepoint', 'paystack', 'flutterwave', 'walmart', 'woocommerce', 'jumia', 'konga', 'amazon', 'facebook', 'instagram', 'tiktok', 'bolt', 'uber'];
   const visibleApps = apps
@@ -70,6 +69,7 @@ export default function NumberHubCatalog({
       const secondIndex = preferredServices.indexOf(second.value.toLowerCase());
       return (firstIndex < 0 ? Number.MAX_SAFE_INTEGER : firstIndex) - (secondIndex < 0 ? Number.MAX_SAFE_INTEGER : secondIndex);
     });
+  const servicesToShow = serviceSearch.trim() ? visibleApps : visibleApps.slice(0, 19);
   const formatPrice = (price?: number, isLoading = false) => isLoading
     ? 'Loading price...'
     : price === undefined ? 'Price unavailable' : `₦${price.toLocaleString('en-NG')}`;
@@ -177,7 +177,7 @@ export default function NumberHubCatalog({
         style={styles.serviceRow}
         contentContainerStyle={styles.serviceRowContent}
       >
-        {visibleApps.filter((app) => app.value !== selectedApp?.value).map((app) => (
+        {servicesToShow.filter((app) => app.value !== selectedApp?.value).map((app) => (
           <TouchableOpacity key={app.value} style={styles.servicePill} onPress={() => onSelectService(app.value)}>
             <Text style={styles.servicePillText} numberOfLines={1}>{app.label}</Text>
           </TouchableOpacity>

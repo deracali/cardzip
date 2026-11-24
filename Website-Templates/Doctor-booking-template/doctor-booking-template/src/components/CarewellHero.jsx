@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { ArrowRight, BadgeCheck, CalendarDays, MapPin, Search, Stethoscope } from 'lucide-react'
+import { ArrowRight, BadgeCheck, CalendarDays, MapPin, Search, ShieldCheck, Stethoscope } from 'lucide-react'
+import CustomSelect from './CustomSelect'
 import teamPhoto from '../assets/Care team photography.png'
+import { doctors, specialties } from '../data/doctors'
 
 function CarewellHero() {
   const [specialty, setSpecialty] = useState('')
@@ -23,6 +25,10 @@ function CarewellHero() {
           <h1 id="carewell-hero-title">Your Health,<br />Simplified. <span>Book Top<br className="desktop-break" /> Specialists Near You</span></h1>
           <p>Find the right doctor, choose a time that works, and get back to feeling your best. Great care starts here.</p>
           <div className="carewell-hero-promise"><BadgeCheck size={15} /> Verified specialists. Care that fits your life.</div>
+          <div className="carewell-hero-actions">
+            <a href="/doctors">Explore doctors <ArrowRight size={15} /></a>
+            <span><ShieldCheck size={14} /> Private, patient-first care</span>
+          </div>
         </div>
         <div className="carewell-hero-image">
           <img src={teamPhoto} alt="A team of welcoming Carewell doctors" />
@@ -36,9 +42,15 @@ function CarewellHero() {
 
       <form className="carewell-search" onSubmit={searchDoctors}>
         <label><Stethoscope size={17} /><span><strong>Specialty</strong>
-          <select value={specialty} onChange={(event) => setSpecialty(event.target.value)}>
-            <option value="">What do you need?</option><option>Cardiology</option><option>Dermatology</option><option>Pediatrics</option><option>Dental</option>
-          </select>
+          <CustomSelect
+            className="hero-specialty-select"
+            triggerClassName="carewell-search-select-trigger"
+            value={specialty}
+            onChange={setSpecialty}
+            placeholder="What do you need?"
+            ariaLabel="Choose a specialty"
+            options={[{ value: '', label: 'All specialties' }, ...specialties.map((name) => ({ value: name, label: name }))]}
+          />
         </span></label>
         <label><MapPin size={17} /><span><strong>Location</strong>
           <input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="City, State, ZIP" />
@@ -48,10 +60,10 @@ function CarewellHero() {
       </form>
 
       <div className="carewell-stats">
-        <div className="stats-rating"><span>★★★★★ <strong>4.9/5</strong></span><small>Trusted by 10,000+ patients</small></div>
-        <div><strong>500+</strong><small>Verified specialists</small></div>
-        <div><strong>30+</strong><small>Medical specialties</small></div>
-        <div><strong>98%</strong><small>Patient satisfaction</small></div>
+        <div className="stats-rating"><span><strong>{doctors.length}</strong> featured doctors</span><small>Meet your care team</small></div>
+        <div><strong>{specialties.length}</strong><small>Available specialties</small></div>
+        <div><strong>2</strong><small>Visit formats</small></div>
+        <div><strong>3</strong><small>Simple booking steps</small></div>
         <a href="#doctors" aria-label="Explore doctors"><ArrowRight size={15} /></a>
       </div>
     </section>

@@ -5,6 +5,7 @@ import * as authController from '../controllers/auth-controller.js'
 import * as bookingsController from '../controllers/bookings-controller.js'
 import * as eventsController from '../controllers/events-controller.js'
 import * as organizerController from '../controllers/organizer-controller.js'
+import * as paymentsController from '../controllers/payments-controller.js'
 import { requireApprovedOrganizer, requireRole, requireUser } from '../src/middleware/auth.js'
 
 const router = Router()
@@ -20,7 +21,10 @@ router.get('/auth/me', requireUser, authController.currentUser)
 router.get('/events', eventsController.listPublicEvents)
 router.get('/events/:slug', eventsController.getPublicEvent)
 
+router.get('/payments/providers', paymentsController.listProviders)
 router.post('/bookings', requireUser, requireRole('attendee'), bookingsController.createBooking)
+router.post('/bookings/checkout', requireUser, requireRole('attendee'), paymentsController.initiateBookingPayment)
+router.post('/bookings/verify', requireUser, requireRole('attendee'), paymentsController.verifyBookingPayment)
 router.get('/bookings/mine', requireUser, requireRole('attendee'), bookingsController.listMyBookings)
 
 admin.use(requireUser, requireRole('admin'))

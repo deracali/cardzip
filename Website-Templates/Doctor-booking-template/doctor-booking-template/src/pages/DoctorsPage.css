@@ -114,8 +114,7 @@
   color: #0e978b;
 }
 
-.doctors-filter-bar input,
-.doctors-filter-bar select {
+.doctors-filter-bar input {
   width: 100%;
   min-width: 0;
   border: 0;
@@ -123,6 +122,26 @@
   background: transparent;
   color: #46576c;
   font-size: 12px;
+}
+
+.doctors-filter-select {
+  flex: 1;
+}
+
+.doctors-filter-bar .doctors-filter-select-trigger {
+  min-height: 36px;
+  padding: 0 21px 0 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #46576c;
+  font-size: 12px;
+}
+
+.doctors-filter-bar .doctors-filter-select-trigger:hover,
+.doctors-filter-bar .doctors-filter-select-trigger[aria-expanded="true"] {
+  border: 0;
+  background: transparent;
 }
 
 .doctors-filter-bar input::placeholder {
@@ -178,12 +197,14 @@
   font-size: 12px;
 }
 
-.doctors-results-heading select {
+.doctors-sort-select {
+  width: 150px;
+}
+
+.doctors-results-heading .doctors-sort-select-trigger {
   min-height: 36px;
   padding: 0 10px;
-  border: 1px solid #e2e8ed;
   border-radius: 7px;
-  background: #fff;
   color: #25364b;
   font-size: 12px;
 }
@@ -217,6 +238,35 @@
   object-fit: cover;
   object-position: center 35%;
   transition: transform 200ms ease;
+}
+
+.directory-doctor-image-placeholder {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  background: linear-gradient(145deg, #e1f3eb, #d6e8ed);
+  color: #43856e;
+  font-size: 64px;
+  font-weight: 700;
+}
+
+.doctors-load-error {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border: 1px solid #efd6d2;
+  border-radius: 9px;
+  background: #fff5f3;
+  color: #994e45;
+  font-size: 12px;
+}
+
+.doctors-loading {
+  display: grid;
+  min-height: 220px;
+  place-items: center;
+  color: #718198;
+  font-size: 13px;
 }
 
 .directory-doctor-image:hover img {
@@ -418,7 +468,7 @@
   }
 
   .doctors-filter-bar input,
-  .doctors-filter-bar select {
+  .doctors-filter-select-trigger {
     font-size: 10px;
   }
 
@@ -451,8 +501,11 @@
     font-size: 10px;
   }
 
-  .doctors-results-heading select {
+  .doctors-sort-select {
     max-width: 115px;
+  }
+
+  .doctors-results-heading .doctors-sort-select-trigger {
     font-size: 10px;
   }
 

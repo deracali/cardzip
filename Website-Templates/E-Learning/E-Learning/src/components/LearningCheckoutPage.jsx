@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ArrowLeft, Check, ShieldCheck } from 'lucide-react'
-import { enrollmentPlans, learningCourses } from '../data/learningData'
+import { learningCourses } from '../data/learningData'
 import { LearningFooter, LearningHeader } from './LearningLandingPage'
 import './LearningExtraPages.css'
 
@@ -11,17 +11,16 @@ function LearningCheckoutPage({ mode = 'local', apiBaseUrl = '' }) {
   const referenceFromQuery = providerFromQuery === 'stripe' ? params.get('session_id') : params.get('reference')
   const [course, setCourse] = useState(learningCourses.find((item) => item.id === courseId))
   const [courseLoading, setCourseLoading] = useState(mode === 'api' && Boolean(courseId))
-  const plan = enrollmentPlans.find((item) => item.id === params.get('plan'))
   const [providers, setProviders] = useState([])
   const [selectedProvider, setSelectedProvider] = useState('')
+  const [providerLoadError, setProviderLoadError] = useState('')
   const [completed, setCompleted] = useState(false)
   const [verifyingPayment, setVerifyingPayment] = useState(mode === 'api' && params.get('payment') === 'success' && Boolean(providerFromQuery && referenceFromQuery))
   const [enrollmentError, setEnrollmentError] = useState('')
-  const item = course || plan
-  const amount = course?.price ?? plan?.price
-  const amountLabel = amount === undefined ? '' : plan
-    ? `$${amount.toFixed(2)} / ${plan.cadence}`
-    : `₦${Number(amount).toLocaleString('en-NG')}`
+  const amount = course?.price
+  const amountLabel = amount === undefined ? '' : course?.currency === 'NGN'
+    ? `₦${Number(amount).toLocaleString('en-NG')}`
+    : new Intl.NumberFormat('en-US', { style: 'currency', currency: course?.currency || 'USD' }).format(amount)
   const paidApiCheckout = mode === 'api' && Boolean(course && course.price > 0)
 
   useEffect(() => {
@@ -50,7 +49,12 @@ function LearningCheckoutPage({ mode = 'local', apiBaseUrl = '' }) {
           setSelectedProvider((current) => current || result.providers?.[0] || '')
         }
       })
-      .catch(() => { if (active) setProviders([]) })
+      .catch((error) => {
+        if (active) {
+          setProviders([])
+          setProviderLoadError(error.message)
+        }
+      })
     return () => { active = false }
   }, [apiBaseUrl, paidApiCheckout])
 
@@ -142,16 +146,16 @@ function LearningCheckoutPage({ mode = 'local', apiBaseUrl = '' }) {
             <span className="checkout-success-icon"><Check size={25} /></span>
             <span className="section-kicker">{course && mode === 'api' ? 'Enrollment complete' : 'Demo checkout complete'}</span>
             <h1>You’re ready to learn.</h1>
-            <p>{course && mode === 'api' ? 'Your payment was verified by Skillora and your course enrollment is active.' : 'No payment was processed. Membership checkout is still a front-end demo.'}</p>
-            <div className="checkout-success-item"><strong>{item?.title || item?.name}</strong><span>{amountLabel}</span></div>
+            <p>{course && mode === 'api' ? 'Your payment was verified by Skillora and your course enrollment is active.' : 'No payment was processed. This is a local demo enrollment.'}</p>
+            <div className="checkout-success-item"><strong>{course?.title}</strong><span>{amountLabel}</span></div>
             <a className="button button-primary" href={course ? `/learn/${course.id}` : '/dashboard'}>{course ? 'Open course' : 'Go to dashboard'} <Check size={15} /></a>
           </section>
-        ) : !item ? (
+        ) : !course ? (
           <section className="checkout-missing">
             <span className="section-kicker">Checkout</span>
-            <h1>Choose a course or plan first.</h1>
-            <p>Browse the catalog to enroll in a course, or compare membership plans.</p>
-            <div><a className="button button-primary" href="/courses">Browse courses</a><a className="button button-outline" href="/pricing">View plans</a></div>
+            <h1>Choose a course first.</h1>
+            <p>Each checkout enrolls you in one course at its listed one-time price. There are no membership plans.</p>
+            <div><a className="button button-primary" href="/courses">Browse courses</a><a className="button button-outline" href="/pricing">See course prices</a></div>
           </section>
         ) : (
           <>
@@ -173,7 +177,7 @@ function LearningCheckoutPage({ mode = 'local', apiBaseUrl = '' }) {
                   {paidApiCheckout ? (
                     providers.length ? <div className="payment-methods">
                       {providers.map((provider) => <button key={provider} className={selectedProvider === provider ? 'payment-method is-selected' : 'payment-method'} type="button" aria-pressed={selectedProvider === provider} onClick={() => setSelectedProvider(provider)}><span>{provider === 'stripe' ? '▣' : '◉'}</span><strong>{provider === 'stripe' ? 'Stripe' : 'Paystack'}</strong><small>NGN supported</small></button>)}
-                    </div> : <p role="status">No payment provider is currently configured to accept NGN. Please try again later.</p>
+                    </div> : <p role={providerLoadError ? 'alert' : 'status'}>{providerLoadError || 'No payment provider is currently configured to accept NGN. Please try again later.'}</p>
                   ) : <>
                     <div className="payment-methods">
                       <button className="payment-method is-selected" type="button" aria-pressed="true"><span>▣</span><strong>Card</strong><small>Demo only</small></button>
@@ -183,17 +187,16 @@ function LearningCheckoutPage({ mode = 'local', apiBaseUrl = '' }) {
                   </>}
                 </section>
                 <button className="button button-primary checkout-submit" type="submit" disabled={paidApiCheckout && !providers.includes(selectedProvider)}><ShieldCheck size={16} /> {paidApiCheckout ? `Continue to secure payment · ${amountLabel}` : `Complete demo enrollment · ${amountLabel}`}</button>
-                <p className="checkout-disclaimer">{paidApiCheckout ? 'Payment and enrollment are confirmed server-side. Skillora never collects card details.' : 'No charge will be made for demo membership checkout.'}</p>
+                <p className="checkout-disclaimer">{paidApiCheckout ? 'Payment and enrollment are confirmed server-side. Skillora never collects card details.' : 'Vite demo checkout does not charge you.'}</p>
               </form>
               <aside className="order-summary">
                 <h2>Order summary</h2>
-                {course ? <img src={course.image} alt="" /> : <div className="plan-summary-icon"><span>S</span></div>}
-                <span className="section-kicker">{course ? course.category : 'Membership plan'}</span>
-                <h3>{course ? course.title : plan.name}</h3>
+                <img src={course.image} alt="" />
+                <span className="section-kicker">{course.category}</span>
+                <h3>{course.title}</h3>
                 {course && <p>Instructor: {course.instructor}</p>}
-                {plan && <p>{plan.description}</p>}
                 <div className="order-line"><span>Subtotal</span><strong>{amountLabel}</strong></div>
-                <div className="order-line"><span>Tax</span><strong>{course ? '₦0' : '$0.00'}</strong></div>
+                <div className="order-line"><span>Tax</span><strong>{course.currency === 'NGN' ? '₦0' : '$0.00'}</strong></div>
                 <div className="order-total"><span>Total today</span><strong>{amountLabel}</strong></div>
                 <p className="order-secure"><ShieldCheck size={14} /> {paidApiCheckout ? 'Secure provider checkout · NGN' : 'Demo order · no payment processed'}</p>
               </aside>

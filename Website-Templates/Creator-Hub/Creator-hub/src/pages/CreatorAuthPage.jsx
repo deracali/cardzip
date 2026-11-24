@@ -9,9 +9,13 @@ function CreatorAuthPage({ signUp = false }) {
 
   const submitForm = (event) => {
     event.preventDefault()
-    setNotice(signUp
-      ? 'Your CreatorHub account is ready to connect to registration.'
-      : 'Sign-in is ready to connect to your account service.')
+    const form = new FormData(event.currentTarget)
+    const email = String(form.get('email') || '').trim().toLowerCase()
+    const name = signUp ? String(form.get('name') || 'Creator').trim() : (email.split('@')[0] || 'Creator')
+    const isAdmin = email === 'admin@example.com'
+    const session = { name: isAdmin ? 'CreatorHub Administrator' : name, email, role: isAdmin ? 'admin' : 'creator', plan: 'free' }
+    localStorage.setItem('creatorhub_demo_session', JSON.stringify(session))
+    window.location.href = '/dashboard'
   }
 
   return (
@@ -37,19 +41,19 @@ function CreatorAuthPage({ signUp = false }) {
               </label>
               <label className="creator-auth-field">
                 <span>Full name</span>
-                <div className="creator-auth-input"><UserRound size={15} /><input autoComplete="name" placeholder="Your name" required /></div>
+                <div className="creator-auth-input"><UserRound size={15} /><input name="name" autoComplete="name" placeholder="Your name" required /></div>
               </label>
             </>
           )}
           <label className="creator-auth-field">
             <span>Email address</span>
-            <div className="creator-auth-input"><Mail size={15} /><input type="email" autoComplete="email" placeholder="you@email.com" required /></div>
+            <div className="creator-auth-input"><Mail size={15} /><input name="email" type="email" autoComplete="email" placeholder="you@email.com" required /></div>
           </label>
           <label className="creator-auth-field">
             <span>Password</span>
             <div className="creator-auth-input"><LockKeyhole size={15} /><input type={showPassword ? 'text' : 'password'} autoComplete={signUp ? 'new-password' : 'current-password'} placeholder={signUp ? 'At least 8 characters' : 'Your password'} minLength={signUp ? 8 : undefined} required /><button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword((visible) => !visible)}>{showPassword ? <EyeOff size={15} /> : <Eye size={15} />}</button></div>
           </label>
-          {!signUp && <p className="creator-auth-preview-note">This Vite edition is a visual preview. Account sign-in is available in the connected Next.js edition.</p>}
+          {!signUp && <p className="creator-auth-preview-note">Vite preview sign-in uses static demo data. Use admin@example.com to open the administrator workspace.</p>}
           {signUp && <label className="creator-auth-terms"><input type="checkbox" required /> <span>I agree to the <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</span></label>}
           <button className="creator-button creator-button-primary creator-auth-submit" type="submit">{signUp ? 'Create my hub' : 'Sign in to dashboard'} <ArrowRight size={15} /></button>
         </form>

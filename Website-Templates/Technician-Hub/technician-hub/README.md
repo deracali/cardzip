@@ -1,12 +1,10 @@
 # PolarFlow HVAC — Vite
 
-Vite storefront for PolarFlow HVAC. The React interface connects to the separate MVC API in `../backend`.
+Vite storefront for PolarFlow HVAC. The Vite demo stores accounts, service requests, and pending plan enrollments in this browser's localStorage. The separate MVC API remains available for production integrations and is used by the Next.js app.
 
 ## Run locally
 
-1. Start the API. Follow `../backend/README.md` and configure its `.env`.
-2. Copy `.env.example` to `.env.local` and set `VITE_TECHNICIAN_API_URL` if the API is not at `http://localhost:5000/api`.
-3. Run `npm install` and `npm run dev`.
+1. Run `npm install` and `npm run dev`.
 
 Run `npm run lint` and `npm run build` to validate the frontend.
 
@@ -19,6 +17,6 @@ Run `npm run lint` and `npm run build` to validate the frontend.
 - `/portal/login`, `/portal/signup`, `/portal/dashboard` — Customer account and private dashboard
 - `/admin/login`, `/admin/signup`, `/admin/dashboard` — Invitation-only administrator access and operations dashboard
 
-Appointment requests are persisted by the API; no payment is collected for service visits. The Home Comfort Plan is $199 for one year, paid once through Stripe or Paystack when configured. It does not automatically renew.
+Appointment requests and demo accounts are stored in localStorage. The invitation code on local admin signup is only a form check; browser storage is editable and provides no real authentication or authorization. Do not use the Vite demo for real customer data or production admin access. Membership enrollment is saved as pending and does not collect payment or activate a plan. The Next.js app remains connected to the API for production workflows.
 
 See `../docs/BUYER-GUIDE.md` and the generated PDF for setup, API, payment, deployment and buyer information.

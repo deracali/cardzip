@@ -8,7 +8,7 @@ export function SiteHeader() {
         <Link href="/events">Explore events</Link>
         <Link href="/schedule">Schedule</Link>
         <Link href="/host">Host an event</Link>
-        <Link href="/dashboard">Your bookings</Link>
+        <Link href="/dashboard/tickets">Your tickets</Link>
         <Link className="button button-primary" href="/login">Sign in</Link>
       </nav>
     </header>
@@ -21,7 +21,7 @@ export function SiteFooter() {
       <Link className="brand" href="/">Pulse<span>Live</span></Link>
       <p>Make room for a night worth remembering.</p>
       <nav><Link href="/events">Explore events</Link><Link href="/about">About</Link><Link href="/host">Host an event</Link></nav>
-      <small>© 2027 PulseLive. Booking requests do not include payment or ticket issuance.</small>
+      <small>© 2027 PulseLive. Tickets are confirmed only after verified payment.</small>
     </footer>
   );
 }

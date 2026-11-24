@@ -11,9 +11,9 @@ const reservationStatuses = new Set(["requested", "confirmed", "cancelled", "com
 const CLEANING_FEE = 24;
 const SERVICE_FEE = 18;
 
-function calculateStayDetails({ staySlug, checkIn, checkOut, guests }) {
-  const stay = stayCatalog[staySlug];
+function calculateStayDetails({ stay, checkIn, checkOut, guests }) {
   if (!stay) throw new HttpError(400, "Choose a valid stay.");
+  const nightlyRate = stay.nightlyRate ?? stay.price;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(checkIn) || !/^\d{4}-\d{2}-\d{2}$/.test(checkOut)) {
     throw new HttpError(400, "Choose valid check-in and check-out dates.");
   }
@@ -28,13 +28,13 @@ function calculateStayDetails({ staySlug, checkIn, checkOut, guests }) {
   const nights = Math.round((end - start) / 86400000);
   return {
     stayName: stay.name,
-    nightlyRate: stay.nightlyRate,
+    nightlyRate,
     nights,
     guests,
-    roomTotal: stay.nightlyRate * nights,
+    roomTotal: nightlyRate * nights,
     cleaningFee: CLEANING_FEE,
     serviceFee: SERVICE_FEE,
-    total: stay.nightlyRate * nights + CLEANING_FEE + SERVICE_FEE,
+    total: nightlyRate * nights + CLEANING_FEE + SERVICE_FEE,
     currency: "USD",
   };
 }
@@ -66,6 +66,18 @@ export function createBookingController({ store, payments, env, allowedOrigins }
   return {
     providers: (req, res) => res.json({ providers: payments.availableProviders() }),
 
+    publicStays: async (_req, res) => {
+      const state = await store.read();
+      res.json({ stays: state.stays });
+    },
+
+    publicStay: async (req, res) => {
+      const state = await store.read();
+      const stay = state.stays.find((item) => item.slug === req.params.slug);
+      if (!stay) throw new HttpError(404, "Stay not found.");
+      res.json({ stay });
+    },
+
     createCheckout: async (req, res) => {
       const provider = req.body.provider;
       if (provider !== "paystack" && provider !== "stripe") throw new HttpError(400, "Choose Paystack or Stripe.");
@@ -74,7 +86,9 @@ export function createBookingController({ store, payments, env, allowedOrigins }
       const checkIn = requiredText(req.body.checkIn, "Check-in date", 10);
       const checkOut = requiredText(req.body.checkOut, "Check-out date", 10);
       const guests = Number(req.body.guests);
-      const details = calculateStayDetails({ staySlug, checkIn, checkOut, guests });
+      const state = await store.read();
+      const availableStay = state.stays.find((item) => item.slug === staySlug) || stayCatalog[staySlug];
+      const details = calculateStayDetails({ stay: availableStay, checkIn, checkOut, guests });
       const guestName = requiredText(req.body.guestName, "Guest name", 120);
       const guestEmail = normalizedEmail(req.body.guestEmail);
       if (guestEmail !== req.user.email) throw new HttpError(400, "Guest email must match the signed-in account.");
@@ -191,13 +205,69 @@ export function createBookingController({ store, payments, env, allowedOrigins }
         metrics: {
           customers: customers.length,
           reservations: reservations.length,
-          requestedReservations: reservations.filter((item) => item.status === "pending_payment").length,
+          requestedReservations: reservations.filter((item) => item.status === "requested" || item.status === "pending_payment").length,
           confirmedReservations: reservations.filter((item) => item.status === "confirmed").length,
-          paidBookingValue: reservations.filter((item) => item.paymentStatus === "paid").reduce((total, item) => total + item.total, 0),
+          grossBookingValue: reservations.reduce((total, item) => total + item.total, 0),
         },
         reservations,
         customers,
+        stays: state.stays,
       });
+    },
+
+    createStay: async (req, res) => {
+      const name = requiredText(req.body.name, "Property name", 160);
+      const area = requiredText(req.body.area, "Location", 160);
+      const room = requiredText(req.body.room, "Room type", 120);
+      const type = requiredText(req.body.type, "Property type", 80);
+      const description = requiredText(req.body.description, "Description", 2000);
+      if (name.length < 2 || area.length < 2 || room.length < 2 || type.length < 2 || description.length < 30) {
+        throw new HttpError(400, "Property fields are too short.");
+      }
+      const price = Number(req.body.price);
+      if (!Number.isFinite(price) || price < 1 || price > 100000) {
+        throw new HttpError(400, "Enter a nightly rate between 1 and 100000.");
+      }
+      const image = requiredText(req.body.image, "Image URL", 8, 1000);
+      let parsedImage;
+      try {
+        parsedImage = new URL(image);
+      } catch {
+        throw new HttpError(400, "Enter a valid HTTPS image URL.");
+      }
+      if (parsedImage.protocol !== "https:") throw new HttpError(400, "Property images must use HTTPS.");
+      const categories = typeof req.body.categories === "string"
+        ? req.body.categories.split(",").map((category) => category.trim()).filter(Boolean).slice(0, 8)
+        : [];
+      if (categories.length === 0) throw new HttpError(400, "Enter at least one property category.");
+      const slug = name.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
+      if (!slug) throw new HttpError(400, "The property name must include letters or numbers.");
+      const stay = await store.update((state) => {
+        if (state.stays.some((item) => item.slug === slug) || stayCatalog[slug]) {
+          throw new HttpError(409, "A property with this name already exists.");
+        }
+        const created = {
+          id: newId("stay"),
+          slug,
+          name,
+          shortName: name,
+          area,
+          price,
+          rating: "New",
+          reviews: 0,
+          type,
+          categories,
+          image,
+          room,
+          description,
+          status: "active",
+          createdAt: new Date().toISOString(),
+        };
+        state.stays.push(created);
+        return created;
+      });
+      res.status(201).json({ stay });
     },
 
     updateReservation: async (req, res) => {

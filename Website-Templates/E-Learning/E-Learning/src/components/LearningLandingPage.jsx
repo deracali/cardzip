@@ -304,12 +304,12 @@ function LearningLandingPage({ mode = 'local', apiBaseUrl = '' }) {
 
         <section className="membership-banner" id="pricing">
           <div className="membership-copy">
-            <span className="membership-eyebrow"><Sparkles size={14} /> Skillora Plus</span>
-            <h2>Get unlimited access to 35,000+ courses</h2>
-            <p>One subscription. Lifetime skills. Cancel anytime. Starting at $15/mo.</p>
+            <span className="membership-eyebrow"><Sparkles size={14} /> SIMPLE COURSE PRICING</span>
+            <h2>Choose one course. Pay once.</h2>
+            <p>See the exact NGN price for each course before checkout. No monthly or yearly membership.</p>
             <div className="membership-actions">
-              <a className="button button-white" href="/pricing">View pricing</a>
-              <a className="button button-mint" href="/checkout?plan=plus-monthly">Start 7-day free trial</a>
+              <a className="button button-white" href="/pricing">See course prices</a>
+              <a className="button button-mint" href="/courses">Explore courses</a>
             </div>
           </div>
           <div className="membership-photo">

@@ -5,7 +5,11 @@ export function createClientController({ store }) {
   return {
     publicJobs: async (_request, response, next) => {
       try {
-        const jobs = await store.listJobs({ status: "approved", paymentStatus: "paid" });
+        const [paidJobs, includedJobs] = await Promise.all([
+          store.listJobs({ status: "approved", paymentStatus: "paid" }),
+          store.listJobs({ status: "approved", paymentStatus: "not_required" }),
+        ]);
+        const jobs = [...paidJobs, ...includedJobs];
         response.json({ jobs: jobs.map(safeJob) });
       } catch (error) {
         next(error);
@@ -15,7 +19,7 @@ export function createClientController({ store }) {
     publicJob: async (request, response, next) => {
       try {
         const job = await store.findJobById(request.params.id);
-        if (!job || job.status !== "approved" || job.paymentStatus !== "paid") {
+        if (!job || job.status !== "approved" || !["paid", "not_required"].includes(job.paymentStatus)) {
           throw httpError(404, "This job listing is not available.");
         }
         response.json({ job: safeJob(job) });
@@ -50,7 +54,7 @@ export function createClientController({ store }) {
         const jobId = requiredText(request.body.jobId, "Job ID", 1, 120);
         const requestedJobTitle = requiredText(request.body.jobTitle, "Job title", 2, 200);
         const job = await store.findJobById(jobId);
-        if (job && (job.status !== "approved" || job.paymentStatus !== "paid")) {
+        if (job && (job.status !== "approved" || !["paid", "not_required"].includes(job.paymentStatus))) {
           throw httpError(409, "Applications are not open for this job listing.");
         }
         const application = await store.createApplication({

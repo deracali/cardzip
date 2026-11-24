@@ -27,7 +27,7 @@ export default function AdminAuthPage({ signup = false }) {
 
   return (
     <main className="auth-page">
-      <section className="auth-photo admin-auth-photo">
+      <section className="auth-photo admin-auth-photo" style={{ backgroundImage: 'linear-gradient(180deg, transparent 30%, rgba(10,20,30,.76)), url("/hero-resort.jpg")' }}>
         <Logo light />
         <div><span className="eyebrow">ESCAPES OPERATIONS</span><h1>Thoughtful stays begin with thoughtful hosting.</h1><p>Manage guest reservations and keep every escape running smoothly.</p></div>
       </section>

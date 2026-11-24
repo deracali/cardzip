@@ -27,7 +27,7 @@ export default function AdminAuthPage({ signup = false }) {
 
   return (
     <main className="auth-page">
-      <section className="auth-photo admin-auth-photo">
+      <section className="auth-photo admin-auth-photo" style={{ backgroundImage: 'linear-gradient(180deg, transparent 30%, rgba(10,20,30,.76)), url("/hero-resort.jpg")' }}>
         <Logo light />
         <div><span className="eyebrow">ESCAPES OPERATIONS</span><h1>Thoughtful stays begin with thoughtful hosting.</h1><p>Manage guest reservations and keep every escape running smoothly.</p></div>
       </section>
@@ -37,7 +37,7 @@ export default function AdminAuthPage({ signup = false }) {
           <Logo />
           <span className="admin-auth-label"><ShieldCheck size={15} /> Administrator access</span>
           <h2>{signup ? 'Create an admin account' : 'Admin sign in'}</h2>
-          <p>Administrator registration requires the private invitation code configured on the API.</p>
+          <p>Local demo accounts are stored in this browser. The invitation field does not provide production access control.</p>
           {signup && <label>Full name<input name="name" autoComplete="name" required /></label>}
           {signup && <label>Invitation code<input name="inviteCode" type="password" autoComplete="off" required /></label>}
           <label>Email address<input name="email" type="email" autoComplete="username" required /></label>

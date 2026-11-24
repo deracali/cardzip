@@ -10,7 +10,7 @@ import ClientDashboardPage from './pages/ClientDashboardPage'
 import AdminAuthPage from './pages/AdminAuthPage'
 import AdminDashboardPage from './pages/AdminDashboardPage'
 import PaymentCallbackPage from './pages/PaymentCallbackPage'
-import { stays } from './data/stays'
+import { getStays } from './services/escapesApi'
 import './App.css'
 
 function getPageTitle(pathname, stay) {
@@ -33,7 +33,7 @@ function getPageTitle(pathname, stay) {
 export default function App() {
   const pathname = window.location.pathname
   const stayMatch = pathname.match(/^\/(?:stays|reserve)\/([^/]+)$/)
-  const selectedStay = stays.find((stay) => stay.slug === stayMatch?.[1])
+  const selectedStay = stayMatch ? getStays().find((stay) => stay.slug === stayMatch[1]) : null
   const title = getPageTitle(pathname, selectedStay)
 
   useEffect(() => {
@@ -49,7 +49,10 @@ export default function App() {
   if (pathname === '/client/dashboard') return <ClientDashboardPage />
   if (pathname === '/admin/login') return <AdminAuthPage />
   if (pathname === '/admin/signup') return <AdminAuthPage signup />
-  if (pathname === '/admin/dashboard') return <AdminDashboardPage />
+  if (pathname === '/admin/dashboard') return <AdminDashboardPage section="overview" />
+  if (pathname === '/admin/reservations') return <AdminDashboardPage section="reservations" />
+  if (pathname === '/admin/stays') return <AdminDashboardPage section="properties" />
+  if (pathname === '/admin/guests') return <AdminDashboardPage section="guests" />
   if (pathname.startsWith('/reserve/')) {
     return selectedStay
       ? <BookingPage stay={selectedStay} />

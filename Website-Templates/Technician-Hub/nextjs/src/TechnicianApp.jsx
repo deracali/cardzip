@@ -812,35 +812,48 @@ function PortalDashboardPage() {
 
   return (
     <SiteShell>
-      <main className="container account-dashboard">
-        <div className="dashboard-heading">
-          <div><span className="eyebrow">Customer portal</span><h1>Your home comfort, at a glance.</h1><p>{session?.user.name || 'Sign in to view your account.'}</p></div>
-          {session && <button className="button button-secondary" type="button" onClick={signOut}>Sign out</button>}
+      <main className="container account-dashboard dashboard-layout client-dashboard-view">
+        <aside className="dashboard-sidebar">
+          <a className="dashboard-sidebar-brand" href="/"><img src="/favicon.svg" alt="" /><span>PolarFlow<small>Customer portal</small></span></a>
+          <span className="dashboard-nav-label">WORKSPACE</span>
+          <nav className="dashboard-sidebar-nav" aria-label="Customer dashboard">
+            <a className="is-active" href="/portal/dashboard"><Home size={17} /> Overview</a>
+            <a href="/portal/dashboard#requests"><CalendarDays size={17} /> Service requests</a>
+            <a href="/portal/dashboard#membership"><CreditCard size={17} /> Membership</a>
+            <a href="/book"><Phone size={17} /> Schedule service</a>
+          </nav>
+          <div className="dashboard-sidebar-footer"><a href="/">Back to website <ArrowRight size={14} /></a><span><i /> Customer workspace</span></div>
+        </aside>
+        <div className="dashboard-main">
+          <div className="dashboard-heading">
+            <div><span className="eyebrow">CUSTOMER PORTAL</span><h1>Your home comfort, at a glance.</h1><p>{session?.user.name || 'Sign in to view your account.'}</p></div>
+            {session && <button className="button button-secondary" type="button" onClick={signOut}>Sign out</button>}
+          </div>
+          {!session && <div className="form-card"><p>Please sign in to access your private customer dashboard.</p><a className="button button-primary" href="/portal/login">Customer sign in <ArrowRight size={15} /></a></div>}
+          {(error || accessError) && <p className="form-error" role="alert">{error || accessError} <a href="/portal/login">Sign in to the customer portal</a></p>}
+          {loading && <p>Loading your account…</p>}
+          {dashboard && <>
+            <div className="dashboard-metrics">
+              <article><span>Service requests</span><strong>{dashboard.bookings.length}</strong></article>
+              <article><span>Plan membership</span><strong>{dashboard.activeMembership ? 'Active' : 'Not enrolled'}</strong></article>
+            </div>
+            <div className="dashboard-grid">
+              <section className="form-card" id="requests">
+                <div className="dashboard-section-heading"><h2>Service requests</h2><a className="text-link" href="/book">Schedule a technician <ArrowRight size={14} /></a></div>
+                {dashboard.bookings.length === 0 ? <p className="small-muted">Your submitted requests will appear here.</p> : dashboard.bookings.map((booking) => (
+                  <article className="dashboard-record" key={booking.id}>
+                    <div><strong>{serviceById[booking.serviceId]?.name || booking.serviceId}</strong><span>{booking.date} · {booking.time} · {booking.zip}</span><small>{booking.reference}</small></div>
+                    <span className={`status-pill status-${booking.status}`}>{booking.status}</span>
+                  </article>
+                ))}
+              </section>
+              <section className="form-card" id="membership">
+                <div className="dashboard-section-heading"><h2>Membership</h2><a className="text-link" href="/membership/checkout">View plan <ArrowRight size={14} /></a></div>
+                {dashboard.activeMembership ? <div className="dashboard-record"><div><strong>Home Comfort Plan</strong><span>Active through {new Date(dashboard.activeMembership.expiresAt).toLocaleDateString()}</span></div><span className="status-pill status-active">active</span></div> : <><p className="small-muted">Enroll for two seasonal tune-ups and priority scheduling.</p><a className="button button-primary" href="/membership/checkout">Join for $199 / year</a></>}
+              </section>
+            </div>
+          </>}
         </div>
-        {!session && <div className="form-card"><p>Please sign in to access your private customer dashboard.</p><a className="button button-primary" href="/portal/login">Customer sign in <ArrowRight size={15} /></a></div>}
-        {(error || accessError) && <p className="form-error" role="alert">{error || accessError} <a href="/portal/login">Sign in to the customer portal</a></p>}
-        {loading && <p>Loading your account…</p>}
-        {dashboard && <>
-          <div className="dashboard-metrics">
-            <article><span>Service requests</span><strong>{dashboard.bookings.length}</strong></article>
-            <article><span>Plan membership</span><strong>{dashboard.activeMembership ? 'Active' : 'Not enrolled'}</strong></article>
-          </div>
-          <div className="dashboard-grid">
-            <section className="form-card">
-              <div className="dashboard-section-heading"><h2>Service requests</h2><a className="text-link" href="/book">Schedule a technician <ArrowRight size={14} /></a></div>
-              {dashboard.bookings.length === 0 ? <p className="small-muted">Your submitted requests will appear here.</p> : dashboard.bookings.map((booking) => (
-                <article className="dashboard-record" key={booking.id}>
-                  <div><strong>{serviceById[booking.serviceId]?.name || booking.serviceId}</strong><span>{booking.date} · {booking.time} · {booking.zip}</span><small>{booking.reference}</small></div>
-                  <span className={`status-pill status-${booking.status}`}>{booking.status}</span>
-                </article>
-              ))}
-            </section>
-            <section className="form-card">
-              <div className="dashboard-section-heading"><h2>Membership</h2><a className="text-link" href="/membership/checkout">View plan <ArrowRight size={14} /></a></div>
-              {dashboard.activeMembership ? <div className="dashboard-record"><div><strong>Home Comfort Plan</strong><span>Active through {new Date(dashboard.activeMembership.expiresAt).toLocaleDateString()}</span></div><span className="status-pill status-active">active</span></div> : <><p className="small-muted">Enroll for two seasonal tune-ups and priority scheduling.</p><a className="button button-primary" href="/membership/checkout">Join for $199 / year</a></>}
-            </section>
-          </div>
-        </>}
       </main>
     </SiteShell>
   )
@@ -889,12 +902,20 @@ function AdminAuthPage({ isSignUp, navigate }) {
   )
 }
 
-function AdminDashboardPage() {
+const adminSections = {
+  overview: { title: 'Administrator dashboard', description: 'A live view of service operations and account activity.' },
+  requests: { title: 'Service requests', description: 'Review appointment requests and update their status.' },
+  memberships: { title: 'Memberships', description: 'Review membership payments and enrollment status.' },
+  customers: { title: 'Customers', description: 'Browse customer accounts and contact details.' },
+}
+
+function AdminDashboardPage({ section = 'overview' }) {
   const [session] = useState(getTechnicianSession)
   const [dashboard, setDashboard] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(() => session?.user.role === 'admin')
   const [updating, setUpdating] = useState('')
+  const activeSection = adminSections[section] ? section : 'overview'
 
   useEffect(() => {
     if (!session || session.user.role !== 'admin') return
@@ -925,22 +946,41 @@ function AdminDashboardPage() {
   }
 
   return (
-    <main className="container account-dashboard">
-      <div className="dashboard-heading">
-        <div><span className="eyebrow">PolarFlow operations</span><h1>Administrator dashboard</h1><p>{session?.user.name || 'Sign in with an administrator account.'}</p></div>
-        {session && <button className="button button-secondary" type="button" onClick={signOut}>Sign out</button>}
-      </div>
-      {!session && <div className="form-card"><p>Please sign in with an administrator account to continue.</p><a className="button button-primary" href="/admin/login">Administrator sign in <ArrowRight size={15} /></a></div>}
-      {(error || accessError) && <p className="form-error" role="alert">{error || accessError} {!session && <a href="/admin/login">Sign in</a>}</p>}
-      {loading && <p>Loading operations dashboard…</p>}
-      {dashboard && <>
-        <div className="dashboard-metrics">
-          <article><span>Customers</span><strong>{dashboard.metrics.customers}</strong></article>
-          <article><span>Total requests</span><strong>{dashboard.metrics.bookings}</strong></article>
-          <article><span>Awaiting confirmation</span><strong>{dashboard.metrics.requestedBookings}</strong></article>
-          <article><span>Active memberships</span><strong>{dashboard.metrics.activeMemberships}</strong></article>
+    <main className="container account-dashboard dashboard-layout admin-dashboard-view">
+      <aside className="dashboard-sidebar">
+        <a className="dashboard-sidebar-brand" href="/"><img src="/favicon.svg" alt="" /><span>PolarFlow<small>Operations</small></span></a>
+        <span className="dashboard-nav-label">ADMINISTRATION</span>
+        <nav className="dashboard-sidebar-nav" aria-label="Administrator dashboard">
+          <a className={activeSection === 'overview' ? 'is-active' : ''} href="/admin/dashboard"><Home size={17} /> Overview</a>
+          <a className={activeSection === 'requests' ? 'is-active' : ''} href="/admin/requests"><CalendarDays size={17} /> Service requests</a>
+          <a className={activeSection === 'memberships' ? 'is-active' : ''} href="/admin/memberships"><CreditCard size={17} /> Memberships</a>
+          <a className={activeSection === 'customers' ? 'is-active' : ''} href="/admin/customers"><UserRound size={17} /> Customers</a>
+        </nav>
+        <div className="dashboard-sidebar-footer"><a href="/">Back to website <ArrowRight size={14} /></a><span><ShieldCheck size={14} /> Operations workspace</span></div>
+      </aside>
+      <div className="dashboard-main">
+        <div className="dashboard-heading">
+          <div><span className="eyebrow">POLARFLOW OPERATIONS</span><h1>{adminSections[activeSection].title}</h1><p>{session?.user.name || adminSections[activeSection].description}</p></div>
+          {session && <button className="button button-secondary" type="button" onClick={signOut}>Sign out</button>}
         </div>
-        <section className="form-card dashboard-table-card">
+        {!session && <div className="form-card"><p>Please sign in with an administrator account to continue.</p><a className="button button-primary" href="/admin/login">Administrator sign in <ArrowRight size={15} /></a></div>}
+        {(error || accessError) && <p className="form-error" role="alert">{error || accessError} {!session && <a href="/admin/login">Sign in</a>}</p>}
+        {loading && <p>Loading operations dashboard…</p>}
+        {dashboard && <>
+          {activeSection === 'overview' && <>
+          <div className="dashboard-metrics">
+            <article><span>Customers</span><strong>{dashboard.metrics.customers}</strong></article>
+            <article><span>Total requests</span><strong>{dashboard.metrics.bookings}</strong></article>
+            <article><span>Awaiting confirmation</span><strong>{dashboard.metrics.requestedBookings}</strong></article>
+            <article><span>Active memberships</span><strong>{dashboard.metrics.activeMemberships}</strong></article>
+          </div>
+          <div className="admin-dashboard-links">
+            <a href="/admin/requests"><CalendarDays size={18} /><span><strong>Service requests</strong><small>Review appointments and update statuses.</small></span><ArrowRight size={15} /></a>
+            <a href="/admin/memberships"><CreditCard size={18} /><span><strong>Memberships</strong><small>Review plan enrollments and payment status.</small></span><ArrowRight size={15} /></a>
+            <a href="/admin/customers"><UserRound size={18} /><span><strong>Customers</strong><small>Browse registered customer accounts.</small></span><ArrowRight size={15} /></a>
+          </div>
+          </>}
+          {activeSection === 'requests' && <section className="form-card dashboard-table-card">
           <div className="dashboard-section-heading"><h2>Service requests</h2><span>{dashboard.bookings.length} total</span></div>
           {dashboard.bookings.length === 0 ? <p className="small-muted">New service requests will appear here.</p> : <div className="dashboard-table-wrap"><table className="dashboard-table">
             <thead><tr><th>Customer</th><th>Service</th><th>Appointment</th><th>Estimate</th><th>Status</th></tr></thead>
@@ -954,8 +994,8 @@ function AdminDashboardPage() {
               </select></td>
             </tr>)}</tbody>
           </table></div>}
-        </section>
-        <section className="form-card dashboard-table-card">
+          </section>}
+          {activeSection === 'memberships' && <section className="form-card dashboard-table-card">
           <div className="dashboard-section-heading"><h2>Membership payments</h2><span>{dashboard.memberships.length} orders</span></div>
           {dashboard.memberships.length === 0 ? <p className="small-muted">Confirmed membership orders will appear here.</p> : <div className="dashboard-table-wrap"><table className="dashboard-table">
             <thead><tr><th>Plan</th><th>Customer</th><th>Payment</th><th>Status</th><th>Expires</th></tr></thead>
@@ -964,8 +1004,16 @@ function AdminDashboardPage() {
               return <tr key={item.id}><td>{item.planName}<small>{money(item.amount / 100)} {item.currency}</small></td><td>{customer?.name || 'Customer'}<small>{customer?.email || ''}</small></td><td>{item.provider}<small>{item.externalReference || 'Payment pending'}</small></td><td><span className={`status-pill status-${item.status}`}>{item.status}</span></td><td>{item.expiresAt ? new Date(item.expiresAt).toLocaleDateString() : '—'}</td></tr>
             })}</tbody>
           </table></div>}
-        </section>
-      </>}
+          </section>}
+          {activeSection === 'customers' && <section className="form-card dashboard-table-card">
+            <div className="dashboard-section-heading"><h2>Customers</h2><span>{dashboard.customers.length} accounts</span></div>
+            {dashboard.customers.length === 0 ? <p className="small-muted">Customer accounts will appear here.</p> : <div className="dashboard-table-wrap"><table className="dashboard-table">
+              <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Joined</th></tr></thead>
+              <tbody>{dashboard.customers.map((customer) => <tr key={customer.id}><td>{customer.name}</td><td>{customer.email}</td><td>{customer.phone || '—'}</td><td>{new Date(customer.createdAt).toLocaleDateString()}</td></tr>)}</tbody>
+            </table></div>}
+          </section>}
+        </>}
+      </div>
     </main>
   )
 }
@@ -987,7 +1035,10 @@ export default function App() {
   else if (pathname === '/membership/checkout') page = <MembershipCheckoutPage />
   else if (pathname === '/admin/login') page = <AdminAuthPage isSignUp={false} navigate={navigate} />
   else if (pathname === '/admin/signup') page = <AdminAuthPage isSignUp navigate={navigate} />
-  else if (pathname === '/admin/dashboard') page = <AdminDashboardPage />
+  else if (pathname === '/admin/dashboard') page = <AdminDashboardPage key={pathname} section="overview" />
+  else if (pathname === '/admin/requests') page = <AdminDashboardPage key={pathname} section="requests" />
+  else if (pathname === '/admin/memberships') page = <AdminDashboardPage key={pathname} section="memberships" />
+  else if (pathname === '/admin/customers') page = <AdminDashboardPage key={pathname} section="customers" />
   else if (pathname === '/portal/reset-password') page = <ResetPasswordPage />
   else if (information[pathname.slice(1)]) page = <InformationPage page={pathname.slice(1)} />
   else page = <NotFoundPage />

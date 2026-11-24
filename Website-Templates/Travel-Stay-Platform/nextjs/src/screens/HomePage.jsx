@@ -1,8 +1,10 @@
+import { useEffect, useState } from 'react'
 import { ArrowLeft, ArrowRight, MapPin } from 'lucide-react'
 import PageShell from '../components/PageShell'
 import SearchBar from '../components/SearchBar'
 import StayCard from '../components/StayCard'
 import { stays } from '../data/stays'
+import { escapesApi } from '../services/escapesApi'
 
 const styles = [
   ['Beachfront', '1,240 stays', '☼'],
@@ -13,6 +15,18 @@ const styles = [
 ]
 
 export default function HomePage() {
+  const [featuredStays, setFeaturedStays] = useState(stays)
+  const [catalogError, setCatalogError] = useState('')
+  useEffect(() => {
+    let active = true
+    escapesApi.publicStays()
+      .then(({ stays: remoteStays }) => {
+        if (active) setFeaturedStays([...stays, ...remoteStays.filter((remoteStay) => !stays.some((stay) => stay.slug === remoteStay.slug))])
+      })
+      .catch((error) => { if (active) setCatalogError(error.message) })
+    return () => { active = false }
+  }, [])
+
   return (
     <PageShell>
       <main className="page-main home-page">
@@ -27,7 +41,8 @@ export default function HomePage() {
         </section>
         <section className="section-block">
           <div className="section-heading"><div><h2>Featured stays</h2><p>Lovely places, lovely hosts — handpicked for you.</p></div><div className="carousel-actions"><a className="icon-button" href="/stays" aria-label="Previous stays"><ArrowLeft size={15} /></a><a className="icon-button is-dark" href="/stays" aria-label="More stays"><ArrowRight size={15} /></a></div></div>
-          <div className="stay-grid">{stays.slice(0, 3).map((stay) => <StayCard key={stay.slug} stay={stay} />)}</div>
+          <div className="stay-grid">{featuredStays.slice(0, 3).map((stay) => <StayCard key={stay.slug} stay={stay} />)}</div>
+          {catalogError && <p className="form-error" role="status">New properties could not be loaded: {catalogError}</p>}
         </section>
         <section className="trust-strip"><div><strong>4.9/5</strong><span>Stay guest satisfaction</span></div><div><strong>Free cancellation</strong><span>Flexible booking options</span></div><div><strong>24/7</strong><span>Guest support</span></div><a className="button button-primary button-small" href="/list-property">List your property</a></section>
       </main>

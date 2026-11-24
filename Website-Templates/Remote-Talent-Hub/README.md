@@ -29,7 +29,7 @@ npm run dev
 
 Set `MONGODB_URI`, a private `JWT_SECRET` of at least 32 characters, and the initial `ADMIN_EMAIL` / `ADMIN_PASSWORD` (at least 12 characters). The API creates that admin account once if it does not already exist. There is no public admin registration endpoint. Never commit `.env` or expose backend secrets through frontend variables.
 
-The server exits with a clear error if required configuration or the MongoDB connection is unavailable. The default CORS list permits the local Vite and Next.js origins; update `CORS_ORIGINS` for production.
+The server exits with a clear error if required configuration is unavailable. In non-production environments, a MongoDB connection failure is reported and the API starts with temporary in-memory data so local pages remain usable; that data is lost when the process restarts. Production still requires MongoDB. For durable local development data, fix MongoDB DNS/network access and confirm the Atlas network allowlist rather than relying on memory mode. The default CORS list permits the local Vite and Next.js origins; update `CORS_ORIGINS` for production.
 
 ## Start one frontend
 
@@ -68,7 +68,7 @@ The API URL defaults to `http://localhost:5000/api`. Override it with `VITE_API_
 - `GET /api/public/jobs`, `GET /api/public/jobs/:id`
 - `GET /api/client/dashboard`, `POST /api/client/applications`, `POST /api/client/jobs`
 - `PATCH /api/client/applications/:id`
-- `GET /api/admin/dashboard`, `PATCH /api/admin/jobs/:id`
+- `GET /api/admin/dashboard`, `POST /api/admin/jobs`, `PATCH /api/admin/jobs/:id`, `PATCH /api/admin/applications/:id`
 
 Run backend tests with `npm test` from `backend/`. Run the Vite frontend with `npm run lint` and `npm run build`; run Next.js with `npm run typecheck` and `npm run build`.
 

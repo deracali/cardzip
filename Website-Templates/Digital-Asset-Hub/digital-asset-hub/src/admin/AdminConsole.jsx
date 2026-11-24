@@ -171,6 +171,7 @@ export default function AdminConsole({ mode = 'local', apiBaseUrl = '' }) {
   const [notice, setNotice] = useState('')
   const [query, setQuery] = useState('')
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
 
   async function loadData() {
     if (mode === 'local') {
@@ -326,7 +327,11 @@ export default function AdminConsole({ mode = 'local', apiBaseUrl = '' }) {
       <header className={styles.topbar}>
         <button className={styles.mobileMenu} aria-label="Open navigation" onClick={() => setMobileOpen(true)}><Menu size={19} /></button>
         <div className={styles.breadcrumb}><span>Admin</span><b>/</b><strong>{activeSection}</strong></div>
-        <div className={styles.topActions}><span className={styles.modePill}>{mode === 'local' ? 'LOCAL STORAGE' : 'LIVE API'}</span><button aria-label="Notifications"><Bell size={17} /></button><span className={styles.userChip}><i>DA</i><span><strong>{mode === 'local' ? 'Demo admin' : admin.email}</strong><small>Administrator</small></span></span><button aria-label="Sign out" onClick={signOut}><LogOut size={16} /></button></div>
+        <div className={styles.topActions}><span className={styles.modePill}>{mode === 'local' ? 'LOCAL STORAGE' : 'LIVE API'}</span><button aria-label="Notifications" aria-expanded={notificationsOpen} onClick={() => setNotificationsOpen((open) => !open)}><Bell size={17} /><i className={styles.notificationDot} /></button><span className={styles.userChip}><i>DA</i><span><strong>{mode === 'local' ? 'Demo admin' : admin.email}</strong><small>Administrator</small></span></span><button aria-label="Sign out" onClick={signOut}><LogOut size={16} /></button></div>
+        {notificationsOpen && <aside className={styles.notificationPanel} aria-label="Notifications">
+          <div className={styles.notificationHeading}><strong>Operations notifications</strong><button type="button" aria-label="Close notifications" onClick={() => setNotificationsOpen(false)}><X size={14} /></button></div>
+          {recent.slice(0, 5).map((record) => <button type="button" key={record._id || record.id} onClick={() => { setActiveSection(record.kind === 'trade' ? 'Trades' : record.kind === 'bill' ? 'Bills' : record.kind === 'card' ? 'Virtual cards' : record.kind === 'customer' ? 'Customers' : 'Support'); setNotificationsOpen(false) }}><span><Bell size={13} /></span><div><strong>{record.item}</strong><small>{record.reference} · {record.status}</small></div></button>)}
+        </aside>}
       </header>
       <div className={styles.content}>
         <div className={styles.pageHeading}><div><span className={styles.eyebrow}>DIGITAL ASSET HUB · OPERATIONS</span><h1>{activeSection}</h1><p>{currentSection.kind ? `Review and manage ${activeSection.toLowerCase()} activity.` : activeSection === 'Overview' ? 'A clear view of activity across your digital money operations.' : activeSection === 'Rates' ? 'Maintain reference rates shown across the demo experience.' : 'Manage operational preferences for the platform.'}</p></div><span className={styles.dateLabel}><FileClock size={14} /> {new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).format(new Date())}</span></div>

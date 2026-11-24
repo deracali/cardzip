@@ -2,7 +2,7 @@ import { ArrowLeft, ArrowRight, MapPin } from 'lucide-react'
 import PageShell from '../components/PageShell'
 import SearchBar from '../components/SearchBar'
 import StayCard from '../components/StayCard'
-import { stays } from '../data/stays'
+import { getStays } from '../services/escapesApi'
 
 const styles = [
   ['Beachfront', '1,240 stays', '☼'],
@@ -13,6 +13,7 @@ const styles = [
 ]
 
 export default function HomePage() {
+  const stays = getStays()
   return (
     <PageShell>
       <main className="page-main home-page">

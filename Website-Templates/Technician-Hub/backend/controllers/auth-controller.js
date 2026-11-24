@@ -28,13 +28,17 @@ export function createAuthController(store, { secret, env }) {
 
     adminSignup: async (req, res) => {
       const inviteCode = requiredText(req.body.inviteCode, "Administrator invitation code", 256);
-      if (!env.ADMIN_SIGNUP_CODE || !safeCompareText(inviteCode, env.ADMIN_SIGNUP_CODE)) {
+      const expectedCode = env.ADMIN_SIGNUP_CODE || (env.NODE_ENV === "development" ? "POLARFLOW-LOCAL-ADMIN" : "");
+      if (!expectedCode || !safeCompareText(inviteCode, expectedCode)) {
         throw new HttpError(403, "The administrator invitation code is invalid or not configured.");
       }
       const name = requiredText(req.body.name, "Name", 120);
       const email = normalizedEmail(req.body.email);
       validatePassword(req.body.password);
       const user = await store.update(async (state) => {
+        if (state.users.some((item) => item.role === "admin")) {
+          throw new HttpError(409, "An administrator account has already been created.");
+        }
         if (state.users.some((item) => item.email === email)) throw new HttpError(409, "An account with that email already exists.");
         const created = {
           id: `user_${randomUUID()}`,

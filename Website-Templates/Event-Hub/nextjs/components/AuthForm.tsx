@@ -32,9 +32,20 @@ export default function AuthForm({ mode, expectedRole }: { mode: "login" | "sign
         await eventHubApi.logout();
         throw new Error("This account does not have administrator access.");
       }
-      if (result.user.role === "admin") router.replace("/admin");
-      else if (result.user.role === "organizer") router.replace("/organizer/dashboard");
-      else router.replace("/dashboard");
+      const requestedPath = new URLSearchParams(window.location.search).get("next");
+      const isAttendeePath = requestedPath === "/dashboard" || requestedPath?.startsWith("/dashboard/") || requestedPath?.startsWith("/checkout/");
+      const isOrganizerPath = requestedPath === "/organizer/dashboard" || requestedPath?.startsWith("/organizer/dashboard/");
+      const isAdminPath = requestedPath === "/admin" || requestedPath?.startsWith("/admin/");
+      const safeRequestedPath = requestedPath?.startsWith("/") && !requestedPath.startsWith("//")
+        && (result.user.role === "attendee" ? isAttendeePath : result.user.role === "organizer" ? isOrganizerPath : isAdminPath)
+        ? requestedPath
+        : null;
+      const destination = result.user.role === "admin"
+        ? "/admin"
+        : result.user.role === "organizer"
+          ? "/organizer/dashboard"
+          : "/dashboard/tickets";
+      router.replace(safeRequestedPath || destination);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Authentication failed.");
     } finally {
@@ -51,7 +62,13 @@ export default function AuthForm({ mode, expectedRole }: { mode: "login" | "sign
         <p>{mode === "signup" ? "Save events and keep your booking requests together." : "Sign in to review bookings or manage your event workspace."}</p>
         {mode === "signup" && <>
           <label>Full name<input name="name" autoComplete="name" minLength={2} maxLength={100} required /></label>
-          <label>Account type<select value={accountType} onChange={(event) => setAccountType(event.target.value as "attendee" | "organizer")}><option value="attendee">Attendee</option><option value="organizer">Organizer (requires admin approval)</option></select></label>
+          <fieldset className="account-type-field">
+            <legend>Choose your account</legend>
+            <div className="account-type-options" role="radiogroup" aria-label="Account type">
+              <button className={accountType === "attendee" ? "account-type-option selected" : "account-type-option"} type="button" role="radio" aria-checked={accountType === "attendee"} onClick={() => setAccountType("attendee")}><strong>Attendee</strong><small>Discover events and manage tickets</small></button>
+              <button className={accountType === "organizer" ? "account-type-option selected" : "account-type-option"} type="button" role="radio" aria-checked={accountType === "organizer"} onClick={() => setAccountType("organizer")}><strong>Organizer</strong><small>Host events · approval required</small></button>
+            </div>
+          </fieldset>
         </>}
         <label>Email address<input name="email" type="email" autoComplete="email" required /></label>
         <label>Password<input name="password" type="password" autoComplete={mode === "signup" ? "new-password" : "current-password"} minLength={mode === "signup" ? 8 : undefined} required /></label>

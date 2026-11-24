@@ -17,6 +17,8 @@ npm run dev
 - `/reserve/azure-breeze` — date selection and reservation estimate
 - `/checkout` — guest details and checkout preview
 - `/signin` and `/signup` — account form previews
+- `/admin/login` and `/admin/signup` — administrator authentication
+- `/admin/dashboard`, `/admin/reservations`, `/admin/stays`, and `/admin/guests` — separate operations pages
 - `/destinations`, `/experiences`, `/list-property`, `/support`, and `/about` — linked discovery and information pages
 
 Property pages are also available for `palm-jungle-retreat`, `lagoon-ocean-suite`, and `bamboo-hideaway`.
@@ -28,6 +30,6 @@ Property pages are also available for `palm-jungle-retreat`, `lagoon-ocean-suite
 - `src/data/stays.js` contains stay listings, image helpers, and reservation date defaults.
 - `src/App.jsx` maps browser paths to page components.
 
-## Integration notes
+## Local demo data
 
-Checkout is a front-end preview only. Payment card inputs are disabled and no payment or reservation is submitted. Connect a payment provider and booking service before accepting real payments or bookings. The hero image is bundled locally at `public/hero-resort.jpg`; property gallery photos load from Unsplash.
+Vite stores demo accounts, reservation requests, property listings, and admin updates in localStorage. The first admin signup invitation is `ESCAPES-LOCAL-ADMIN`; it is a client-side demo check, not production access control. Admins can add stays from `/admin/stays` with an HTTPS image URL. Reservation requests remain unconfirmed and no payment is collected. This browser-only demo is not suitable for real customer data or production bookings. The Next.js app stores property listings through the API. The hero image is bundled locally at `public/hero-resort.jpg`; property gallery photos load from Unsplash.

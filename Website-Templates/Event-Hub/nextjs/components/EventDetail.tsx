@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { eventHubApi, type EventItem } from "../lib/eventHubApi";
-import { starterEvents } from "../lib/eventData";
+import { starterEvents, withEventFallback } from "../lib/eventData";
 
 export default function EventDetail({ slug }: { slug: string }) {
   const [event, setEvent] = useState<EventItem | null>(() => starterEvents.find((item) => item.slug === slug) || null);
@@ -12,7 +12,7 @@ export default function EventDetail({ slug }: { slug: string }) {
   useEffect(() => {
     let active = true;
     eventHubApi.getEvent(slug)
-      .then((result) => { if (active) setEvent(result.event); })
+      .then((result) => { if (active) setEvent(withEventFallback(result.event)); })
       .catch((requestError) => { if (active) setError(requestError instanceof Error ? requestError.message : "Could not load event details."); });
     return () => { active = false; };
   }, [slug]);
@@ -20,7 +20,8 @@ export default function EventDetail({ slug }: { slug: string }) {
   if (!event) return <main className="narrow-page"><h1>Event not found</h1><p>{error || "This event may have been removed."}</p><Link href="/events">Browse events</Link></main>;
   return (
     <main className="detail-page">
-      <div className="detail-cover" style={{ backgroundImage: `linear-gradient(90deg,rgba(8,13,28,.86),rgba(8,13,28,.12)),url("${event.image}")` }}>
+      <div className="detail-cover">
+        <img className="detail-cover-image" src={event.image || "/event-placeholder.svg"} alt="" onError={(error) => { error.currentTarget.src = "/event-placeholder.svg"; }} />
         <div><span className="eyebrow">{event.category} · {event.date}</span><h1>{event.title}</h1><p>{event.location} · {event.time}</p><Link className="button button-primary" href={`/checkout/${event.slug}`}>Request tickets · from ${event.price}</Link></div>
       </div>
       {error && <p className="api-error detail-error">Showing the included event preview. {error}</p>}

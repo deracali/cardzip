@@ -25,6 +25,8 @@ export function createApiRoutes({ store, jwtSecret }) {
   router.post("/client/jobs", authenticate, requireRoles("employer"), client.createJob);
 
   router.get("/admin/dashboard", authenticate, requireRoles("admin"), admin.dashboard);
+  router.post("/admin/jobs", authenticate, requireRoles("admin"), admin.createJob);
   router.patch("/admin/jobs/:id", authenticate, requireRoles("admin"), admin.updateJob);
+  router.patch("/admin/applications/:id", authenticate, requireRoles("admin"), admin.updateApplication);
   return router;
 }

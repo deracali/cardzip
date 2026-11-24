@@ -4,6 +4,12 @@ import { Menu, X } from 'lucide-react'
 function CreatorHubHeader() {
   const [menuOpen, setMenuOpen] = useState(false)
   const closeMenu = () => setMenuOpen(false)
+  let session = null
+  try {
+    session = JSON.parse(localStorage.getItem('creatorhub_demo_session') || 'null')
+  } catch {
+    session = null
+  }
 
   return (
     <header className="creator-header">
@@ -28,11 +34,11 @@ function CreatorHubHeader() {
           <a href="/store" onClick={closeMenu}>Store</a>
           <a href="/blog" onClick={closeMenu}>Blog</a>
           <a href="/resources" onClick={closeMenu}>Resources</a>
-          <a href="/#pricing" onClick={closeMenu}>Pricing</a>
+          <a href="/pricing" onClick={closeMenu}>Pricing</a>
           <a href="/about" onClick={closeMenu}>About</a>
           <div className="creator-nav-actions">
-            <a className="creator-sign-in" href="/login" onClick={closeMenu}>Sign in</a>
-            <a className="creator-button creator-button-dark" href="/signup" onClick={closeMenu}>Claim your link — free</a>
+            <a className="creator-sign-in" href={session ? '/dashboard' : '/login'} onClick={closeMenu}>{session ? 'Dashboard' : 'Sign in'}</a>
+            {!session && <a className="creator-button creator-button-dark" href="/signup" onClick={closeMenu}>Claim your link — free</a>}
           </div>
         </nav>
       </div>

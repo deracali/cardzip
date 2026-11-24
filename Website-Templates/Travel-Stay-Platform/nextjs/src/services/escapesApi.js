@@ -39,10 +39,13 @@ export const escapesApi = {
   signup: (body) => request('/auth/signup', { method: 'POST', body, authenticated: false }),
   signupAdmin: (body) => request('/auth/admin-signup', { method: 'POST', body, authenticated: false }),
   login: (body) => request('/auth/login', { method: 'POST', body, authenticated: false }),
+  publicStays: () => request('/public/stays', { authenticated: false }),
+  publicStay: (slug) => request(`/public/stays/${encodeURIComponent(slug)}`, { authenticated: false }),
   paymentProviders: () => request('/client/payment/providers'),
   createBooking: (body) => request('/client/bookings/checkout', { method: 'POST', body }),
   verifyBooking: (body) => request('/client/bookings/verify', { method: 'POST', body }),
   clientDashboard: () => request('/client/dashboard'),
   adminDashboard: () => request('/admin/dashboard'),
   updateBooking: (id, status) => request(`/admin/bookings/${encodeURIComponent(id)}`, { method: 'PATCH', body: { status } }),
+  createStay: (body) => request('/admin/stays', { method: 'POST', body }),
 }

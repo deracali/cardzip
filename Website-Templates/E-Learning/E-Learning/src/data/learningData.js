@@ -193,31 +193,3 @@ export const learningInstructors = [
     bio: 'Nina teaches product teams how to find the right problems, make focused plans and learn from every launch.',
   },
 ]
-
-export const enrollmentPlans = [
-  {
-    id: 'free',
-    name: 'Free',
-    price: 0,
-    cadence: 'forever',
-    description: 'A friendly place to start learning.',
-    features: ['Free introductory lessons', 'Track your learning progress', 'Join the learner community'],
-  },
-  {
-    id: 'plus-monthly',
-    name: 'Skillora Plus',
-    price: 15,
-    cadence: 'month',
-    description: 'Grow your skills with an all-access membership.',
-    featured: true,
-    features: ['35,000+ on-demand courses', 'Certificates of completion', 'Learn on any device', 'Cancel anytime'],
-  },
-  {
-    id: 'pro-yearly',
-    name: 'Skillora Pro',
-    price: 120,
-    cadence: 'year',
-    description: 'A year of focused learning and career growth.',
-    features: ['Everything in Plus', 'Personal learning plans', 'Downloadable course resources', 'Priority learner support'],
-  },
-]

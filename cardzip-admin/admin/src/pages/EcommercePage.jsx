@@ -1367,7 +1367,7 @@ export default function EcommercePage({ section = 'orders', onViewOrder }) {
       </div>
 
       {modalOpen && (
-        <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setModalOpen(false) }}>
+        <div className="modal-backdrop">
           <section className="modal-content ecom-product-modal" role="dialog" aria-modal="true" aria-labelledby="add-product-title">
             <header className="modal-header">
             <div className="ecom-product-modal-title"><Package size={18} /><h3 id="add-product-title">{editingProductId ? 'Edit store product' : 'Add store product'}</h3></div>

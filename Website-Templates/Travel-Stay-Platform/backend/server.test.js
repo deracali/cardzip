@@ -157,3 +157,38 @@ test("only admins can update reservations and invalid booking data is rejected",
   const blockedOrigin = await api("/health", { origin: "https://not-escapes.example" });
   assert.equal(blockedOrigin.response.status, 403);
 });
+
+test("only admins can add property listings and new properties appear in the live admin dashboard", async () => {
+  const body = {
+    name: "Cove Garden Hotel",
+    area: "Canggu, Bali",
+    room: "Garden Suite",
+    type: "Boutique hotel",
+    price: 155,
+    categories: "Boutique Hotels, City Apartments",
+    image: "https://images.example.test/cove-garden.jpg",
+    description: "A quiet boutique stay with a garden courtyard, thoughtful service, and easy access to local beaches.",
+  };
+  const denied = await api("/admin/stays", { method: "POST", token: clientToken, body });
+  assert.equal(denied.response.status, 403);
+
+  const created = await api("/admin/stays", { method: "POST", token: adminToken, body });
+  assert.equal(created.response.status, 201);
+  assert.equal(created.data.stay.slug, "cove-garden-hotel");
+  assert.equal(created.data.stay.price, 155);
+
+  const dashboard = await api("/admin/dashboard", { token: adminToken });
+  assert.equal(dashboard.data.stays.length, 1);
+  assert.equal(dashboard.data.stays[0].name, body.name);
+  const publicCatalog = await api("/public/stays");
+  assert.equal(publicCatalog.data.stays[0].slug, "cove-garden-hotel");
+  const publicStay = await api("/public/stays/cove-garden-hotel");
+  assert.equal(publicStay.data.stay.price, 155);
+
+  const insecureImage = await api("/admin/stays", {
+    method: "POST",
+    token: adminToken,
+    body: { ...body, name: "Unsafe Image Hotel", image: "http://images.example.test/photo.jpg" },
+  });
+  assert.equal(insecureImage.response.status, 400);
+});

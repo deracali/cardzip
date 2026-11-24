@@ -76,11 +76,12 @@ router.patch('/providers/:id', async (request, response) => {
   }
   if (providerStatus !== undefined) provider.providerStatus = providerStatus
   if (active !== undefined) provider.active = active
-  if (provider.providerStatus === 'rejected' && provider.providerDoctor) {
-    await Doctor.findByIdAndUpdate(provider.providerDoctor, { $set: { providerUser: null } })
-    provider.providerDoctor = null
-  }
   await provider.save()
+  if (provider.providerDoctor) {
+    await Doctor.findByIdAndUpdate(provider.providerDoctor, { $set: {
+      active: provider.providerStatus === 'approved' && provider.active,
+    } })
+  }
   await provider.populate('providerDoctor', 'name slug specialty')
   response.json({ provider: provider.toJSON() })
 })

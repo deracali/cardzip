@@ -15,8 +15,8 @@ function CreatorHubHeader() {
     apiRequest<{ user: { role: string } | null }>('/auth/me')
       .then(({ user }) => {
         if (user) {
-          setAccountHref(user.role === 'admin' ? '/admin' : '/dashboard')
-          setAccountLabel(user.role === 'admin' ? 'Admin' : 'Dashboard')
+          setAccountHref('/dashboard')
+          setAccountLabel('Dashboard')
         }
       })
       .catch((error: unknown) => {
@@ -49,7 +49,7 @@ function CreatorHubHeader() {
           <a href="/store" onClick={closeMenu}>Store</a>
           <a href="/blog" onClick={closeMenu}>Blog</a>
           <a href="/resources" onClick={closeMenu}>Resources</a>
-          <a href="/#pricing" onClick={closeMenu}>Pricing</a>
+          <a href="/pricing" onClick={closeMenu}>Pricing</a>
           <a href="/about" onClick={closeMenu}>About</a>
           <div className="creator-nav-actions">
             <a className="creator-sign-in" href={accountHref} onClick={closeMenu}>{accountLabel}</a>

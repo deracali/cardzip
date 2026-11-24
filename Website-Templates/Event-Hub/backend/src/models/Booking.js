@@ -11,8 +11,11 @@ const bookingSchema = new mongoose.Schema({
   ticketType: { type: String, enum: ['General Admission', 'VIP Pass'], required: true },
   quantity: { type: Number, min: 1, max: 6, required: true },
   total: { type: Number, min: 0, required: true },
+  currency: { type: String, enum: ['USD'], default: 'USD', required: true },
   status: { type: String, enum: ['requested', 'confirmed', 'cancelled'], default: 'requested', index: true },
-  paymentStatus: { type: String, enum: ['not-integrated', 'pending', 'paid', 'refunded'], default: 'not-integrated' },
+  paymentStatus: { type: String, enum: ['not-integrated', 'pending', 'paid', 'failed', 'refunded'], default: 'not-integrated' },
+  paymentProvider: { type: String, enum: ['', 'paystack', 'stripe'], default: '' },
+  providerSessionId: { type: String, default: '', index: true },
 }, { timestamps: true })
 
 export default mongoose.model('PulseLiveBooking', bookingSchema)

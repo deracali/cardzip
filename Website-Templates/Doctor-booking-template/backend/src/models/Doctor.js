@@ -4,6 +4,7 @@ const doctorSchema = new mongoose.Schema({
   slug: { type: String, required: true, lowercase: true, trim: true, unique: true },
   providerUser: { type: mongoose.Schema.Types.ObjectId, ref: 'CarewellUser', default: null, index: true },
   name: { type: String, required: true, trim: true, maxlength: 120 },
+  image: { type: String, trim: true, maxlength: 2100000, default: '' },
   specialty: { type: String, required: true, trim: true, maxlength: 80 },
   credentials: { type: String, trim: true, maxlength: 100, default: '' },
   location: { type: String, trim: true, maxlength: 120, default: '' },

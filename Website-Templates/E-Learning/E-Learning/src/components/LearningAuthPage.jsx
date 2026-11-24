@@ -4,6 +4,8 @@ import './LearningPages.css'
 
 const learnerImage = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1000&q=84'
 const classImage = 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1000&q=84'
+const LOCAL_USERS_KEY = 'skillora-demo-users'
+const LOCAL_SESSION_KEY = 'skillora-demo-session'
 
 function Brand() {
   return (
@@ -62,7 +64,35 @@ function LearningAuthPage({ mode, storageMode = 'local', apiBaseUrl = '' }) {
       }
       return
     }
-    setNotice('This demo form is ready to connect to your account service.')
+    try {
+      const email = String(new FormData(event.currentTarget).get('email') || '').trim().toLowerCase()
+      const users = JSON.parse(localStorage.getItem(LOCAL_USERS_KEY) || '[]')
+      let user
+      if (isSignup) {
+        if (users.some((item) => item.email === email)) {
+          setNotice('A local demo account already uses this email. Sign in instead.')
+          return
+        }
+        user = {
+          id: `skillora-demo-${Date.now()}`,
+          name: String(new FormData(event.currentTarget).get('name') || '').trim(),
+          email,
+          role: accountType,
+          instructorStatus: accountType === 'instructor' ? 'approved' : 'not-applicable',
+        }
+        localStorage.setItem(LOCAL_USERS_KEY, JSON.stringify([...users, user]))
+      } else {
+        user = users.find((item) => item.email === email)
+        if (!user) {
+          setNotice('No local demo account was found for this email. Create an account first.')
+          return
+        }
+      }
+      localStorage.setItem(LOCAL_SESSION_KEY, JSON.stringify(user))
+      window.location.replace(user.role === 'instructor' ? '/instructor/dashboard' : '/dashboard')
+    } catch (error) {
+      setNotice(`Unable to save this local demo account: ${error.message}`)
+    }
   }
 
   return (
@@ -194,6 +224,7 @@ function LearningAuthPage({ mode, storageMode = 'local', apiBaseUrl = '' }) {
             <button className="button button-primary auth-submit" type="submit">{isSignup ? 'Create Account' : 'Sign In'} <ArrowRight size={15} /></button>
           </form>
           {notice && <p className="auth-notice" role="status">{notice}</p>}
+          {storageMode === 'local' && <p className="auth-privacy"><ShieldCheck size={13} /> Local demo only. Passwords are not stored or verified.</p>}
           <p className="auth-switch">
             {isSignup ? 'Already have an account? ' : 'Don’t have an account? '}
             <a href={isSignup ? '/login' : '/signup'}>{isSignup ? 'Sign In' : 'Sign Up'}</a>

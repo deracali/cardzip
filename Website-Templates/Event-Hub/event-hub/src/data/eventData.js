@@ -58,3 +58,60 @@ export const speakers = [
 ]
 
 export const categories = ['All Events', 'Concert', 'Festival', 'Conference', 'Workshop']
+
+export const demoAttendee = {
+  name: 'Jordan Lee',
+  email: 'jordan.lee@example.test',
+}
+
+export const demoAccountsStorageKey = 'pulselive-demo-accounts-v1'
+export const demoSessionStorageKey = 'pulselive-demo-session-v1'
+
+export const demoOrganizer = {
+  name: 'Maya Chen',
+  email: 'maya.chen@example.test',
+  role: 'organizer',
+  organizerStatus: 'approved',
+}
+
+export const demoClientBookings = [
+  {
+    id: 'demo-neon-pulse',
+    reference: 'PL-DEMO2401',
+    attendeeName: demoAttendee.name,
+    attendeeEmail: demoAttendee.email,
+    eventSlug: 'neon-pulse',
+    eventTitle: 'Neon Pulse Festival 2027',
+    ticketType: 'VIP Pass',
+    quantity: 2,
+    total: 378,
+    status: 'confirmed',
+    paymentStatus: 'demo',
+    createdAt: '2026-10-28T15:00:00.000Z',
+  },
+  {
+    id: 'demo-tech-summit',
+    reference: 'PL-DEMO2402',
+    attendeeName: demoAttendee.name,
+    attendeeEmail: demoAttendee.email,
+    eventSlug: 'global-tech-summit',
+    eventTitle: 'Global Tech Summit 2027',
+    ticketType: 'General Admission',
+    quantity: 1,
+    total: 249,
+    status: 'requested',
+    paymentStatus: 'demo',
+    createdAt: '2026-10-21T11:30:00.000Z',
+  },
+]
+
+export function withEventFallback(event) {
+  const fallback = events.find((item) => item.slug === event.slug)
+    || events.find((item) => item.category === event.category)
+    || events[0]
+  return {
+    ...fallback,
+    ...event,
+    image: typeof event.image === 'string' && event.image.trim() ? event.image : fallback.image,
+  }
+}

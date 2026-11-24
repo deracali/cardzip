@@ -2,6 +2,7 @@ import 'dotenv/config'
 import express from 'express'
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
+import dns from 'node:dns'
 import helmet from 'helmet'
 import mongoose from 'mongoose'
 import bcrypt from 'bcryptjs'
@@ -14,6 +15,7 @@ import courseRoutes from './routes/courses.js'
 import instructorRoutes from './routes/instructor.js'
 import studentRoutes from './routes/student.js'
 import paymentRoutes, { paystackWebhookHandler, stripeWebhookHandler } from './routes/payments.js'
+import { createFallbackLookup } from './src/utils/mongoDns.js'
 
 function configuration() {
   const missing = ['MONGODB_URI', 'JWT_SECRET'].filter((key) => !process.env[key]?.trim())
@@ -23,7 +25,40 @@ function configuration() {
   if (process.env.NODE_ENV === 'production' && (!process.env.ALLOWED_ORIGINS || origins.some((origin) => origin.includes('localhost')))) {
     throw new Error('Set ALLOWED_ORIGINS to the production website origin.')
   }
-  return { origins, port: Number(process.env.PORT) || 5300 }
+  const dnsServers = (process.env.MONGODB_DNS_SERVERS || '1.1.1.1,8.8.8.8')
+    .split(',').map((server) => server.trim()).filter(Boolean)
+  return { origins, port: Number(process.env.PORT) || 5300, dnsServers }
+}
+
+function isAtlasSrvResolverRefusal(error) {
+  const seen = new Set()
+  let current = error
+  while (current && !seen.has(current)) {
+    if ((current.code === 'ECONNREFUSED' && current.syscall === 'querySrv')
+      || /querySrv ECONNREFUSED _mongodb\._tcp\./i.test(current.message || '')) return true
+    seen.add(current)
+    current = current.cause
+  }
+  return false
+}
+
+async function connectToMongo(uri, dnsServers) {
+  const lookup = createFallbackLookup(dnsServers)
+  try {
+    return await mongoose.connect(uri, { lookup })
+  } catch (error) {
+    if (!isAtlasSrvResolverRefusal(error)) throw error
+    console.warn('System DNS refused the MongoDB Atlas SRV lookup; retrying with fallback DNS.')
+    try {
+      dns.setServers(dnsServers)
+      return await mongoose.connect(uri, { lookup })
+    } catch (fallbackError) {
+      throw new Error(
+        `MongoDB Atlas SRV lookup failed with system DNS and fallback DNS (${dnsServers.join(', ')}). Check network DNS access or set MONGODB_DNS_SERVERS: ${fallbackError.message}`,
+        { cause: fallbackError },
+      )
+    }
+  }
 }
 
 function createApp(config) {
@@ -82,7 +117,7 @@ async function seedCourses() {
 
 async function start() {
   const config = configuration()
-  await mongoose.connect(process.env.MONGODB_URI)
+  await connectToMongo(process.env.MONGODB_URI, config.dnsServers)
   await seedCourses()
   await seedAdmin()
   createApp(config).listen(config.port, () => console.log(`Skillora API listening on http://localhost:${config.port}`))

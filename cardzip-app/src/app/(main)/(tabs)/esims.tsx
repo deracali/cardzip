@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator,
   Modal,
-  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -140,12 +139,14 @@ function NumberHubContent() {
 
   const selectedArea = areas.find((area) => area.value === selectedRegion) ?? areas[0];
   const selectedApp = apps.find((app) => app.value === selectedService) ?? apps[0];
+  const selectedAppValue = selectedApp?.value;
   const durations = selectedApp && durationResult?.appValue === selectedApp.value
     ? durationResult.durations
     : [];
   const selectedDurationOption = durations.find((duration) => duration.value === selectedDuration) ?? durations[0];
+  const selectedDurationValue = selectedDurationOption?.duration;
   const durationLoading = Boolean(selectedApp && durationLoadSettledFor !== selectedApp.value);
-  const pricingKey = `${selectedApp?.value ?? ''}:${selectedDurationOption?.duration ?? selectedDuration}`;
+  const pricingKey = `${selectedAppValue ?? ''}:${selectedDurationValue ?? selectedDuration}`;
   const pricing = pricingResult?.key === pricingKey ? pricingResult.pricing : null;
   const pricingLoading = Boolean(selectedApp && selectedDurationOption && pricingLoadSettledFor !== pricingKey);
   const visibleRentals = token && rentalsToken === token ? rentals : [];
@@ -161,7 +162,7 @@ function NumberHubContent() {
     if (token) void dispatch(fetchWalletBalance(token));
   }, [dispatch, token]);
 
-  const loadRentals = async () => {
+  const loadRentals = useCallback(async () => {
     setManualRentalLoading(true);
     try {
       if (!token) throw new Error('Sign in to load your virtual-number rentals.');
@@ -182,7 +183,7 @@ function NumberHubContent() {
     } finally {
       setManualRentalLoading(false);
     }
-  };
+  }, [token]);
 
   const loadInbox = async (rentalId?: string) => {
     setInboxLoading(true);
@@ -258,9 +259,9 @@ function NumberHubContent() {
   }, [token]);
 
   useEffect(() => {
-    if (!selectedApp) return undefined;
+    if (!selectedAppValue) return undefined;
     let mounted = true;
-    const appValue = selectedApp.value;
+    const appValue = selectedAppValue;
     fetchRentalDurations(appValue)
       .then((availableDurations) => {
         if (!mounted) return;
@@ -274,13 +275,13 @@ function NumberHubContent() {
       })
       .finally(() => { if (mounted) setDurationLoadSettledFor(appValue); });
     return () => { mounted = false; };
-  }, [selectedApp?.value]);
+  }, [selectedAppValue]);
 
   useEffect(() => {
-    if (!selectedApp || !selectedDurationOption) return undefined;
+    if (!selectedAppValue || !selectedDurationValue) return undefined;
     let mounted = true;
     const requestKey = pricingKey;
-    fetchRentalPricing(selectedApp.value, selectedDurationOption.duration)
+    fetchRentalPricing(selectedAppValue, selectedDurationValue)
       .then((currentPricing) => {
         if (mounted) setPricingResult({ key: requestKey, pricing: currentPricing });
       })
@@ -289,7 +290,7 @@ function NumberHubContent() {
       })
       .finally(() => { if (mounted) setPricingLoadSettledFor(requestKey); });
     return () => { mounted = false; };
-  }, [pricingKey, selectedApp?.value, selectedDurationOption?.duration]);
+  }, [pricingKey, selectedAppValue, selectedDurationValue]);
 
   useEffect(() => {
     if (activeTab !== 'inbox' || !selectedRentalId || !token) return;
@@ -420,7 +421,7 @@ function NumberHubContent() {
     } finally {
       setPurchasing(false);
     }
-  }, [dispatch, pendingPaymentReference, token]);
+  }, [dispatch, loadRentals, pendingPaymentReference, token]);
 
   useEffect(() => {
     if (!pendingPaymentReference || !token || purchasing) return undefined;
@@ -762,11 +763,13 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: wp(4),
-    paddingVertical: hp(2),
+    paddingTop: hp(2),
+    paddingBottom: hp(14),
   },
   sectionContainer: {
-    flex: 1,
+    width: '100%',
   },
   sectionTitle: {
     fontFamily: 'Poppins',

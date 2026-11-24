@@ -13,9 +13,12 @@ const appointmentSchema = new mongoose.Schema({
   timeLabel: { type: String, required: true, trim: true, maxlength: 20 },
   startsAt: { type: Date, required: true, index: true },
   fee: { type: Number, required: true, min: 0 },
+  paymentProvider: { type: String, enum: ['stripe', 'paystack'], default: undefined },
+  paymentReference: { type: String, trim: true, default: undefined },
   status: { type: String, enum: ['pending', 'confirmed', 'completed', 'cancelled'], default: 'pending', index: true },
 }, { timestamps: true })
 
 appointmentSchema.index({ doctor: 1, startsAt: 1, status: 1 })
+appointmentSchema.index({ paymentReference: 1 }, { unique: true, sparse: true })
 
 export default mongoose.model('CarewellAppointment', appointmentSchema)

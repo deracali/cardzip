@@ -17,6 +17,7 @@ const eventSchema = new mongoose.Schema({
   time: { type: String, required: true, trim: true, maxlength: 40 },
   location: { type: String, required: true, trim: true, maxlength: 180 },
   price: { type: Number, min: 0, required: true },
+  currency: { type: String, enum: ['USD'], default: 'USD', required: true },
   image: { type: String, trim: true, maxlength: 1000, default: '' },
   description: { type: String, trim: true, maxlength: 2000, default: '' },
   lineup: { type: String, trim: true, maxlength: 500, default: '' },

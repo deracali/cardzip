@@ -72,9 +72,9 @@ Use the address printed by Vite. Its local admin workspace and learner progress 
 
 Learners can browse course categories, search the catalog, inspect instructor pages, open course lessons and take quizzes. Register at `/signup` as a Student and sign in at `/login`; `/dashboard` shows connected enrollments and progress. Learning pages save completed modules through the API in connected mode.
 
-Instructor applicants choose Instructor / Creator during registration. New applications remain pending until an administrator approves them. Approved instructors use `/instructor/dashboard` to see assigned courses and learner enrollment data.
+Instructor applicants choose Instructor / Creator during registration. New applications remain pending until an administrator approves them. Approved instructors use `/instructor/dashboard` to see assigned courses and learner enrollment data. The Vite tutor dashboard shows local static demo records; Next.js loads the authenticated instructor data from the API.
 
-Free courses can be enrolled in through the connected flow. For paid courses, select an enabled provider and complete its hosted checkout. Skillora reads the course amount from the database, then verifies the payment directly with the provider before activating the enrollment. Provider webhooks are signature-checked and also verified server-side; a success redirect by itself does not grant access. Skillora does not collect or store card numbers. If no provider account supports NGN, paid-course checkout is disabled. Membership plan checkout remains a non-payment demo. Sample progress in the Vite version is not a real learner record and is not shared across browsers.
+Free courses can be enrolled in through the connected flow. For paid courses, select an enabled provider and complete its hosted checkout. Skillora reads the course amount from the database, then verifies the payment directly with the provider before activating the enrollment. Provider webhooks are signature-checked and also verified server-side; a success redirect by itself does not grant access. Skillora does not collect or store card numbers. If no provider account supports NGN, paid-course checkout is disabled. Students pay once for a selected course; recurring membership plans are not implemented. Course lesson and video content is sample material that must be replaced before taking live payments. Sample progress in the Vite version is not a real learner record and is not shared across browsers.
 
 ## 6. Administration workflow
 
@@ -90,7 +90,7 @@ Use the Next.js admin login and backend role checks for persistent changes. The 
 
 ## 7. Limitations, security and deployment
 
-Paid course enrollment is enabled only for each provider whose credentials and confirmed NGN account support are configured. In connected mode it uses hosted Paystack or Stripe checkout and server-side provider verification before enrollment. An unconfigured or NGN-incompatible provider is disabled; membership checkout remains a demo. Never collect card data directly or grant paid access from a browser redirect.
+Paid course enrollment is enabled only for each provider whose credentials and confirmed NGN account support are configured. In connected mode it uses hosted Paystack or Stripe checkout and server-side provider verification before enrollment. An unconfigured or NGN-incompatible provider is disabled. There is no recurring membership checkout. Never collect card data directly or grant paid access from a browser redirect.
 
 Before production, configure HTTPS, exact CORS origins, strong unique secrets, protected MongoDB credentials, least-privilege access, monitoring and tested backups. Review role access in the deployed setup.
 

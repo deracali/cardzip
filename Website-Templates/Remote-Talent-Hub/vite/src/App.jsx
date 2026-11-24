@@ -372,29 +372,27 @@ const emptyJob = { title: '', category: 'Software Engineering', type: 'Full-time
 function PostJobPage({ navigate }) {
   const [step, setStep] = useState(1)
   const [selectedPlan, setSelectedPlan] = useState('standard')
-  const [job, setJob] = useState(emptyJob)
-  const [draftReady, setDraftReady] = useState(false)
-  const [notice, setNotice] = useState('')
-  const [busy, setBusy] = useState(false)
-  useEffect(() => {
+  const [draft] = useState(() => {
     try {
       const saved = window.localStorage.getItem('remotely-job-draft')
-      if (saved) setJob({ ...emptyJob, ...JSON.parse(saved) })
-    } catch {
-      setNotice('The saved job draft could not be loaded from this browser.')
-    } finally {
-      setDraftReady(true)
+      return { job: saved ? { ...emptyJob, ...JSON.parse(saved) } : emptyJob, notice: '' }
+    } catch (error) {
+      return { job: emptyJob, notice: `The saved job draft could not be loaded: ${error.message}` }
     }
-  }, [])
-  useEffect(() => {
-    if (!draftReady) return
+  })
+  const [job, setJob] = useState(draft.job)
+  const [notice, setNotice] = useState(draft.notice)
+  const [busy, setBusy] = useState(false)
+  const update = (key, value) => {
+    const updatedJob = { ...job, [key]: value }
+    setJob(updatedJob)
     try {
-      window.localStorage.setItem('remotely-job-draft', JSON.stringify(job))
-    } catch {
-      setNotice('This browser could not save your job draft. Keep this page open while editing.')
+      window.localStorage.setItem('remotely-job-draft', JSON.stringify(updatedJob))
+      setNotice('')
+    } catch (error) {
+      setNotice(`This browser could not save your job draft: ${error.message}`)
     }
-  }, [job, draftReady])
-  const update = (key, value) => setJob((current) => ({ ...current, [key]: value }))
+  }
   const next = async (event) => {
     event.preventDefault()
     if (step < 4) {
@@ -498,7 +496,10 @@ export function RemotePage({ route = '/', navigate }) {
   else if (pathname === '/login') page = <ConnectedAuthPage defaultRole={query.get('role') || 'candidate'} redirectTo={query.get('next') || ''} navigate={navigate} />
   else if (pathname === '/signup') page = <ConnectedAuthPage signup defaultRole={query.get('role') || 'candidate'} redirectTo={query.get('next') || ''} navigate={navigate} />
   else if (pathname === '/admin/login') page = <ConnectedAuthPage admin navigate={navigate} />
-  else if (pathname === '/admin') page = <AdminDashboardPage navigate={navigate} />
+  else if (pathname === '/admin') page = <AdminDashboardPage key={pathname} navigate={navigate} section="overview" />
+  else if (pathname === '/admin/jobs') page = <AdminDashboardPage key={pathname} navigate={navigate} section="jobs" />
+  else if (pathname === '/admin/applications') page = <AdminDashboardPage key={pathname} navigate={navigate} section="applications" />
+  else if (pathname === '/admin/accounts') page = <AdminDashboardPage key={pathname} navigate={navigate} section="accounts" />
   else if (pathname === '/dashboard') page = <ClientDashboardPage navigate={navigate} />
   else if (pathname === '/apply' || pathname.startsWith('/apply/')) {
     const jobId = decodeURIComponent(segments.at(-1) || '')
