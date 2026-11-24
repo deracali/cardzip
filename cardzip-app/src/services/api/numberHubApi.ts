@@ -234,6 +234,7 @@ export const purchaseRental = (payload: {
 	area?: string;
 	auto_renew?: boolean;
 	paymentMethod: 'wallet' | 'paystack';
+	priceNgn: number;
 	callbackUrl?: string;
 }, token: string): Promise<{
 	success: boolean;

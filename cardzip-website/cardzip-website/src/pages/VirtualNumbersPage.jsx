@@ -3,6 +3,8 @@ import { ArrowUpRight, Copy, ChevronDown, Check, RefreshCw, Search, X } from 'lu
 import { getUserToken, sms4Api } from '../services/api'
 import CardzipLoader from '../components/CardzipLoader'
 
+const VIRTUAL_NUMBER_MARKUP_NGN = 3000
+
 const listFrom = (response, keys) => {
   if (Array.isArray(response)) return response
   if (!response || typeof response !== 'object') return []
@@ -26,20 +28,36 @@ const isUnitedStatesArea = (area) => {
       || /(^|[^a-z])usa([^a-z]|$)/.test(identifier))
 }
 
-const formatPrice = (pricing) => {
-  if (pricing === null || pricing === undefined) return '—'
-  if (typeof pricing === 'string' || typeof pricing === 'number') return String(pricing)
+const getNairaPriceAmount = (pricing) => {
+  if (typeof pricing === 'number') return Number.isFinite(pricing) ? pricing : null
+  if (typeof pricing === 'string') {
+    const amount = Number(pricing.replace(/,/g, ''))
+    return Number.isFinite(amount) ? amount : null
+  }
+  if (!pricing || typeof pricing !== 'object') return null
   const candidates = [pricing, pricing.data, pricing.pricing, pricing.result].filter((candidate) => candidate && typeof candidate === 'object')
   const nairaAmount = candidates.map((candidate) => valueOf(candidate, ['price_ngn', 'priceNGN', 'amountNaira']))
-    .find(Boolean) || ''
-  const amount = nairaAmount || candidates.map((candidate) => valueOf(candidate, ['price', 'amount', 'cost', 'total', 'rate', 'priceUSD', 'amountNaira', 'sellingPrice']))
+    .find((value) => value !== '') || ''
+  const currency = candidates.map((candidate) => valueOf(candidate, ['currency', 'currencyCode', 'currencySymbol'])).find(Boolean) || ''
+  const amount = nairaAmount || candidates.map((candidate) => valueOf(candidate, ['price', 'amount', 'cost', 'total', 'rate', 'sellingPrice']))
+    .find((value) => value !== '') || ''
+  if (currency && currency.toUpperCase() !== 'NGN') return null
+  const numericAmount = Number(amount.replace(/,/g, ''))
+  return amount && Number.isFinite(numericAmount) ? numericAmount : null
+}
+
+const formatPrice = (pricing) => {
+  if (pricing === null || pricing === undefined) return '—'
+  const nairaAmount = getNairaPriceAmount(pricing)
+  if (nairaAmount !== null) {
+    return `₦${new Intl.NumberFormat('en-NG', { maximumFractionDigits: 2 }).format(nairaAmount + VIRTUAL_NUMBER_MARKUP_NGN)}`
+  }
+  if (typeof pricing === 'string' || typeof pricing === 'number') return String(pricing)
+  const candidates = [pricing, pricing.data, pricing.pricing, pricing.result].filter((candidate) => candidate && typeof candidate === 'object')
+  const amount = candidates.map((candidate) => valueOf(candidate, ['price', 'amount', 'cost', 'total', 'rate', 'priceUSD', 'amountNaira', 'sellingPrice']))
     .find(Boolean) || ''
   const currency = candidates.map((candidate) => valueOf(candidate, ['currency', 'currencyCode', 'currencySymbol'])).find(Boolean) || ''
   if (!amount) return '—'
-  if (nairaAmount) {
-    const numericAmount = Number(nairaAmount)
-    return `₦${Number.isFinite(numericAmount) ? new Intl.NumberFormat('en-NG', { maximumFractionDigits: 2 }).format(numericAmount) : nairaAmount}`
-  }
   return `${currency ? `${currency} ` : ''}${amount}`
 }
 
@@ -84,6 +102,8 @@ export default function VirtualNumbersPage() {
   const selectedRental = rentals.find((rental) => rentalIdOf(rental) === selectedRentalId)
   const phoneNumber = valueOf(selectedRental, ['phoneNumber', 'number', 'phone'])
   const selectedPrice = formatPrice(durationPrices[selectedDuration])
+  const selectedBasePrice = getNairaPriceAmount(durationPrices[selectedDuration])
+  const selectedPriceNgn = selectedBasePrice === null ? null : selectedBasePrice + VIRTUAL_NUMBER_MARKUP_NGN
   const usableApps = (response) => listFrom(response, ['apps', 'applications', 'items', 'results'])
     .filter((app) => {
       const name = appName(app).trim()
@@ -239,6 +259,10 @@ export default function VirtualNumbersPage() {
 
   const handleBuy = async () => {
     if (!selectedApp) return
+    if (selectedPriceNgn === null) {
+      setError('The rental price is unavailable. Refresh the price and try again.')
+      return
+    }
     setSubmitting(true)
     setError('')
     setNotice('')
@@ -250,6 +274,7 @@ export default function VirtualNumbersPage() {
         ...(selectedArea ? { area: selectedArea } : {}),
         auto_renew: autoRenew,
         paymentMethod,
+        priceNgn: selectedPriceNgn,
       })
       if (paymentMethod === 'paystack') {
         const checkoutUrl = result.data?.authorizationUrl

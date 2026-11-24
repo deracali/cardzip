@@ -67,6 +67,7 @@ const COLORS = {
   warningRedText: '#FF6B6B',
   pillBgDark: '#172334',
 };
+const VIRTUAL_NUMBER_MARKUP_NGN = 3000;
 
 const configuredPaymentCallbackUrl = process.env.EXPO_PUBLIC_PAYSTACK_CALLBACK_URL?.trim();
 
@@ -315,6 +316,14 @@ function NumberHubContent() {
       });
       return;
     }
+    if (!pricing || !Number.isFinite(pricing.price) || pricing.price <= 0) {
+      setFeedback({
+        title: 'Pricing unavailable',
+        message: 'Refresh the provider price before continuing.',
+        tone: 'info',
+      });
+      return;
+    }
     if (!token) {
       setConfirmModalVisible(false);
       setPurchaseResult({ status: 'failed', message: 'Sign in before purchasing a virtual number.' });
@@ -330,6 +339,7 @@ function NumberHubContent() {
         duration: selectedDurationOption.duration,
         area: selectedArea?.value,
         paymentMethod,
+        priceNgn: pricing.price + VIRTUAL_NUMBER_MARKUP_NGN,
         ...(paymentMethod === 'paystack' ? { callbackUrl } : {}),
       }, token);
       setConfirmModalVisible(false);

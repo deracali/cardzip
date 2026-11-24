@@ -3,6 +3,8 @@ import { ActivityIndicator, View, Text, TouchableOpacity, TextInput, ScrollView 
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { NumberHubOption, RentalDuration, RentalPricing } from '../../../services/api/numberHubApi';
 
+const VIRTUAL_NUMBER_MARKUP_NGN = 3000;
+
 type NumberHubCatalogProps = {
   selectedRegion: string;
   selectedService: string;
@@ -70,10 +72,10 @@ export default function NumberHubCatalog({
       return (firstIndex < 0 ? Number.MAX_SAFE_INTEGER : firstIndex) - (secondIndex < 0 ? Number.MAX_SAFE_INTEGER : secondIndex);
     });
   const servicesToShow = serviceSearch.trim() ? visibleApps : visibleApps.slice(0, 19);
-  const formatPrice = (price?: number, isLoading = false) => isLoading
+  const formatPrice = (price?: number, isLoading = false, includeMarkup = true) => isLoading
     ? 'Loading price...'
-    : price === undefined ? 'Price unavailable' : `₦${price.toLocaleString('en-NG')}`;
-  const walletCanCoverRental = pricing ? walletBalance >= pricing.price : null;
+    : price === undefined ? 'Price unavailable' : `₦${(price + (includeMarkup ? VIRTUAL_NUMBER_MARKUP_NGN : 0)).toLocaleString('en-NG')}`;
+  const walletCanCoverRental = pricing ? walletBalance >= pricing.price + VIRTUAL_NUMBER_MARKUP_NGN : null;
   const walletAmount = `${walletCurrency === 'NGN' ? '₦' : `${walletCurrency} `}${walletBalance.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   if (loading) {
@@ -163,7 +165,7 @@ export default function NumberHubCatalog({
           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
             {pricingLoading && <ActivityIndicator size="small" color={colors.accentGreen} />}
             <Text style={styles.priceNaira}>{formatPrice(pricing?.price, pricingLoading)}</Text>
-            {pricing?.originalPrice !== undefined && <Text style={styles.strikePrice}>{formatPrice(pricing.originalPrice)}</Text>}
+            {pricing?.originalPrice !== undefined && <Text style={styles.strikePrice}>{formatPrice(pricing.originalPrice, false, false)}</Text>}
             {pricing?.currency && pricing.currency !== 'NGN' && <Text style={styles.priceUsd}>{pricing.currency}</Text>}
           </View>
         </View>
