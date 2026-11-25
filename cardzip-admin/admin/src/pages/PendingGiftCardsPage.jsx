@@ -64,6 +64,7 @@ export default function PendingGiftCardsPage() {
   const [payoutAmount, setPayoutAmount] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [reviewError, setReviewError] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
   const [error, setError] = useState('')
   const [copyStatus, setCopyStatus] = useState('')
@@ -91,12 +92,12 @@ export default function PendingGiftCardsPage() {
 
   const reviewCard = async (status) => {
     if (!selectedCard) return
+    setReviewError('')
     if (status === 'successful' && (!Number.isFinite(Number(payoutAmount)) || Number(payoutAmount) <= 0)) {
-      setError('Enter the final naira payout before marking this trade successful.')
+      setReviewError('Enter the final naira payout before marking this trade successful.')
       return
     }
     setSaving(true)
-    setError('')
     try {
       await adminApi.reviewGiftCardTrade(selectedCard._id, {
         status,
@@ -108,7 +109,7 @@ export default function PendingGiftCardsPage() {
       setDeclineReason('')
       setPayoutAmount('')
     } catch (requestError) {
-      setError(requestError.message)
+      setReviewError(requestError.message)
     } finally {
       setSaving(false)
     }
@@ -163,7 +164,7 @@ export default function PendingGiftCardsPage() {
                   <td className="font-bold text-emerald">{card.ngnAmount ? `₦${Number(card.ngnAmount).toLocaleString('en-NG')}` : '—'}</td>
                   <td>{card.user?.name || card.user?.email || 'Unknown user'}</td>
                   <td className="text-muted">{new Date(card.createdAt).toLocaleString()}</td>
-                  <td className="text-right"><button type="button" className="btn-review" onClick={() => { setSelectedCard(card); setDeclineReason(''); setPayoutAmount(card.ngnAmount ? String(card.ngnAmount) : ''); setCopyStatus(''); setCopyError(false) }}><Eye size={13} /> Review Card</button></td>
+                  <td className="text-right"><button type="button" className="btn-review" onClick={() => { setSelectedCard(card); setDeclineReason(''); setPayoutAmount(card.ngnAmount ? String(card.ngnAmount) : ''); setReviewError(''); setCopyStatus(''); setCopyError(false) }}><Eye size={13} /> Review Card</button></td>
                 </tr>
               ))}
               {!loading && cards.length === 0 && <tr><td colSpan="7" className="empty-state">No pending gift cards requiring review.</td></tr>}
@@ -222,8 +223,10 @@ export default function PendingGiftCardsPage() {
                 <div className="decline-box">
                   <label htmlFor="decline-reason">Reason for rejection:</label>
                   <input id="decline-reason" type="text" maxLength="500" placeholder="Explain why this trade is being rejected" value={declineReason} onChange={(event) => setDeclineReason(event.target.value)} />
+                  {!declineReason.trim() && <small>Enter a reason to enable rejection.</small>}
                 </div>
                 <p role="note">Approval credits the final naira payout to the customer’s Cardzip wallet. It does not initiate a bank transfer.</p>
+                {reviewError && <p className="wallet-notice error" role="alert">{reviewError}</p>}
                 <div className="modal-actions-stacked">
                   <button type="button" className="btn-approve" disabled={saving} onClick={() => reviewCard('successful')}><CheckCircle2 size={16} /> {saving ? 'Processing…' : 'Approve and credit wallet'}</button>
                   <button type="button" className="btn-decline" disabled={saving || !declineReason.trim()} onClick={() => reviewCard('failed')}><XCircle size={16} /> Reject trade</button>

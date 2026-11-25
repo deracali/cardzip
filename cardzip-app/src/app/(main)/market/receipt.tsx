@@ -51,32 +51,47 @@ const makeReceiptHtml = (order: StoreOrder) => {
   </body></html>`;
 };
 
+type ReceiptLoadResult =
+  | { token: string; orderNumber: string; status: 'success'; order: StoreOrder }
+  | { token: string; orderNumber: string; status: 'error'; error: string };
+
 export default function OrderReceiptScreen() {
   const { width } = useWindowDimensions();
   const token = useAppSelector((state) => state.auth.token);
   const params = useLocalSearchParams<{ orderNumber?: string | string[] }>();
   const orderNumber = Array.isArray(params.orderNumber) ? params.orderNumber[0] : params.orderNumber;
-  const [order, setOrder] = useState<StoreOrder | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [requestResult, setRequestResult] = useState<ReceiptLoadResult | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState('');
   const scale = (size: number) => (width / 375) * size;
   const missingOrderContext = !token || !orderNumber;
+  const currentRequestResult = requestResult?.token === token
+    && requestResult.orderNumber === orderNumber
+    ? requestResult
+    : null;
+  const order = currentRequestResult?.status === 'success' ? currentRequestResult.order : null;
   const visibleError = missingOrderContext
     ? 'Sign in and open a valid order reference to view its receipt.'
-    : error;
-  const isLoading = !missingOrderContext && loading;
+    : currentRequestResult?.status === 'error' ? currentRequestResult.error : '';
+  const isLoading = !missingOrderContext && !currentRequestResult;
 
   useEffect(() => {
     let active = true;
     if (!token || !orderNumber) return () => { active = false; };
-    setLoading(true);
-    setError('');
     void fetchStoreOrderApi(token, orderNumber)
-      .then((result) => { if (active) setOrder(result); })
-      .catch((requestError) => { if (active) setError(requestError instanceof Error ? requestError.message : 'Could not load this order.'); })
-      .finally(() => { if (active) setLoading(false); });
+      .then((order) => {
+        if (active) setRequestResult({ token, orderNumber, status: 'success', order });
+      })
+      .catch((requestError) => {
+        if (active) {
+          setRequestResult({
+            token,
+            orderNumber,
+            status: 'error',
+            error: requestError instanceof Error ? requestError.message : 'Could not load this order.',
+          });
+        }
+      });
     return () => { active = false; };
   }, [orderNumber, token]);
 

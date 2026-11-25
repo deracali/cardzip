@@ -17,6 +17,7 @@
     },
     "android": {
       "package": "com.deracali.cardzipapp",
+      "googleServicesFile": "./google-services.json",
       "androidStatusBar": {
         "backgroundColor": "#F4F6F5",
         "barStyle": "dark-content"
@@ -44,7 +45,7 @@
       [
         "@react-native-google-signin/google-signin/app.plugin.js",
         {
-          "iosUrlScheme": "com.googleusercontent.apps.REPLACE_WITH_REVERSED_IOS_CLIENT_ID"
+          "iosUrlScheme": "com.googleusercontent.apps.240181996106-hq090lea6irglo43qb287s6htlmo9it3"
         }
       ],
       [

@@ -15,6 +15,7 @@ import {
   History,
   KeyRound,
   ShieldCheck,
+  UserPlus,
   Clock3,
   CircleDollarSign,
   SlidersHorizontal,
@@ -51,6 +52,12 @@ const navSections = [
     group: 'Staff',
     items: [
       { name: 'Staff', tab: 'Staff', icon: KeyRound },
+    ],
+  },
+  {
+    group: 'Administration',
+    items: [
+      { name: 'Admin Management', tab: 'Admin Management', icon: UserPlus, superadminOnly: true },
     ],
   },
   {
@@ -152,6 +159,7 @@ export default function Sidebar({ activeTab = 'Overview', setActiveTab, admin, o
                   || (['E-Commerce', 'Store Products', 'Digital Submissions', 'Shop Verification', 'Marketplace Promotions', 'Banner Ads'].includes(item.tab)
                     && admin.visiblePages?.includes('E-Commerce')))
                 && (!item.administratorOnly || admin?.role !== 'staff')
+                && (!item.superadminOnly || admin?.role === 'superadmin')
               ),
             })), ...(admin?.role === 'staff' ? [{ group: 'My work', items: [
               { name: 'My Tasks', tab: 'My Tasks', icon: KeyRound },

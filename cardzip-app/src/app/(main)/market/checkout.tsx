@@ -135,7 +135,7 @@ export default function SecureCheckoutScreen() {
 
   const handlePlaceOrder = () => { void submitOrder(paymentMethod); };
 
-  const verifyPaystackOrder = async (reference: string) => {
+  const verifyPaystackOrder = useCallback(async (reference: string) => {
     if (!token) throw new Error('Sign in before verifying this payment.');
     const verification = await verifyPaystackUntilSettled({
       verify: () => verifyStorePaymentApi(token, reference),
@@ -149,7 +149,7 @@ export default function SecureCheckoutScreen() {
     setPendingPaymentReference(null);
     setPaymentError('');
     setSuccessOrder(verification.order);
-  };
+  }, [dispatch, token]);
 
   const checkPendingPayment = useCallback(async () => {
     if (!pendingPaymentReference || !token) return;
@@ -166,7 +166,7 @@ export default function SecureCheckoutScreen() {
     } finally {
       setVerifyingPayment(false);
     }
-  }, [pendingPaymentReference, token]);
+  }, [pendingPaymentReference, token, verifyPaystackOrder]);
 
   useEffect(() => {
     if (!pendingPaymentReference || !token || isSubmitting || verifyingPayment) return undefined;

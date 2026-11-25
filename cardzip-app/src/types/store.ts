@@ -8,7 +8,7 @@ export interface StoreProduct {
   description?: string;
   expectedDelivery?: string;
   keyHighlights?: string[];
-  specifications?: Array<{ label: string; value: string }>;
+  specifications?: { label: string; value: string }[];
   packagingDetails?: string;
   price: number;
   websiteUrl?: string;
@@ -91,7 +91,7 @@ export interface StoreShippingAddress {
 }
 
 export interface CreateStoreOrderPayload {
-  items: Array<{
+  items: {
     productId?: string;
     id?: string;
     name: string;
@@ -99,7 +99,7 @@ export interface CreateStoreOrderPayload {
     quantity: number;
     image?: string;
     selectedColor?: string;
-  }>;
+  }[];
   shippingAddress: StoreShippingAddress;
   paymentMethod?: 'wallet' | 'card';
 }

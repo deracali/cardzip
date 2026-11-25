@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { StyleSheet,
   View,
   Text,
@@ -231,13 +231,13 @@ const verificationLoading = hasValidVerificationInput && !currentVerification;
 });
 
 // Helper function to trigger custom alert
-const showAlert = (
+const showAlert = useCallback((
   title: string,
   message: string,
   type: 'success' | 'error' | 'warning' | 'info' = 'info'
 ) => {
   setAlertConfig({ visible: true, title, message, type });
-};
+}, []);
 
 const handleTabChange = (nextTab: CategoryType) => {
   if (nextTab === activeTab) return;
@@ -249,7 +249,7 @@ const handleTabChange = (nextTab: CategoryType) => {
   setWaecQuantity(1);
 };
 
-const fetchJambVariations = async () => {
+const fetchJambVariations = useCallback(async () => {
   setLoadingJambVariations(true);
   try {
     const response = await fetch(`${API_BASE_URL}/education/variations/jamb?serviceID=jamb`);
@@ -267,7 +267,7 @@ const fetchJambVariations = async () => {
   } finally {
     setLoadingJambVariations(false);
   }
-};
+}, [showAlert]);
 
 useEffect(() => {
   if (token) void dispatch(fetchWalletBalance(token));
@@ -404,7 +404,7 @@ useEffect(() => {
 
 
 
-const fetchDataVariations = async (networkId: string) => {
+const fetchDataVariations = useCallback(async (networkId: string) => {
   const serviceID = DATA_SERVICE_IDS[networkId];
 
   if (!serviceID) {
@@ -467,9 +467,9 @@ const fetchDataVariations = async (networkId: string) => {
   } finally {
     setLoadingDataVariations(false);
   }
-};
+}, [showAlert]);
 
-const fetchTvVariations = async (serviceID: string) => {
+const fetchTvVariations = useCallback(async (serviceID: string) => {
   setLoadingTvVariations(true);
   setTvVariations([]);
   setTvVariationsError(null);
@@ -495,7 +495,7 @@ const fetchTvVariations = async (serviceID: string) => {
   } finally {
     setLoadingTvVariations(false);
   }
-};
+}, []);
 
 useEffect(() => {
   const billersCode = meterNumber.replace(/\D/g, '');
@@ -617,7 +617,7 @@ const openPhoneContactPicker = async (target: 'phone' | 'electricity' | 'tv') =>
 
 
   // Fetch WAEC Variations from Backend
-  const fetchWaecVariations = async () => {
+  const fetchWaecVariations = useCallback(async () => {
     setLoadingWaecVariations(true);
     try {
       const response = await fetch(`${API_BASE_URL}/education/variations/waec?serviceID=waec`);
@@ -636,14 +636,19 @@ const openPhoneContactPicker = async (target: 'phone' | 'electricity' | 'tv') =>
     } finally {
       setLoadingWaecVariations(false);
     }
-  };
+  }, [showAlert]);
 
   useEffect(() => {
-    if (activeTab === 'data') void fetchDataVariations('mtn');
-    if (activeTab === 'tv') void fetchTvVariations('dstv');
-    if (activeTab === 'jamb') void fetchJambVariations();
-    if (activeTab === 'waec') void fetchWaecVariations();
-  }, [activeTab]);
+    let active = true;
+    void Promise.resolve().then(() => {
+      if (!active) return;
+      if (activeTab === 'data') void fetchDataVariations('mtn');
+      if (activeTab === 'tv') void fetchTvVariations('dstv');
+      if (activeTab === 'jamb') void fetchJambVariations();
+      if (activeTab === 'waec') void fetchWaecVariations();
+    });
+    return () => { active = false; };
+  }, [activeTab, fetchDataVariations, fetchJambVariations, fetchTvVariations, fetchWaecVariations]);
 
   // Handle Purchase Submission
  const submitBillPayment = async (paymentMethod: 'wallet' | 'paystack') => {
@@ -1274,9 +1279,6 @@ if (cleanElectricityPhone.length !== 11) {
     // STEP 2: GET METER TYPE
     // ==========================================
 
-
-
-const variation_code = meterType;
 
 
     // ==========================================

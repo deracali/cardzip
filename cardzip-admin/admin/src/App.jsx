@@ -16,6 +16,7 @@ import EcommerceOrderDetailsPage from './pages/EcommerceOrderDetailsPage'
 import GiftCardsPage from './pages/GiftCardsPage'
 import PendingGiftCardsPage from './pages/PendingGiftCardsPage'
 import StaffPage from './pages/StaffManagementPage'
+import AdminManagementPage from './pages/AdminManagementPage'
 import ProfilePage from './pages/ProfilePage'
 import TradeHistoryPage from './pages/TradeHistoryPage'
 import Login from './pages/Login'
@@ -140,6 +141,10 @@ function App() {
         return <PendingGiftCardsPage />
       case 'Staff':
         return <StaffPage />
+      case 'Admin Management':
+        return admin.role === 'superadmin'
+          ? <AdminManagementPage />
+          : <div className="section-card"><h2>Access restricted</h2><p>Only a superadmin can manage administrator accounts.</p></div>
       case 'My Tasks':
         return <MyTasksPage onViewOrder={(order) => { setSelectedStoreOrder(order); setActiveTab('Order Details') }} />
       case 'My Attendance':

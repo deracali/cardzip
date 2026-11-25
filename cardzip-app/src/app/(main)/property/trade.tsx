@@ -49,6 +49,8 @@ export default function TradeCardsScreen() {
   const [feedback, setFeedback] = useState<{ title: string; message: string; tone?: 'success' | 'error' | 'info' } | null>(null);
   const sliderViewRef = useRef<View>(null);
   const cardCarouselRef = useRef<ScrollView>(null);
+  const [sliderWidth, setSliderWidth] = useState(0);
+  const [sliderLeft, setSliderLeft] = useState(0);
   const selectedCard = catalog[activeCardIndex]
     ?? catalog.find((card) => card.id === params.cardId || card.name === params.cardName);
   const selectedRate = selectedCard?.types[0];
@@ -92,19 +94,17 @@ export default function TradeCardsScreen() {
     Math.max(((usdAmount - minVal) / (maxVal - minVal)) * 100, 0),
     100
   );
-  const sliderWidth = useRef(0);
-  const sliderLeft = useRef(0);
   const updateAmountFromPosition = useCallback((positionX: number) => {
-    if (sliderWidth.current <= 0) return;
-    const progress = Math.max(0, Math.min(1, positionX / sliderWidth.current));
+    if (sliderWidth <= 0) return;
+    const progress = Math.max(0, Math.min(1, positionX / sliderWidth));
     setUsdAmount(Math.round(minVal + progress * (maxVal - minVal)));
-  }, [maxVal, minVal]);
+  }, [maxVal, minVal, sliderWidth]);
   const sliderResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > Math.abs(gesture.dy),
-    onPanResponderGrant: (_, gesture) => updateAmountFromPosition(gesture.x0 - sliderLeft.current),
-    onPanResponderMove: (_, gesture) => updateAmountFromPosition(gesture.moveX - sliderLeft.current),
-  }), [updateAmountFromPosition]);
+    onPanResponderGrant: (_, gesture) => updateAmountFromPosition(gesture.x0 - sliderLeft),
+    onPanResponderMove: (_, gesture) => updateAmountFromPosition(gesture.moveX - sliderLeft),
+  }), [sliderLeft, updateAmountFromPosition]);
 
   const handleSubmitTrade = async () => {
     if (!selectedCard || !selectedRate) {
@@ -388,8 +388,8 @@ export default function TradeCardsScreen() {
             ref={sliderViewRef}
             style={[styles.sliderTrackContainer, { marginVertical: verticalScale(10) }]}
             onLayout={(event) => {
-              sliderWidth.current = event.nativeEvent.layout.width;
-              sliderViewRef.current?.measureInWindow((left) => { sliderLeft.current = left; });
+              setSliderWidth(event.nativeEvent.layout.width);
+              sliderViewRef.current?.measureInWindow((left) => setSliderLeft(left));
             }}
             accessibilityRole="adjustable"
             accessibilityValue={{ min: minVal, max: maxVal, now: usdAmount }}

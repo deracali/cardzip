@@ -102,6 +102,12 @@ export const adminApi = {
   staff: (query = '') => apiRequest(`/admin/staff${query}`),
   createStaff: (body) => apiRequest('/admin/staff', { method: 'POST', body }),
   updateStaff: (id, body) => apiRequest(`/admin/staff/${encodeURIComponent(id)}`, { method: 'PATCH', body }),
+  createAdministrator: (body, passkeyAccessToken) => apiRequest('/admin/administrators', {
+    method: 'POST',
+    body,
+    headers: withdrawalAccessHeaders(passkeyAccessToken),
+  }),
+  resetAdministratorPassword: (body) => apiRequest('/admin/administrators/reset-password', { method: 'POST', body }),
   tasks: (query = '') => apiRequest(`/admin/tasks${query}`),
   createTask: (body) => apiRequest('/admin/tasks', { method: 'POST', body }),
   updateTask: (id, body) => apiRequest(`/admin/tasks/${encodeURIComponent(id)}`, { method: 'PATCH', body }),

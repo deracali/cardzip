@@ -4,12 +4,22 @@ const photoLibraryPermissions = [
   'android.permission.READ_MEDIA_VIDEO',
   'android.permission.READ_MEDIA_VISUAL_USER_SELECTED',
 ];
+const googleServicesFile = process.env.GOOGLE_SERVICES_JSON
+  || staticConfig.expo.android.googleServicesFile;
+const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID
+  || '240181996106-hq090lea6irglo43qb287s6htlmo9it3.apps.googleusercontent.com';
+const googleIosClientIdMatch = googleIosClientId.match(/^([A-Za-z0-9-]+)\.apps\.googleusercontent\.com$/);
+
+if (!googleIosClientIdMatch) {
+  throw new Error('EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID must be a Google iOS OAuth client ID.');
+}
 
 module.exports = ({ config }) => ({
   ...config,
   ...staticConfig.expo,
   android: {
     ...staticConfig.expo.android,
+    googleServicesFile,
     blockedPermissions: [...new Set([
       ...(staticConfig.expo.android.blockedPermissions || []),
       ...photoLibraryPermissions,
@@ -27,8 +37,7 @@ module.exports = ({ config }) => ({
     [
       '@react-native-google-signin/google-signin',
       {
-        iosUrlScheme: process.env.EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME
-          || 'com.googleusercontent.apps.REPLACE_WITH_REVERSED_IOS_CLIENT_ID',
+        iosUrlScheme: `com.googleusercontent.apps.${googleIosClientIdMatch[1]}`,
       },
     ],
   ],

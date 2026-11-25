@@ -9,7 +9,7 @@ import { KycSubmission } from '../../../types/account';
 import FeedbackModal from '../components/FeedbackModal';
 import KeyboardAwareScrollView from '../../../components/KeyboardAwareScrollView';
 
-const DOCUMENTS: Array<{ value: KycSubmission['documentType']; label: string }> = [
+const DOCUMENTS: { value: KycSubmission['documentType']; label: string }[] = [
   { value: 'nin', label: 'NIN' },
   { value: 'passport', label: 'Passport' },
   { value: 'drivers_license', label: "Driver's license" },
