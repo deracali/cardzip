@@ -45,6 +45,7 @@ export const adminApi = {
   treasury: () => apiRequest('/admin/treasury'),
   virtualNumberTransactions: (query = '') => apiRequest(`/admin/virtual-numbers/transactions${query}`),
   walletFunding: (query = '') => apiRequest(`/admin/add-money${query}`),
+  reverseWalletFunding: (id, body) => apiRequest(`/admin/add-money/${encodeURIComponent(id)}/reverse`, { method: 'POST', body }),
   billPaymentHistory: (query = '') => apiRequest(`/bills/admin/history${query}`),
   storeDashboard: (query = '') => apiRequest(`/store/admin/dashboard${query}`),
   updateStoreOrder: (id, body) => apiRequest(`/store/admin/orders/${encodeURIComponent(id)}`, { method: 'PATCH', body }),

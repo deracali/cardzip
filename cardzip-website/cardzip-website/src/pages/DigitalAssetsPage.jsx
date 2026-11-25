@@ -19,6 +19,9 @@ export default function DigitalAssetsPage({ onNavigate }) {
   const [searchInput, setSearchInput] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [assets, setAssets] = useState([])
+  const [page, setPage] = useState(1)
+  const [hasMoreAssets, setHasMoreAssets] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -26,26 +29,50 @@ export default function DigitalAssetsPage({ onNavigate }) {
     let active = true
     const types = productType === 'all' ? ['website', 'app', 'ios_app', 'full_stack', 'admin'] : [productType]
     const preferences = getStorefrontPreferences()
+    if (page === 1) {
+      setLoading(true)
+      setAssets([])
+      setHasMoreAssets(false)
+    } else {
+      setLoadingMore(true)
+    }
     Promise.all(types.map((type) => {
-      const query = new URLSearchParams({ productType: type, page: '1', limit: '50', sort: 'featured' })
+      const query = new URLSearchParams({ productType: type, page: String(page), limit: '50', sort: 'featured' })
       if (searchTerm) query.set('search', searchTerm)
       query.set('preferences', JSON.stringify(preferences))
       return userApi.storeProducts(`?${query.toString()}`)
     }))
       .then((results) => {
-        if (active) setAssets(results.flatMap((result) => result.data || []))
+        if (!active) return
+        const nextAssets = results.flatMap((result) => result.data || [])
+        const moreAvailable = results.some((result) => {
+          const pagination = result.pagination
+          return pagination?.hasMore ?? (pagination?.page < pagination?.totalPages)
+        })
+        setAssets((current) => {
+          if (page === 1) return nextAssets
+          const existingIds = new Set(current.map((asset) => String(asset._id)))
+          return [...current, ...nextAssets.filter((asset) => !existingIds.has(String(asset._id)))]
+        })
+        setHasMoreAssets(moreAvailable)
       })
       .catch((requestError) => { if (active) setError(requestError.message || 'Could not load websites and apps.') })
-      .finally(() => { if (active) setLoading(false) })
+      .finally(() => {
+        if (!active) return
+        if (page === 1) setLoading(false)
+        setLoadingMore(false)
+      })
     return () => { active = false }
-  }, [productType, searchTerm])
+  }, [page, productType, searchTerm])
 
   const submitSearch = (event) => {
     event.preventDefault()
     const term = searchInput.trim().slice(0, 100)
+    if (term === searchTerm && page === 1) return
     if (term) recordStoreSearch(term)
     setError('')
     setLoading(true)
+    setPage(1)
     setSearchTerm(term)
   }
 
@@ -62,14 +89,14 @@ export default function DigitalAssetsPage({ onNavigate }) {
         </header>
         <div className="digital-assets-filters" role="group" aria-label="Filter digital products">
           {[['all', 'All digital products'], ['website', 'Websites'], ['app', 'Android apps'], ['ios_app', 'iOS apps'], ['full_stack', 'Full stack'], ['admin', 'Admin']].map(([value, label]) => (
-            <button key={value} type="button" className={productType === value ? 'active' : ''} aria-pressed={productType === value} onClick={() => { if (productType !== value) { setLoading(true); setError(''); setProductType(value) } }}>{label}</button>
+            <button key={value} type="button" className={productType === value ? 'active' : ''} aria-pressed={productType === value} onClick={() => { if (productType !== value) { setLoading(true); setError(''); setPage(1); setProductType(value) } }}>{label}</button>
           ))}
         </div>
         <form className="digital-assets-search" onSubmit={submitSearch}>
           <label className="sr-only" htmlFor="digital-assets-search">Search websites and apps</label>
           <input id="digital-assets-search" type="search" maxLength={100} value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Search templates, apps, or categories" />
           <button type="submit"><Search size={15} /> Search</button>
-          {searchTerm && <button type="button" className="digital-assets-clear-search" onClick={() => { setSearchInput(''); setSearchTerm(''); setLoading(true); setError('') }}>Clear</button>}
+          {searchTerm && <button type="button" className="digital-assets-clear-search" onClick={() => { setSearchInput(''); setSearchTerm(''); setLoading(true); setPage(1); setError('') }}>Clear</button>}
         </form>
         {error && <p className="digital-assets-error" role="alert">{error}</p>}
         {loading ? <p className="digital-assets-state" role="status"><CardzipLoader compact label="Loading digital products" /></p> : null}
@@ -81,20 +108,39 @@ export default function DigitalAssetsPage({ onNavigate }) {
             const price = asset.isSellerListing
               ? (sellerPrices.length ? sellerPrices : Number(asset.price) > 0 ? [Number(asset.price)] : [])
               : sellerPrices
+            const detailsPath = `/digital-assets/${encodeURIComponent(asset.slug)}`
+            const openDetails = () => onNavigate?.(detailsPath)
             return (
-              <article className="digital-asset-card" key={asset._id}>
+              <article
+                className="digital-asset-card"
+                key={asset._id}
+                role="link"
+                tabIndex={0}
+                aria-label={`View ${asset.name}`}
+                onClick={openDetails}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    openDetails()
+                  }
+                }}
+              >
                 <div className="digital-asset-card-image">{asset.image ? <img src={asset.image} alt="" loading="lazy" /> : <Icon size={32} />}{asset.isPromoted && <span className="digital-asset-promoted">PROMOTED</span>}</div>
                 <div className="digital-asset-card-content">
                   <span className="digital-asset-type"><Icon size={13} /> {typeLabels[asset.productType] || 'Digital product'}</span>
                   <h2>{asset.name}</h2>
                   <p>{truncateDescription(asset.description || asset.usageInstructions || 'Explore details, use options, and setup support.')}</p>
                   <div className="digital-asset-price">{price.length ? `Options from ${formatNaira(Math.min(...price))}` : 'Contact for options'}</div>
-                  <button type="button" className="digital-asset-open" onClick={() => onNavigate?.(`/digital-assets/${encodeURIComponent(asset.slug)}`)}>Explore details <ArrowRight size={15} /></button>
                 </div>
               </article>
             )
           })}
         </section>
+        {!loading && hasMoreAssets && <div className="digital-assets-load-more">
+          <button type="button" disabled={loadingMore} onClick={() => { setError(''); setPage((current) => current + 1) }}>
+            {loadingMore ? <CardzipLoader compact label="Loading more products" /> : 'Show more'}
+          </button>
+        </div>}
       </div>
     </main>
   )

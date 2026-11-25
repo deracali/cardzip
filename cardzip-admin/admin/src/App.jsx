@@ -99,7 +99,7 @@ function App() {
       case 'Admin Wallet':
         return <AdminWalletPage />
       case 'Add Money':
-        return <AddMoneyPage />
+        return <AddMoneyPage canReverse={['admin', 'superadmin'].includes(admin.role)} />
       case 'Withdrawals':
         return <WithdrawalsPage />
       case 'Trade History':

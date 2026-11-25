@@ -136,7 +136,7 @@ function App() {
       window.history[replace ? 'replaceState' : 'pushState']({}, '', target)
     }
     setPath(destination.pathname)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
   }, [])
 
   const requiresAuthentication = path.startsWith('/wallet') || path === '/add-money' ||

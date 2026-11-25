@@ -8,6 +8,7 @@ const FILTERS = [
   { label: 'Successful', value: 'completed' },
   { label: 'Pending', value: 'pending' },
   { label: 'Failed', value: 'failed' },
+  { label: 'Reversed', value: 'reversed' },
 ];
 
 const formatCurrency = (amount, currency = 'NGN') => new Intl.NumberFormat('en-NG', {
@@ -20,7 +21,7 @@ const formatDate = (value) => value
   ? new Date(value).toLocaleString()
   : '—';
 
-function AddMoneyPage() {
+function AddMoneyPage({ canReverse = false }) {
   const [payments, setPayments] = useState([]);
   const [stats, setStats] = useState({
     todayInflow: 0,
@@ -40,6 +41,8 @@ function AddMoneyPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [reversingId, setReversingId] = useState('');
 
   useEffect(() => {
     let isCurrentRequest = true;
@@ -86,6 +89,34 @@ function AddMoneyPage() {
     setPage(1);
     setStatus(nextStatus);
     if (nextStatus === status && page === 1) setRefreshKey((key) => key + 1);
+  };
+
+  const reversePayment = async (payment) => {
+    const reason = window.prompt(
+      'Add a note for the reversal:',
+      'Paystack test-mode payment; no real funds were received.',
+    );
+    if (reason === null) return;
+    if (!reason.trim() || reason.trim().length > 300) {
+      setError('Enter a note between 1 and 300 characters before reversing this top-up.');
+      return;
+    }
+    const amount = formatCurrency(payment.amount, payment.currency);
+    if (!window.confirm(`Remove ${amount} from ${payment.user?.name || 'this user'}’s wallet and mark this payment reversed?`)) return;
+
+    setReversingId(payment._id);
+    setError('');
+    setNotice('');
+    try {
+      const result = await adminApi.reverseWalletFunding(payment._id, { reason: reason.trim() });
+      setNotice(result?.message || 'Wallet credit reversed. The payment is marked as reversed.');
+      setLoading(true);
+      setRefreshKey((key) => key + 1);
+    } catch (requestError) {
+      setError(requestError?.message || 'Unable to reverse this wallet top-up.');
+    } finally {
+      setReversingId('');
+    }
   };
 
   const statsCards = [
@@ -153,6 +184,7 @@ function AddMoneyPage() {
         </div>
 
         {error && <div className="add-money-error" role="alert">{error}</div>}
+        {notice && <div className="add-money-notice" role="status">{notice}</div>}
         <div className="add-money-table-wrap">
           <table className="deposit-table">
             <thead>
@@ -167,13 +199,14 @@ function AddMoneyPage() {
                 <th>Status</th>
                 <th>Date</th>
                 <th>Details</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="10" className="add-money-empty"><CardzipLoader compact label="Loading wallet top-ups" /></td></tr>
+                <tr><td colSpan="11" className="add-money-empty"><CardzipLoader compact label="Loading wallet top-ups" /></td></tr>
               ) : payments.length === 0 ? (
-                <tr><td colSpan="10" className="add-money-empty">{error ? 'Could not load top-ups.' : 'No wallet top-ups found.'}</td></tr>
+                <tr><td colSpan="11" className="add-money-empty">{error ? 'Could not load top-ups.' : 'No wallet top-ups found.'}</td></tr>
               ) : payments.map((payment) => (
                 <tr key={payment._id}>
                   <td className="add-money-reference">{payment.reference || payment.providerReference || '—'}</td>
@@ -188,11 +221,23 @@ function AddMoneyPage() {
                   <td>{payment.providerFee == null ? '—' : formatCurrency(payment.providerFee, payment.currency)}</td>
                   <td>
                     <span className={`badge-pill ${payment.status === 'completed' ? 'successful' : payment.status}`}>
-                      {payment.status === 'completed' ? 'Successful' : payment.status || 'Unknown'}
+                      {payment.status === 'completed' ? 'Successful' : payment.status === 'reversed' ? 'Reversed' : payment.status || 'Unknown'}
                     </span>
                   </td>
                   <td>{formatDate(payment.createdAt)}</td>
                   <td className="add-money-details">{payment.failureReason || payment.providerReference || '—'}</td>
+                  <td>
+                    {canReverse && payment.status === 'completed' && (
+                      <button
+                        type="button"
+                        className="add-money-reverse"
+                        onClick={() => reversePayment(payment)}
+                        disabled={Boolean(reversingId)}
+                      >
+                        {reversingId === payment._id ? 'Reversing…' : 'Reverse'}
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

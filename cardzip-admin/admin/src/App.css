@@ -3726,6 +3726,7 @@ html, body, #root {
 .badge-pill.successful { background: #ecfdf5; color: #10b981; }
 .badge-pill.pending { background: #fef3c7; color: #d97706; }
 .badge-pill.failed { background: #ffe4e6; color: #f43f5e; }
+.badge-pill.reversed { background: #f1f5f9; color: #475569; }
 
 .add-money-header,
 .add-money-toolbar,
@@ -3905,6 +3906,28 @@ html, body, #root {
   color: #64748b;
 }
 
+.add-money-reverse {
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff;
+  color: #b91c1c;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.add-money-reverse:hover:not(:disabled) {
+  background: #fef2f2;
+}
+
+.add-money-reverse:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
 .add-money-error {
   margin: 14px 18px 0;
   padding: 12px 14px;
@@ -3912,6 +3935,16 @@ html, body, #root {
   border-radius: 8px;
   background: #fef2f2;
   color: #b91c1c;
+  font-size: 13px;
+}
+
+.add-money-notice {
+  margin: 14px 18px 0;
+  padding: 12px 14px;
+  border: 1px solid #a7f3d0;
+  border-radius: 8px;
+  background: #ecfdf5;
+  color: #047857;
   font-size: 13px;
 }
 

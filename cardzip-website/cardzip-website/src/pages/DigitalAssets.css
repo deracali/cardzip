@@ -86,7 +86,13 @@
 .digital-assets-search > button[type="submit"] { flex: 0 0 132px; min-width: 132px; }
 .digital-assets-search .digital-assets-clear-search { border: 1px solid #d9e2e6; background: #fff; color: #52636d; }
 .digital-assets-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 17px; }
-.digital-asset-card { overflow: hidden; border: 1px solid #e0e7e9; border-radius: 17px; background: #fff; box-shadow: 0 8px 24px #13293908; }
+.digital-assets-load-more { display: flex; justify-content: center; padding: 22px 0 8px; }
+.digital-assets-load-more button { min-height: 42px; padding: 0 22px; border: 1px solid #087a4c; border-radius: 999px; background: #fff; color: #087a4c; font: inherit; font-size: 11px; font-weight: 850; cursor: pointer; }
+.digital-assets-load-more button:hover:not(:disabled) { background: #edf8f1; }
+.digital-assets-load-more button:disabled { opacity: .7; cursor: wait; }
+.digital-asset-card { overflow: hidden; border: 1px solid #e0e7e9; border-radius: 17px; background: #fff; box-shadow: 0 8px 24px #13293908; cursor: pointer; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+.digital-asset-card:hover,.digital-asset-card:focus-visible { transform: translateY(-2px); border-color: #9acfb0; box-shadow: 0 12px 30px #13293915; }
+.digital-asset-card:focus-visible { outline: 2px solid #087a4c; outline-offset: 3px; }
 .digital-asset-card-image { position: relative; display: grid; height: 180px; place-items: center; background: linear-gradient(135deg,#102032,#1d5160); color: #7ce6b0; }
 .digital-asset-card-image img { width: 100%; height: 100%; object-fit: cover; }
 .digital-asset-promoted { position: absolute; top: 12px; left: 12px; padding: 6px 9px; border-radius: 999px; background: #087a4c; color: #fff; font-size: 9px; font-weight: 900; letter-spacing: .5px; }
@@ -96,8 +102,6 @@
 .digital-asset-card p { min-height: 54px; margin: 0; color: #66747c; font-size: 11px; line-height: 1.6; }
 .digital-asset-card p { overflow-wrap: anywhere; }
 .digital-asset-price { margin: 13px 0; color: #0a6947; font-size: 11px; font-weight: 800; }
-.digital-asset-open { display: inline-flex; align-items: center; gap: 7px; padding: 0; border: 0; background: none; color: #0a754b; font: inherit; font-size: 11px; font-weight: 850; cursor: pointer; }
-.digital-asset-open:hover { color: #064f34; }
 .digital-assets-state,.digital-assets-error { padding: 16px; color: #687781; font-size: 12px; }
 .digital-assets-error { color: #a22b38; }
 .digital-payment-status { margin: 14px 0; padding: 11px 13px; border: 1px solid #cde8d7; border-radius: 9px; background: #f0faf4; color: #17623d; font-size: 11px; line-height: 1.5; }
@@ -197,8 +201,6 @@
   .digital-asset-card h2 { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; margin: 7px 0 6px; font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }
   .digital-asset-card p { display: -webkit-box; min-height: 0; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; font-size: 10px; line-height: 1.45; }
   .digital-asset-price { margin: 10px 0; font-size: 10px; line-height: 1.4; overflow-wrap: anywhere; }
-  .digital-asset-open { gap: 4px; font-size: 10px; }
-  .digital-asset-open svg { flex: 0 0 auto; }
   .digital-related-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
   .digital-related-card { min-width: 0; }
   .digital-related-image { height: 112px; }
@@ -243,7 +245,6 @@
   .digital-asset-card h2 { font-size: 12px; }
   .digital-asset-card p { font-size: 9px; }
   .digital-asset-type { font-size: 7px; }
-  .digital-asset-open { font-size: 9px; }
   .digital-assets-search > button[type="submit"] { gap: 4px; padding: 0 7px; font-size: 9px; }
   .digital-assets-search .digital-assets-clear-search { padding: 0 7px; }
   .digital-website-preview-actions a { font-size: 0; }
