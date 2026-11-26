@@ -15,6 +15,9 @@ export type FoodOrder = {
   deliveryFee: number;
   total: number;
   status: string;
+  paymentStatus: "pending" | "paid" | "failed";
+  paymentReference: string;
+  currency: string;
   createdAt: string;
 };
 
@@ -93,8 +96,10 @@ export const foodApi = {
     request<FoodSession>("/auth/signup", { method: "POST", body, authenticated: false }),
   logout: () => request<{ message: string }>("/auth/logout", { method: "POST" }),
   clientDashboard: () => request<{ user: FoodUser; orders: FoodOrder[] }>("/client/dashboard"),
-  createOrder: (body: { items: { dishId: string; quantity: number }[]; address: string; phone: string; instructions: string }) =>
-    request<{ order: FoodOrder }>("/client/orders", { method: "POST", body }),
+  initializePayment: (body: { items: { dishId: string; quantity: number }[]; address: string; phone: string; instructions: string; currency: string }) =>
+    request<{ order: FoodOrder; authorizationUrl: string; reference: string; currency: string }>("/client/payments/initialize", { method: "POST", body }),
+  verifyPayment: (reference: string) =>
+    request<{ order: FoodOrder }>("/client/payments/verify", { method: "POST", body: { reference } }),
   adminDashboard: () => request<{
     metrics: { clients: number; orders: number; openOrders: number; deliveredSales: number };
     recentOrders: FoodOrder[];

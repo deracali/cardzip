@@ -16,7 +16,6 @@ export default function CheckoutPage({ searchParams = '' }) {
   const [session, setSession] = useState(null)
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
 
   useEffect(() => {
     const timer = window.setTimeout(() => setSession(getNGOSession()), 0)
@@ -37,15 +36,15 @@ export default function CheckoutPage({ searchParams = '' }) {
     setBusy(true)
     const values = Object.fromEntries(new FormData(event.currentTarget))
     try {
-      await ngoApi.createDonation({
+      const checkout = await ngoApi.initializePayment({
         amount,
         frequency: monthly ? 'monthly' : 'once',
         campaignSlug: campaign?.slug || null,
         note: String(values.note || ''),
       })
-      setSubmitted(true)
+      window.location.assign(checkout.authorizationUrl)
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Your pledge could not be saved.')
+      setMessage(error instanceof Error ? error.message : 'Could not start Paystack checkout.')
     } finally {
       setBusy(false)
     }
@@ -61,13 +60,12 @@ export default function CheckoutPage({ searchParams = '' }) {
             {!session && <p className="portal-notice">Sign in to your donor account to create a gift pledge. <a href={signinHref}>Sign in</a></p>}
             {session && session.user.role !== 'client' && <p className="portal-notice">You are signed in as an administrator. Sign in with a donor account to create a gift pledge.</p>}
             {session?.user?.role === 'client' && <section className="checkout-section"><h2>Your details</h2><p className="checkout-account">Pledge as <strong>{session.user.name}</strong> ({session.user.email})</p><label className="checkout-note-field">Note to Kindred (optional)<textarea name="note" maxLength={500} placeholder="Share any details about your pledge" /></label></section>}
-            <section className="checkout-section"><h2>Payment method</h2><div className="payment-option"><span className="payment-card-icon">▰</span><span><strong>Credit or debit card</strong><small>Visa · Mastercard · Amex</small></span><span className="card-icons">VISA &nbsp; MC</span></div><div className="checkout-fields card-fields"><label className="field-wide">Card number<input autoComplete="cc-number" placeholder="Payment provider required" disabled /></label><label>Expiration date<input placeholder="MM / YY" disabled /></label><label>Security code<input placeholder="CVC" disabled /></label></div><p className="payment-disclaimer"><ShieldCheck size={15} /> Card fields are disabled. This demo does not collect payment details.</p></section>
-            {submitted && <p className="checkout-notice" role="status">Your gift pledge was saved. No payment was collected. You can review it in your <a href="/dashboard">donor dashboard</a>.</p>}
+            <section className="checkout-section"><h2>Secure payment</h2><div className="payment-option"><span className="payment-card-icon">▰</span><span><strong>Paystack hosted checkout</strong><small>Secure card payment · USD</small></span><span className="card-icons">PAYSTACK</span></div><p className="payment-disclaimer"><ShieldCheck size={15} /> You will be redirected to Paystack. Card details are entered only on Paystack’s secure checkout.</p>{monthly && <p className="payment-disclaimer">Monthly gift selection is charged once; it does not automatically renew.</p>}</section>
             {message && <p className="checkout-notice" role="alert">{message}</p>}
-            <button type="submit" className="button button-green full-button" disabled={busy || submitted || session?.user?.role !== 'client'}><Heart size={16} /> {busy ? 'Saving pledge…' : submitted ? 'Pledge saved' : `Pledge ${formatMoney(amount)}${monthly ? ' monthly' : ''}`}</button>
-            <p className="terms-note">This creates a non-binding pledge record only. No payment is processed or collected.</p>
+            <button type="submit" className="button button-green full-button" disabled={busy || session?.user?.role !== 'client'}><Heart size={16} /> {busy ? 'Connecting to Paystack…' : `Pay ${formatMoney(amount)}${monthly ? ' monthly gift' : ''}`}</button>
+            <p className="terms-note">Payment is verified by the Kindred server before it appears as paid in your account.</p>
           </form>
-          <aside className="checkout-summary"><div className="summary-heart"><Heart size={22} fill="currentColor" /></div><h2>Your kindness creates change.</h2><p>{campaign ? campaign.impact : '$50 can help provide clean water, education, and essential care.'}</p><div className="summary-breakdown"><div><span>Your {monthly ? 'monthly ' : ''}gift</span><strong>{formatMoney(amount)}</strong></div><div><span>Transaction fee</span><strong>$0</strong></div><hr /><div><strong>Going to our programs</strong><strong>{formatMoney(amount)}</strong></div></div><div className="secure-box"><ShieldCheck size={18} /><span><strong>Safe &amp; transparent</strong><br />Every gift is tracked and responsibly managed.</span></div></aside>
+          <aside className="checkout-summary"><div className="summary-heart"><Heart size={22} fill="currentColor" /></div><h2>Your kindness creates change.</h2><p>{campaign ? campaign.impact : '$50 can help provide clean water, education, and essential care.'}</p><div className="summary-breakdown"><div><span>{monthly ? 'Monthly gift preference' : 'Gift amount'}</span><strong>{formatMoney(amount)}</strong></div><div><span>Paystack fees</span><strong>Shown at checkout</strong></div><hr /><div><strong>Charged once</strong><strong>{formatMoney(amount)}</strong></div></div><div className="secure-box"><ShieldCheck size={18} /><span><strong>Safe &amp; transparent</strong><br />Every gift is tracked and responsibly managed.</span></div></aside>
         </div>
       </main>
     </PageShell>

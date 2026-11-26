@@ -29,6 +29,7 @@ export default function Header() {
         <Logo />
         <nav className={open ? 'main-nav is-open' : 'main-nav'} aria-label="Main navigation">
           {links.map(([label, href]) => <a href={href} key={href} onClick={() => setOpen(false)}>{label}</a>)}
+          {session?.user?.role === 'client' && <a href="/dashboard/payments" onClick={() => setOpen(false)}>Payment history</a>}
         </nav>
         <div className="header-actions">
           <a className="header-icon" href={session?.user?.role === 'admin' ? '/admin' : session ? '/dashboard' : '/signin'} aria-label={session ? 'Open your dashboard' : 'Sign in'}><UserRound size={16} /></a>

@@ -1,8 +1,8 @@
 # Sizzle&Smile Food Delivery
 
-A responsive restaurant discovery and ordering experience built with React and Vite. Includes food discovery, a restaurant menu and cart, table reservations, demo orders, client order history, and a role-protected administrator workspace.
+A responsive restaurant discovery and ordering experience built with React and Vite. Includes food discovery, delivery and deals pages, a restaurant menu and cart, table reservations, demo orders, client order history, and an administrator workspace.
 
-See the [buyer guide](../docs/buyer-guide.md) for the Vite and Next.js setup, API configuration, protected workflows, and demo-order limitations.
+See the [buyer guide](../docs/buyer-guide.md) for Vite and Next.js setup and demo-order limitations.
 
 ## Development
 
@@ -11,11 +11,9 @@ npm install
 npm run dev
 ```
 
-## Backend
+## Vite demo
 
-The Express API and MongoDB setup are documented in [`../backend/README.md`](../backend/README.md). Configure `VITE_API_BASE_URL` in `.env.local`, start the API, and use `/signup` or `/login` for client access. Admin accounts are seeded from backend environment variables and sign in at `/admin/login`.
-
-The `/dashboard` client portal and `/admin` workspace require matching API roles. Checkout stores a demo order without requesting or accepting payment details.
+The Vite version is a browser-only demo and does not call the API. It seeds sample customers and orders so the dashboards have data on first use; sign-in, carts, and demo-order changes stay in local browser storage. Any valid-looking email and password open a local demo session. This is not real authentication or shared order storage.
 
 ## Checks
 
@@ -24,4 +22,4 @@ npm run lint
 npm run build
 ```
 
-Routes include `/`, `/restaurant`, `/reserve`, `/track`, `/login`, `/signup`, and `/checkout`. Checkout is a front-end demo only and does not process payments. Food photography is loaded from Unsplash.
+Routes include `/`, `/delivery`, `/deals`, `/restaurant`, `/reserve`, `/track`, `/login`, `/signup`, `/checkout`, `/dashboard`, and `/admin`. Checkout is a front-end demo only and does not process payments. Food photography is loaded from Unsplash.

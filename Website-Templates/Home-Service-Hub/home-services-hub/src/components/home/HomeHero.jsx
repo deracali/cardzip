@@ -26,7 +26,7 @@ function HomeHero() {
   }
 
   return (
-    <section className="ff-hero" id="service-area" aria-labelledby="ff-hero-title">
+    <section className="ff-hero" aria-labelledby="ff-hero-title">
       <div className="ff-container ff-hero-layout">
         <div className="ff-hero-copy">
           <span className="ff-eyebrow"><span /> Licensed · Insured · 60-min emergency response</span>
@@ -69,7 +69,7 @@ function HomeHero() {
 
           <div className="ff-hero-actions">
             <a className="ff-button ff-button-orange" href="tel:+18005550199">Request service <ArrowRight size={15} /></a>
-            <a className="ff-text-link" href="#estimate"><Wrench size={14} /> Estimate my cost</a>
+            <a className="ff-text-link" href="/pricing"><Wrench size={14} /> Estimate my cost</a>
           </div>
         </div>
 

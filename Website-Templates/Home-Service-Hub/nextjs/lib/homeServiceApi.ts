@@ -27,6 +27,8 @@ export type Appointment = {
   description: string;
   quote: number;
   status: "Requested" | "Scheduled" | "In Progress" | "Completed" | "Cancelled";
+  paymentStatus?: "unpaid" | "pending" | "paid" | "failed";
+  paymentReference?: string;
   createdAt: string;
 };
 
@@ -44,10 +46,12 @@ export function getSession(): HomeSession | null {
 
 export function saveSession(session: HomeSession) {
   localStorage.setItem(sessionKey, JSON.stringify(session));
+  window.dispatchEvent(new Event("fixflow-session-change"));
 }
 
 export function clearSession() {
   localStorage.removeItem(sessionKey);
+  window.dispatchEvent(new Event("fixflow-session-change"));
 }
 
 type RequestOptions = {
@@ -103,4 +107,14 @@ export const homeServiceApi = {
   }>("/admin/dashboard"),
   updateAppointment: (id: string, status: Appointment["status"]) =>
     request<{ appointment: Appointment }>(`/admin/appointments/${encodeURIComponent(id)}`, { method: "PATCH", body: { status } }),
+  initializePayment: (appointmentId: string) =>
+    request<{ payment: { reference: string; amount: number; currency: string }; authorizationUrl: string; reference: string }>(
+      "/client/payments/initialize",
+      { method: "POST", body: { appointmentId } },
+    ),
+  verifyPayment: (reference: string) =>
+    request<{ payment: { reference: string; status: "pending" | "paid" | "failed"; paidAt?: string } }>(
+      "/client/payments/verify",
+      { method: "POST", body: { reference } },
+    ),
 };

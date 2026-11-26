@@ -15,6 +15,7 @@ let temporaryDirectory;
 let adminToken;
 let clientToken;
 let otherClientToken;
+let initializedPayments;
 
 before(async () => {
   temporaryDirectory = await mkdtemp(path.join(os.tmpdir(), "fixflow-api-"));
@@ -30,11 +31,32 @@ before(async () => {
   adminToken = signToken(admin, secret);
   clientToken = signToken(client, secret);
   otherClientToken = signToken(otherClient, secret);
+  initializedPayments = new Map();
 
   server = createApp({
     env: { NODE_ENV: "test", ALLOWED_ORIGINS: "http://localhost:5173,http://localhost:3000" },
     jwtSecret: secret,
     store,
+    paystack: {
+      currency: "USD",
+      isConfigured: () => true,
+      initialize: async (payment) => {
+        initializedPayments.set(payment.reference, payment);
+        return { authorizationUrl: `https://checkout.paystack.com/${payment.reference}`, reference: payment.reference };
+      },
+      verify: async (reference) => {
+        const payment = initializedPayments.get(reference);
+        return {
+          reference,
+          amount: payment.amount,
+          currency: "USD",
+          status: "success",
+          customer: { email: payment.email },
+          paid_at: "2026-06-15T12:00:00.000Z",
+        };
+      },
+      verifyWebhookSignature: () => true,
+    },
   }).listen(0);
   await once(server, "listening");
   baseUrl = `http://127.0.0.1:${server.address().port}/api`;
@@ -107,4 +129,39 @@ test("client signup cannot choose admin role and requests are isolated by client
   const adminDashboard = await api("/admin/dashboard", { token: adminToken });
   assert.equal(adminDashboard.response.status, 200);
   assert.equal(adminDashboard.data.metrics.appointments, 1);
+  assert.equal(adminDashboard.data.metrics.paidPayments, 0);
+
+  const payment = await api("/client/payments/initialize", {
+    method: "POST",
+    token: clientToken,
+    body: { appointmentId: created.data.appointment.id, amount: 1 },
+  });
+  assert.equal(payment.response.status, 201);
+  assert.equal(payment.data.payment.amount, 18900);
+  assert.match(payment.data.authorizationUrl, /^https:\/\/checkout\.paystack\.com\//);
+
+  const wrongOwner = await api("/client/payments/initialize", {
+    method: "POST",
+    token: otherClientToken,
+    body: { appointmentId: created.data.appointment.id },
+  });
+  assert.equal(wrongOwner.response.status, 404);
+
+  initializedPayments.set(payment.data.reference, {
+    ...initializedPayments.get(payment.data.reference),
+    email: "client@test.local",
+  });
+  const verified = await api("/client/payments/verify", {
+    method: "POST",
+    token: clientToken,
+    body: { reference: payment.data.reference },
+  });
+  assert.equal(verified.response.status, 200, JSON.stringify(verified.data));
+  assert.equal(verified.data.payment.status, "paid");
+  const updatedDashboard = await api("/client/dashboard", { token: clientToken });
+  assert.equal(updatedDashboard.data.appointments[0].paymentStatus, "paid");
+  const updatedAdminDashboard = await api("/admin/dashboard", { token: adminToken });
+  assert.equal(updatedAdminDashboard.data.metrics.paidPayments, 1);
+  assert.equal(updatedAdminDashboard.data.metrics.paidTotal, 189);
+  assert.equal(updatedAdminDashboard.data.appointments[0].paymentStatus, "paid");
 });

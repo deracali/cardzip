@@ -70,6 +70,8 @@ export const ngoApi = {
   campaigns: () => request('/public/campaigns', { token: null }),
   clientDashboard: () => request('/client/dashboard'),
   createDonation: (body) => request('/client/donations', { method: 'POST', body }),
+  initializePayment: (body) => request('/client/payments/initialize', { method: 'POST', body }),
+  verifyPayment: (reference) => request('/client/payments/verify', { method: 'POST', body: { reference } }),
   adminDashboard: () => request('/admin/dashboard'),
   updateDonationStatus: (id, status) => request(`/admin/donations/${encodeURIComponent(id)}`, { method: 'PATCH', body: { status } }),
 }

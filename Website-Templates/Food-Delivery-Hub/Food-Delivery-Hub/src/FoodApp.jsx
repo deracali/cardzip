@@ -32,7 +32,7 @@ import {
   X,
 } from 'lucide-react'
 import { AdminDashboard, ClientDashboard } from './pages/AccountPortals'
-import { foodApi, getFoodSession, saveFoodSession } from './services/foodApi'
+import { createDemoOrder, createFoodSession, getFoodSession } from './services/demoStore'
 import './FoodApp.css'
 
 const image = (id, width = 900) =>
@@ -77,6 +77,8 @@ function Logo() {
 
 function getActiveSection() {
   const path = window.location.pathname.replace(/\/+$/, '') || '/'
+  if (path === '/delivery') return 'delivery'
+  if (path === '/deals') return 'deals'
   if (path === '/reserve') return 'reserve'
   if (path === '/track' || path === '/checkout') return 'delivery'
   if (window.location.hash === '#deals') return 'deals'
@@ -109,13 +111,13 @@ function Header() {
         <nav className={menuOpen ? 'food-nav is-open' : 'food-nav'} aria-label="Main navigation">
           <a className={activeSection === 'menu' ? 'active' : ''} aria-current={activeSection === 'menu' ? 'page' : undefined} href="/">Menu</a>
           <a className={activeSection === 'reserve' ? 'active' : ''} aria-current={activeSection === 'reserve' ? 'page' : undefined} href="/reserve">Reserve Table</a>
-          <a className={activeSection === 'delivery' ? 'active' : ''} aria-current={activeSection === 'delivery' ? 'page' : undefined} href="/#featured">Delivery</a>
-          <a className={activeSection === 'deals' ? 'active' : ''} aria-current={activeSection === 'deals' ? 'page' : undefined} href="/#deals">Deals</a>
+          <a className={activeSection === 'delivery' ? 'active' : ''} aria-current={activeSection === 'delivery' ? 'page' : undefined} href="/delivery">Delivery</a>
+          <a className={activeSection === 'deals' ? 'active' : ''} aria-current={activeSection === 'deals' ? 'page' : undefined} href="/deals">Deals</a>
           <div className="food-nav-actions">
             <a className="location-select" href="/#location"><MapPin size={12} /> Greenwich Ave, NYC <ChevronDown size={11} /></a>
             <a className="cart-link" href="/restaurant" aria-label={`Cart, ${count} items`}><ShoppingCart size={15} />{count > 0 && <span>{count}</span>}</a>
-            <a className="sign-in-button" href={session?.user?.role === 'admin' ? '/admin' : session?.user?.role === 'client' ? '/dashboard' : '/login'}>
-              {session?.user?.role ? 'My account' : 'Sign In'}
+            <a className="sign-in-button" href={session?.user?.role === 'client' ? '/dashboard' : '/login'}>
+              {session?.user?.role === 'client' ? 'My account' : session?.user?.role === 'admin' ? 'Customer account' : 'Sign In'}
             </a>
           </div>
         </nav>
@@ -219,6 +221,66 @@ function HomePage() {
   )
 }
 
+function DeliveryPage() {
+  return (
+    <>
+      <Header />
+      <main className="food-main info-page">
+        <section className="info-hero">
+          <div className="info-hero-copy">
+            <span className="promo-pill"><Bike size={13} /> DELIVERY THAT FITS YOUR DAY</span>
+            <h1>Good food, right to your door.</h1>
+            <p>Browse neighborhood favorites, place a demo order, and follow each step from kitchen to doorstep.</p>
+            <div className="info-actions">
+              <a className="button red-button" href="/">Browse the menu <ArrowRight size={14} /></a>
+              <a className="button outline-button" href="/track">Track a delivery</a>
+            </div>
+          </div>
+          <img src={image('photo-1526367790999-0150786686a2', 1000)} alt="A courier delivering a restaurant meal" />
+        </section>
+        <section className="info-section">
+          <div className="section-title-row"><div><span className="reservation-kicker">SIMPLE FROM START TO FINISH</span><h2>How delivery works</h2></div></div>
+          <div className="info-card-grid">
+            <article className="info-card"><span>01</span><h3>Choose your meal</h3><p>Explore local menus and add your favorites to the cart.</p></article>
+            <article className="info-card"><span>02</span><h3>Set delivery details</h3><p>Add an address and instructions at checkout. No payment details are requested in this demo.</p></article>
+            <article className="info-card"><span>03</span><h3>Follow your order</h3><p>See a sample delivery status on the tracking page.</p></article>
+          </div>
+        </section>
+        <section className="info-callout"><div><span className="reservation-kicker">NEARBY AND READY</span><h2>Fresh meals around Greenwich Village</h2><p>Most sample orders arrive in about 25–35 minutes. Availability and delivery times shown here are for preview purposes.</p></div><a className="button red-button" href="/restaurant">Start an order <ArrowRight size={14} /></a></section>
+      </main>
+      <Footer />
+    </>
+  )
+}
+
+function DealsPage() {
+  const [cart, setCart] = useState(getCart)
+  const dealDishes = [dishes[0], dishes[2], dishes[5], dishes[7]]
+
+  return (
+    <>
+      <Header />
+      <main className="food-main info-page">
+        <section className="info-page-heading">
+          <span className="promo-pill"><Gift size={13} /> FRESH OFFERS</span>
+          <h1>Good food. Better deals.</h1>
+          <p>Explore sample offers from Sizzle&Smile. This Vite preview keeps carts and orders in your browser only.</p>
+        </section>
+        <section className="deal-offer-grid" aria-label="Current offers">
+          <article className="deal-offer deal-offer-red"><span>FIRST THREE ORDERS</span><h2>Delivery is on us</h2><p>Try a neighborhood favorite with free delivery on your first three demo orders.</p><a href="/delivery">See delivery details <ArrowRight size={13} /></a></article>
+          <article className="deal-offer"><span>SELECTED FAVORITES</span><h2>Save on a best seller</h2><p>Find highlighted dishes and add them straight to your cart.</p><a href="#deal-dishes">Browse featured deals <ArrowRight size={13} /></a></article>
+          <article className="deal-offer"><span>WEEKEND TREAT</span><h2>Dessert makes it better</h2><p>Finish your meal with a sweet favorite from Sugar Rush.</p><a href="/restaurant">Explore the restaurant menu <ArrowRight size={13} /></a></article>
+        </section>
+        <section id="deal-dishes" className="featured-section info-deal-dishes">
+          <div className="section-title-row"><div><span className="reservation-kicker">HANDPICKED FOR YOU</span><h2>Featured dishes</h2><p>Choose an item to add it to your local demo cart.</p></div></div>
+          <div className="dish-grid">{dealDishes.map((dish) => <DishCard key={dish.id} dish={dish} cart={cart} setCart={setCart} />)}</div>
+        </section>
+      </main>
+      <Footer />
+    </>
+  )
+}
+
 function RestaurantPage() {
   const [activeCategory, setActiveCategory] = useState('Starters')
   const [vegOnly, setVegOnly] = useState(false)
@@ -286,22 +348,22 @@ function TrackingPage() {
   return <><Header /><main className="tracking-page food-main"><section className="tracking-heading"><div><span className="order-id">ORDER ID #FD-9842 · FORNO ANTICO</span><h1>Arriving in 18 mins</h1><p>Estimated arrival 7:42 PM · Hot &amp; fresh guaranteed</p></div><div className="countdown"><strong>18:24</strong><small>MIN:SEC</small></div></section><div className="tracking-layout"><section className="map-panel" aria-label="Live delivery map"><div className="map-grid" /><div className="map-label restaurant-map-label"><span>🍕</span> Forno Antico<small>Picked up 7:12 PM</small></div><span className="gps-label"><span /> Live GPS · Updated 5s ago</span><svg className="map-route" viewBox="0 0 600 320" preserveAspectRatio="none" aria-hidden="true"><path d="M75 220 C160 220 170 110 275 130 S380 240 465 220" /><circle cx="75" cy="220" r="8" /><circle cx="465" cy="220" r="8" /></svg><button className="courier-map-pin" type="button" onClick={() => setRecenter((value) => !value)}><Bike size={14} /> {recenter ? 'Centered on courier' : 'Marcus is here'}</button><div className="map-legend"><span><i /> Restaurant</span><span><i /> Driver route (1.2 mi left)</span><button type="button" onClick={() => setRecenter(true)}><MapPin size={12} /> Recenter</button></div></section><aside className="tracking-sidebar"><section className="courier-card"><span className="sidebar-kicker">YOUR COURIER</span><div className="courier-info"><span className="courier-avatar">M</span><span><strong>Marcus Rivera</strong><small>Honda CR 150R · NY-4821 · ⭐ 4.9 (2.3k)</small></span><i /></div><div className="courier-actions"><a href="tel:+12125550148"><Phone size={12} /> Call Driver</a><a href="sms:+12125550148"><Mail size={12} /> Message</a></div></section><section className="order-details"><h2>Order details</h2><p>2x Margherita Artigianale<strong>$27.98</strong></p><p>1x Nonna’s Lasagna<strong>$16.99</strong></p><p>1x Tiramisu Classico<strong>$6.50</strong><span>Subtotal<strong>$51.47</strong></span><span>Delivery<strong>Free</strong></span></p><div className="order-total"><span>Total<strong>$51.47</strong></span><small><MapPin size={12} /> Delivering to 128 Greenwich Ave, Apt 4B — Ring twice, please leave at door if no answer.</small></div></section><a className="need-help" href="/#support">Need help with this order?</a></aside></div></main><Footer /></>
 }
 
-function AuthPage({ signup = false, expectedRole = 'client', apiBaseUrl }) {
+function AuthPage({ signup = false, expectedRole = 'client' }) {
   const [showPassword, setShowPassword] = useState(false)
   const [notice, setNotice] = useState('')
-  const [busy, setBusy] = useState(false)
   const adminLogin = expectedRole === 'admin'
 
-  async function submit(event) {
+  function submit(event) {
     event.preventDefault()
     setNotice('')
-    setBusy(true)
     const form = Object.fromEntries(new FormData(event.currentTarget))
     try {
-      const result = signup
-        ? await foodApi.signup(apiBaseUrl, { name: form.name, email: form.email, phone: form.phone, password: form.password })
-        : await foodApi.login(apiBaseUrl, { email: form.email, password: form.password, expectedRole })
-      saveFoodSession(result)
+      createFoodSession({
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        role: expectedRole,
+      })
       const requestedPath = new URLSearchParams(window.location.search).get('next')
       const adminPath = requestedPath?.startsWith('/admin')
       const allowedPath = requestedPath?.startsWith('/') && !requestedPath.startsWith('//')
@@ -309,28 +371,25 @@ function AuthPage({ signup = false, expectedRole = 'client', apiBaseUrl }) {
       window.location.replace(signup ? '/dashboard' : allowedPath ? requestedPath : adminLogin ? '/admin' : '/dashboard')
     } catch (error) {
       setNotice(error.message)
-    } finally {
-      setBusy(false)
     }
   }
 
-  return <main className={`auth-page${signup ? ' signup-auth' : ''}`}><section className="auth-image" style={{ backgroundImage: `linear-gradient(0deg,rgba(0,0,0,.7),transparent 65%),url("${image(signup ? 'photo-1568901346375-23c9450c58cd' : 'photo-1574071318508-1cdbab80d002', 1200)}")` }}><Logo /><div><h1>{signup ? 'Hot Meals. Cool Rewards.' : adminLogin ? 'Run the Restaurant.' : 'Satisfy Your Cravings.'}<br />{signup ? 'Zero Hassle Sign-Up.' : adminLogin ? 'Everything in One Place.' : 'Quick Orders & Exclusive Rewards.'}</h1><p>20-min express checkout  Members save 20% weekly  Free dessert Fridays</p></div></section><section className="auth-form-side"><form className="food-auth-form" onSubmit={submit}><a className="checkout-back" href="/"><ArrowLeft size={14} /> Back to menu</a><h2>{signup ? 'Create Your Account' : adminLogin ? 'Administrator Sign In' : 'Welcome Back'}</h2><p>{signup ? 'Join 48k+ foodies getting hot meals in minutes.' : adminLogin ? 'Sign in with the administrator account configured on the backend.' : 'Sign in to track orders and view saved favorite dishes.'}</p>{signup && <label>Full Name<input name="name" placeholder="Sofia Martinez" autoComplete="name" required /></label>}<label>Email Address<input name="email" type="email" placeholder="sofia@email.com" autoComplete="email" required /></label>{signup && <label>Phone Number<input name="phone" type="tel" placeholder="+1 (212) 555-0148" autoComplete="tel" /></label>}<label>Password<span className="auth-password"><input name="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••••" autoComplete={signup ? 'new-password' : 'current-password'} minLength={signup ? 8 : undefined} required /><button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff size={15} /> : <Eye size={15} />}</button></span></label>{signup ? <label className="marketing-opt"><input type="checkbox" /> Send me discount codes &amp; promotions (up to 30% off weekly)</label> : !adminLogin && <div className="remember-row"><label><input type="checkbox" defaultChecked /> Remember Me</label><a href="/login">Forgot Password?</a></div>}<button className="button red-button auth-submit" type="submit" disabled={busy}>{busy ? 'Please wait…' : signup ? 'Create Account' : 'Sign In'} <ArrowRight size={14} /></button>{notice && <p className="auth-notice" role="alert">{notice}</p>}{!adminLogin && <><div className="auth-divider"><span>OR CONTINUE WITH</span></div><div className="social-signin"><button type="button">◎ Google</button><button type="button">◉ Apple</button></div><p className="auth-switch">{signup ? 'Already registered?' : "Don't have an account?"} <a href={signup ? '/login' : '/signup'}>{signup ? 'Sign In' : 'Sign Up'}</a></p></>}{adminLogin && <p className="auth-switch">Customer? <a href="/login">Sign in to your account</a></p>}</form></section></main>
+  return <main className={`auth-page${signup ? ' signup-auth' : ''}`}><section className="auth-image" style={{ backgroundImage: `linear-gradient(0deg,rgba(0,0,0,.7),transparent 65%),url("${image(signup ? 'photo-1568901346375-23c9450c58cd' : 'photo-1574071318508-1cdbab80d002', 1200)}")` }}><Logo /><div><h1>{signup ? 'Hot Meals. Cool Rewards.' : adminLogin ? 'Run the Restaurant.' : 'Satisfy Your Cravings.'}<br />{signup ? 'Zero Hassle Sign-Up.' : adminLogin ? 'Everything in One Place.' : 'Quick Orders & Exclusive Rewards.'}</h1><p>20-min express checkout  Members save 20% weekly  Free dessert Fridays</p></div></section><section className="auth-form-side"><form className="food-auth-form" onSubmit={submit}><a className="checkout-back" href="/"><ArrowLeft size={14} /> Back to menu</a><h2>{signup ? 'Create Your Account' : adminLogin ? 'Administrator Sign In' : 'Welcome Back'}</h2><p>{signup ? 'Join 48k+ foodies getting hot meals in minutes.' : adminLogin ? 'Enter any email and password to open the local demo workspace.' : 'Enter any email and password to open your local demo account.'}</p><p className="demo-notice">Vite preview only: demo sessions stay in this browser and are not secure authentication.</p>{signup && <label>Full Name<input name="name" placeholder="Sofia Martinez" autoComplete="name" required /></label>}<label>Email Address<input name="email" type="email" placeholder="Sofia@example.com" autoComplete="email" required /></label>{signup && <label>Phone Number<input name="phone" type="tel" placeholder="+1 (212) 555-0148" autoComplete="tel" /></label>}<label>Password<span className="auth-password"><input name="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••••" autoComplete={signup ? 'new-password' : 'current-password'} minLength={signup ? 8 : undefined} required /><button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff size={15} /> : <Eye size={15} />}</button></span></label>{signup ? <label className="marketing-opt"><input type="checkbox" /> Send me discount codes &amp; promotions (up to 30% off weekly)</label> : !adminLogin && <div className="remember-row"><label><input type="checkbox" defaultChecked /> Remember Me</label><a href="/login">Forgot Password?</a></div>}<button className="button red-button auth-submit" type="submit">{signup ? 'Create Account' : 'Sign In'} <ArrowRight size={14} /></button>{notice && <p className="auth-notice" role="alert">{notice}</p>}{!adminLogin && <><div className="auth-divider"><span>OR CONTINUE WITH</span></div><div className="social-signin"><button type="button">◎ Google</button><button type="button">◉ Apple</button></div><p className="auth-switch">{signup ? 'Already registered?' : "Don't have an account?"} <a href={signup ? '/login' : '/signup'}>{signup ? 'Sign In' : 'Sign Up'}</a></p></>}{adminLogin && <p className="auth-switch">Customer? <a href="/login">Sign in to your account</a></p>}</form></section></main>
 }
 
 function Footer() {
-  return <footer className="food-footer" id="support"><div className="food-footer-main"><div className="footer-brand"><Logo /><p>Hot food, fast delivery, a happy belly.<br />2,400+ restaurants in your neighborhood.</p><div className="social-links"><a href="#instagram">◎</a><a href="#twitter">𝕏</a><a href="#facebook">f</a></div></div><div><strong>Company</strong><a href="#about">About Us</a><a href="#careers">Careers</a><a href="#partners">Partner with us</a><a href="#press">Press</a></div><div><strong>Support</strong><a href="#help">Help center</a><a href="/track">Track order</a><a href="#refund">Refund policy</a><a href="#contact">Contact</a></div><div><strong>Legal</strong><a href="#terms">Terms</a><a href="#privacy">Privacy</a><a href="#cookies">Cookies</a><a href="/admin/login">Admin portal</a></div></div><div className="footer-bottom">© 2026 Sizzle&Smile Foods Inc. Made fresh daily.</div></footer>
+  return <footer className="food-footer" id="support"><div className="food-footer-main"><div className="footer-brand"><Logo /><p>Hot food, fast delivery, a happy belly.<br />2,400+ restaurants in your neighborhood.</p><div className="social-links"><a href="#instagram">◎</a><a href="#twitter">𝕏</a><a href="#facebook">f</a></div></div><div><strong>Company</strong><a href="#about">About Us</a><a href="#careers">Careers</a><a href="#partners">Partner with us</a><a href="#press">Press</a></div><div><strong>Support</strong><a href="/delivery">Delivery</a><a href="/deals">Deals</a><a href="#help">Help center</a><a href="/track">Track order</a></div><div><strong>Legal</strong><a href="#terms">Terms</a><a href="#privacy">Privacy</a><a href="#cookies">Cookies</a><a href="/admin/login">Admin portal</a></div></div><div className="footer-bottom">© 2026 Sizzle&Smile Foods Inc. Made fresh daily.</div></footer>
 }
 
-function CheckoutPage({ apiBaseUrl }) {
+function CheckoutPage() {
   const cart = getCart()
   const count = Object.values(cart).reduce((sum, qty) => sum + qty, 0)
   const total = Object.entries(cart).reduce((sum, [id, qty]) => sum + (findDish(id)?.price || 0) * qty, 1.99)
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
   const [orderId, setOrderId] = useState('')
 
-  async function placeOrder(event) {
+  function placeOrder(event) {
     event.preventDefault()
     const session = getFoodSession()
     if (!session?.token || session.user?.role !== 'client') {
@@ -341,12 +400,15 @@ function CheckoutPage({ apiBaseUrl }) {
       setError('Add at least one menu item before placing an order.')
       return
     }
-    setBusy(true)
     setError('')
     const form = Object.fromEntries(new FormData(event.currentTarget))
     try {
-      const { order } = await foodApi.createOrder(apiBaseUrl, {
-        items: Object.entries(cart).map(([dishId, quantity]) => ({ dishId, quantity })),
+      const order = createDemoOrder({
+        user: session.user,
+        items: Object.entries(cart).map(([dishId, quantity]) => {
+          const dish = findDish(dishId)
+          return dish ? { dishId, name: dish.name, quantity, unitPrice: dish.price } : null
+        }).filter(Boolean),
         address: form.address,
         phone: form.phone,
         instructions: form.instructions,
@@ -356,29 +418,25 @@ function CheckoutPage({ apiBaseUrl }) {
       localStorage.removeItem('sizzle-cart')
       window.dispatchEvent(new Event('food-cart-change'))
     } catch (requestError) {
-      if (requestError.status === 401) {
-        window.location.assign('/login?next=%2Fcheckout')
-      } else {
-        setError(requestError.message)
-      }
-    } finally {
-      setBusy(false)
+      setError(requestError.message)
     }
   }
 
-  return <><Header /><main className="checkout-page food-main"><a className="checkout-back" href="/restaurant"><ArrowLeft size={14} /> Back to your cart</a>{done ? <section className="reservation-success"><span><Check size={26} /></span><h1>Demo order received!</h1><p>Order {orderId} is saved to your client dashboard. No payment was collected.</p><a className="button red-button" href="/dashboard">View your orders <ArrowRight size={14} /></a></section> : <div className="checkout-layout"><form className="reserve-form" onSubmit={placeOrder}><section className="reserve-box"><h2><MapPin size={15} /> Delivery details</h2><label>Delivery address<input name="address" placeholder="128 Greenwich Ave, Apt 4B, New York" required /></label><label>Phone number<input name="phone" type="tel" placeholder="+1 (212) 555-0148" required /></label><label>Delivery instructions<textarea name="instructions" rows="2" placeholder="Ring twice, leave at door..." /></label><p className="demo-notice"><LockKeyhole size={13} /> Demo order only. Payment details are not requested or collected.</p><button className="button red-button confirm-table" type="submit" disabled={busy || !count}>{busy ? 'Placing order…' : `Place demo order · $${total.toFixed(2)}`}</button>{error && <p className="account-alert" role="alert">{error}</p>}</section></form><aside className="checkout-order-summary"><h2>Your order ({count} items)</h2>{Object.entries(cart).map(([id, qty]) => { const dish = findDish(id); return dish ? <p key={id}>{qty}× {dish.name}<strong>${(dish.price * qty).toFixed(2)}</strong></p> : null })}<p>Delivery fee<strong>{count ? '$1.99' : '$0.00'}</strong></p><div><strong>Total</strong><strong>${(count ? total : 0).toFixed(2)}</strong></div><small>Estimated arrival 25–35 minutes · Demo only</small></aside></div>}</main><Footer /></>
+  return <><Header /><main className="checkout-page food-main"><a className="checkout-back" href="/restaurant"><ArrowLeft size={14} /> Back to your cart</a>{done ? <section className="reservation-success"><span><Check size={26} /></span><h1>Demo order received!</h1><p>Order {orderId} is saved to your client dashboard. No payment was collected.</p><a className="button red-button" href="/dashboard">View your orders <ArrowRight size={14} /></a></section> : <div className="checkout-layout"><form className="reserve-form" onSubmit={placeOrder}><section className="reserve-box"><h2><MapPin size={15} /> Delivery details</h2><label>Delivery address<input name="address" placeholder="128 Greenwich Ave, Apt 4B, New York" required /></label><label>Phone number<input name="phone" type="tel" placeholder="+1 (212) 555-0148" required /></label><label>Delivery instructions<textarea name="instructions" rows="2" placeholder="Ring twice, leave at door..." /></label><p className="demo-notice"><LockKeyhole size={13} /> Demo order only. Payment details are not requested or collected.</p><button className="button red-button confirm-table" type="submit" disabled={!count}>{`Place demo order · $${total.toFixed(2)}`}</button>{error && <p className="account-alert" role="alert">{error}</p>}</section></form><aside className="checkout-order-summary"><h2>Your order ({count} items)</h2>{Object.entries(cart).map(([id, qty]) => { const dish = findDish(id); return dish ? <p key={id}>{qty}× {dish.name}<strong>${(dish.price * qty).toFixed(2)}</strong></p> : null })}<p>Delivery fee<strong>{count ? '$1.99' : '$0.00'}</strong></p><div><strong>Total</strong><strong>${(count ? total : 0).toFixed(2)}</strong></div><small>Estimated arrival 25–35 minutes · Demo only</small></aside></div>}</main><Footer /></>
 }
 
-export default function FoodApp({ apiBaseUrl = 'http://localhost:5000/api' }) {
+export default function FoodApp() {
   const path = window.location.pathname.replace(/\/+$/, '') || '/'
-  if (path === '/admin/login') return <AuthPage expectedRole="admin" apiBaseUrl={apiBaseUrl} />
-  if (path === '/admin' || path === '/admin/dashboard') return <AdminDashboard apiBaseUrl={apiBaseUrl} />
-  if (path === '/dashboard' || path === '/client/dashboard') return <ClientDashboard apiBaseUrl={apiBaseUrl} />
+  if (path === '/admin/login') return <AuthPage expectedRole="admin" />
+  if (path === '/admin' || path === '/admin/dashboard') return <AdminDashboard />
+  if (path === '/dashboard' || path === '/client/dashboard') return <ClientDashboard />
+  if (path === '/delivery') return <DeliveryPage />
+  if (path === '/deals') return <DealsPage />
   if (path === '/restaurant') return <RestaurantPage />
   if (path === '/reserve') return <ReservePage />
   if (path === '/track') return <TrackingPage />
-  if (path === '/login' || path === '/signin') return <AuthPage apiBaseUrl={apiBaseUrl} />
-  if (path === '/signup' || path === '/register') return <AuthPage signup apiBaseUrl={apiBaseUrl} />
-  if (path === '/checkout') return <CheckoutPage apiBaseUrl={apiBaseUrl} />
+  if (path === '/login' || path === '/signin') return <AuthPage />
+  if (path === '/signup' || path === '/register') return <AuthPage signup />
+  if (path === '/checkout') return <CheckoutPage />
   return <HomePage />
 }

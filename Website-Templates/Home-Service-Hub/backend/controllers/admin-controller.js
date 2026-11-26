@@ -6,14 +6,26 @@ export function createAdminController(store) {
   return {
     dashboard: async (_req, res) => {
       const state = await store.read();
+      const payments = state.payments || [];
+      const appointments = state.appointments.map((appointment) => {
+        const payment = payments.find((item) => item.appointmentId === appointment.id && item.status === "paid")
+          || payments.find((item) => item.appointmentId === appointment.id);
+        return {
+          ...appointment,
+          paymentStatus: payment?.status || "unpaid",
+          paymentReference: payment?.reference,
+        };
+      });
       res.json({
         metrics: {
           clients: state.users.filter((user) => user.role === "client").length,
-          appointments: state.appointments.length,
-          newRequests: state.appointments.filter((appointment) => appointment.status === "Requested").length,
-          activeAppointments: state.appointments.filter((appointment) => ["Scheduled", "In Progress"].includes(appointment.status)).length,
+          appointments: appointments.length,
+          newRequests: appointments.filter((appointment) => appointment.status === "Requested").length,
+          activeAppointments: appointments.filter((appointment) => ["Scheduled", "In Progress"].includes(appointment.status)).length,
+          paidPayments: payments.filter((payment) => payment.status === "paid").length,
+          paidTotal: Math.round(payments.filter((payment) => payment.status === "paid").reduce((total, payment) => total + payment.amount, 0)) / 100,
         },
-        appointments: state.appointments.slice(0, 50),
+        appointments: appointments.slice(0, 50),
         clients: state.users.filter((user) => user.role === "client").map(safeUser),
       });
     },

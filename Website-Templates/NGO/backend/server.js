@@ -1,13 +1,37 @@
 import "dotenv/config";
 import { createServer } from "node:http";
 import { randomBytes } from "node:crypto";
+import dns from "node:dns";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import express from "express";
 import { createMongoStore, createStore } from "./models/store.js";
 import { createApiRouter } from "./routes/api-routes.js";
+import { createPaystackService } from "./services/paystack.js";
 
 const serverPath = fileURLToPath(import.meta.url);
+
+export async function connectStoreWithDnsFallback(store, {
+  env = process.env,
+  setDnsServers = dns.setServers,
+  warn = console.warn,
+} = {}) {
+  if (typeof store.connect !== "function") return;
+  try {
+    await store.connect();
+  } catch (error) {
+    const hasConfiguredDnsServers = (env.MONGODB_DNS_SERVERS || "")
+      .split(",")
+      .some((server) => server.trim());
+    if (hasConfiguredDnsServers || error?.code !== "ECONNREFUSED" || error?.syscall !== "querySrv") {
+      throw error;
+    }
+
+    warn("System DNS refused the MongoDB Atlas SRV lookup; retrying with Cloudflare and Google DNS.");
+    setDnsServers(["1.1.1.1", "8.8.8.8"]);
+    await store.connect();
+  }
+}
 
 export function createApp(options = {}) {
   const env = options.env || process.env;
@@ -16,6 +40,24 @@ export function createApp(options = {}) {
     throw new Error("JWT_SECRET must be set to at least 32 characters in production.");
   }
   const secret = options.jwtSecret || env.JWT_SECRET || randomBytes(32).toString("hex");
+  const currency = env.PAYSTACK_CURRENCY || "USD";
+  if (!/^[A-Z]{3}$/.test(currency)) throw new Error("PAYSTACK_CURRENCY must be a three-letter uppercase currency code.");
+  const paystack = options.paystack || createPaystackService({
+    secretKey: env.PAYSTACK_SECRET_KEY,
+    currency,
+    callbackUrl: env.PAYSTACK_CALLBACK_URL || "http://localhost:3000/payment/callback",
+  });
+  const mongoDnsServers = (env.MONGODB_DNS_SERVERS || "")
+    .split(",")
+    .map((server) => server.trim())
+    .filter(Boolean);
+  if (mongoDnsServers.length) {
+    try {
+      dns.setServers(mongoDnsServers);
+    } catch {
+      throw new Error("MONGODB_DNS_SERVERS must contain comma-separated DNS server IP addresses.");
+    }
+  }
   const store = options.store || (options.dataFile
     ? createStore(options.dataFile)
     : createMongoStore(env.MONGODB_URI));
@@ -27,6 +69,7 @@ export function createApp(options = {}) {
   );
   const app = express();
   app.locals.store = store;
+  app.locals.paystack = paystack;
   app.disable("x-powered-by");
   app.set("trust proxy", production ? 1 : false);
   app.use((req, res, next) => {
@@ -42,8 +85,11 @@ export function createApp(options = {}) {
     if (req.method === "OPTIONS") return res.sendStatus(204);
     next();
   });
-  app.use(express.json({ limit: "50kb" }));
-  app.use("/api", createApiRouter({ store, secret, env }));
+  app.use(express.json({
+    limit: "50kb",
+    verify: (req, res, buffer) => { req.rawBody = Buffer.from(buffer); },
+  }));
+  app.use("/api", createApiRouter({ store, secret, env, paystack }));
   app.use((req, res) => res.status(404).json({ error: "API endpoint not found." }));
   app.use((error, req, res, next) => {
     if (res.headersSent) return next(error);
@@ -60,7 +106,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === serverPath) {
   const port = Number(process.env.PORT || 5000);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("PORT must be a valid port number.");
   try {
-    await app.locals.store.connect?.();
+    await connectStoreWithDnsFallback(app.locals.store);
   } catch (error) {
     console.error("Kindred API could not connect to MongoDB.");
     console.error(error instanceof Error ? error.message : error);

@@ -8,7 +8,7 @@ function SalonHeader() {
   return (
     <header className="salon-header">
       <div className="salon-header-inner">
-        <a className="salon-brand" href="#home" aria-label="Lumière home">
+        <a className="salon-brand" href="/" aria-label="Lumière home">
           <span className="salon-brand-mark">L</span>
           <span className="salon-brand-copy"><strong>Lumière</strong><small>SALON · SPA · WELLNESS</small></span>
         </a>
@@ -24,13 +24,13 @@ function SalonHeader() {
         </button>
 
         <nav className={menuOpen ? 'salon-nav is-open' : 'salon-nav'} aria-label="Main navigation">
-          <a href="#services" onClick={closeMenu}>Services</a>
-          <a href="#stylists" onClick={closeMenu}>Stylists</a>
-          <a href="#services" onClick={closeMenu}>Packages</a>
-          <a href="#reviews" onClick={closeMenu}>Reviews <span className="salon-nav-rating">4.9</span></a>
+          <a href="/services" onClick={closeMenu}>Services</a>
+          <a href="/stylists" onClick={closeMenu}>Stylists</a>
+          <a href="/packages" onClick={closeMenu}>Packages</a>
+          <a href="/reviews" onClick={closeMenu}>Reviews <span className="salon-nav-rating">4.9</span></a>
           <div className="salon-nav-actions">
             <a className="salon-phone-link" href="tel:+12125550148"><Phone size={13} /> (212) 555-0148</a>
-            <a href="/dashboard" onClick={closeMenu}>My account</a>
+            <a href="/dashboard" onClick={closeMenu}>Dashboard</a>
             <a className="salon-button salon-button-dark" href="/book" onClick={closeMenu}>Book Appointment <ArrowRight size={14} /></a>
           </div>
         </nav>

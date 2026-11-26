@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { clearSalonSession, salonApi, saveSalonSession } from '../services/salonApi'
+import { authenticateLocal, saveSalonSession } from '../services/salonLocalStore'
 import '../components/salon/salon.css'
 import './account.css'
 
@@ -15,21 +15,17 @@ export default function AuthPage({ mode = 'login', portal = 'client' }) {
     setError('')
     const form = new FormData(event.currentTarget)
     try {
-      const session = signup
-        ? await salonApi.signup({
+      const session = await authenticateLocal({
+        name: String(form.get('name') || ''),
+        email: String(form.get('email') || ''),
+        phone: String(form.get('phone') || ''),
+        password: String(form.get('password') || ''),
+        signupDetails: signup ? {
           name: String(form.get('name') || ''),
-          email: String(form.get('email') || ''),
           phone: String(form.get('phone') || ''),
-          password: String(form.get('password') || ''),
-        })
-        : await salonApi.login({
-          email: String(form.get('email') || ''),
-          password: String(form.get('password') || ''),
-        })
-      if (session.user.role !== (signup ? 'client' : portal)) {
-        clearSalonSession()
-        throw new Error(admin ? 'This account does not have administrator access.' : 'Use the administrator sign-in page for this account.')
-      }
+        } : null,
+      })
+      if (session.user.role !== portal) throw new Error(admin ? 'This account does not have administrator access.' : 'Use the administrator sign-in page for this account.')
       saveSalonSession(session)
       const next = new URLSearchParams(window.location.search).get('next')
       const isAdminPath = next?.startsWith('/admin')
@@ -51,7 +47,7 @@ export default function AuthPage({ mode = 'login', portal = 'client' }) {
       <section className="salon-account-card">
         <span className="salon-kicker">{admin ? 'STUDIO ADMINISTRATION' : 'YOUR LUMIÈRE ACCOUNT'}</span>
         <h1>{signup ? 'Create your client account' : admin ? 'Administrator sign in' : 'Welcome back'}</h1>
-        <p>{signup ? 'Create an account to request appointments and keep track of your visits.' : admin ? 'Sign in with the administrator account configured on the salon API.' : 'Sign in to request appointments and see your upcoming salon visits.'}</p>
+        <p>{signup ? 'Create an account to request appointments and keep track of your visits.' : admin ? 'Sign in to manage this local Vite demo.' : 'Sign in to request appointments and see your upcoming salon visits.'}</p>
         <form className="salon-account-form" onSubmit={submit}>
           {signup && <>
             <label>Full name<input name="name" autoComplete="name" minLength={2} maxLength={100} required /></label>
@@ -63,7 +59,7 @@ export default function AuthPage({ mode = 'login', portal = 'client' }) {
           <button className="salon-button salon-button-primary" type="submit" disabled={busy}>{busy ? 'Please wait…' : signup ? 'Create account' : 'Sign in'}</button>
         </form>
         {admin
-          ? <p className="salon-account-note">Admin accounts are created from private backend configuration. Public registration only creates client accounts.</p>
+          ? <p className="salon-account-note">Vite preview demo only: <strong>admin@lumiere.local</strong> · <strong>LumiereAdmin2026!</strong>. This browser-only demo is not secure for real salon operations.</p>
           : <p className="salon-account-switch">{signup ? 'Already have an account?' : 'New to Lumière?'} <a href={signup ? '/login' : '/signup'}>{signup ? 'Sign in' : 'Create a client account'}</a></p>}
         <a className="salon-back-link" href="/">← Back to Lumière</a>
       </section>

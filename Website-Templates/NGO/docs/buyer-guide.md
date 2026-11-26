@@ -6,7 +6,7 @@ This buyer guide follows the Agency Portal guide's package-comparison, preparati
 
 ## 01 / Choose your package
 
-This repository separates two frontend choices from the backend. The purchase record determines which delivered files and license scope apply.
+This repository separates two frontend choices from the backend. The purchase record determines which delivered files and license scope apply. The Vite frontend is a browser-local demo; the Next.js frontend is the dynamic version connected to the API.
 
 | Package scope | Includes |
 | --- | --- |
@@ -33,7 +33,7 @@ Use one frontend at a time; both connect to the same API. A template purchase is
 | `backend/` | Express API + MongoDB | `http://localhost:5000` |
 | `docs/` | Buyer guide source, PDF and generator | — |
 
-Never publish `.env` files, MongoDB credentials, admin codes or JWT secrets. `VITE_` and `NEXT_PUBLIC_` variables are sent to browsers and must contain only public settings such as the API URL.
+Never publish `.env` files, MongoDB credentials, Paystack secret keys, admin codes or JWT secrets. The Vite frontend does not use API or payment environment variables. `NEXT_PUBLIC_` variables are sent to browsers and must contain only public settings such as the API URL.
 
 ## 03 / Full template: start the backend API
 
@@ -44,7 +44,7 @@ Set-Location .\backend
 Copy-Item .env.example .env
 ```
 
-In `backend/.env`, set `MONGODB_URI`, `JWT_SECRET`, `ADMIN_SIGNUP_CODE` and `ALLOWED_ORIGINS`. Replace example values with private production values. Then run:
+In `backend/.env`, set `MONGODB_URI`, `JWT_SECRET`, `ADMIN_SIGNUP_CODE`, `ALLOWED_ORIGINS`, `PAYSTACK_SECRET_KEY` and `PAYSTACK_CALLBACK_URL`. Set `PAYSTACK_CURRENCY=USD` to match the campaign prices. Keep the Paystack secret only on the backend; the example secret is intentionally blank. Then run:
 
 ```powershell
 npm install
@@ -61,12 +61,11 @@ From the project folder:
 
 ```powershell
 Set-Location .\vite
-Copy-Item .env.example .env
 npm install
 npm run dev
 ```
 
-`VITE_NGO_API_URL` defaults to `http://localhost:5000/api`.
+The Vite version uses localStorage for demo sessions and preview pledges, and includes clearly labeled static sample entries in the donor and admin dashboards. It does not call the backend, process payments, or provide production authentication. No API environment file is required.
 
 ### Option B — Next.js
 
@@ -79,7 +78,7 @@ npm install
 npm run dev
 ```
 
-`NEXT_PUBLIC_NGO_API_URL` defaults to `http://localhost:5000/api`. The Vite and Next.js projects are independent, native applications, not a wrapper around one another.
+`NEXT_PUBLIC_NGO_API_URL` defaults to `http://localhost:5000/api`. Paystack checkout and payment verification are handled through the backend; no Paystack secret or public key is placed in Next.js. The Vite and Next.js projects are independent, native applications, not a wrapper around one another.
 
 ## 05 / Customize and launch
 
@@ -89,9 +88,11 @@ npm run dev
 - Check API availability, browser origin, MongoDB connectivity and server logs when sign-in or dashboards fail.
 - Run backend tests, Vite lint/build, and Next.js typecheck/build before release.
 
-### Important: pledges are not payments
+### Payments and pledge records
 
-Checkout stores the donor, amount, frequency, selected campaign and optional note as a pledge. Donors see their own pledges; admins may acknowledge or cancel them. No card details are collected, no payments are processed, and `paymentStatus` remains `Not processed`. Integrate a suitable payment provider and review nonprofit, tax, privacy and security obligations before accepting real donations.
+The Vite version stores demo pledges in the current browser only; these are not payments or secure financial records. In the Next.js version, checkout redirects to Paystack-hosted checkout. The backend initializes the transaction, verifies its reference, amount and USD currency with Paystack, validates signed webhooks, and only then marks the gift as paid. Donors and admins can review payment history; admins can acknowledge only verified payments.
+
+The monthly selection is charged once and saved as a monthly gift preference. It does not automatically renew. Paystack availability for USD depends on the merchant account and must be confirmed before launch. Configure the backend callback URL to the deployed Next.js `/payment/callback` route and configure the Paystack webhook to `https://<your-api-host>/api/payments/paystack/webhook`. Keep `PAYSTACK_SECRET_KEY` private and set it in the backend environment only. Review nonprofit, tax, privacy and security obligations before accepting real donations.
 
 ## 06 / Buyer license summary
 
@@ -101,23 +102,25 @@ This guide is informational and does not amend the purchase terms. The order and
 
 ## 07 / Project walkthrough
 
-Kindred is a nonprofit campaign and giving-site starter. Public visitors can browse campaign pages and begin the pledge flow. Donors register or sign in, submit a pledge and review their own pledge history. Administrators sign in through the invitation-protected portal to review pledge activity and update pledge status.
+Kindred is a nonprofit campaign and giving-site starter. Public visitors can browse campaign pages and begin the giving flow. Next.js donors register or sign in, complete hosted Paystack checkout and review verified payment history. The Next.js administrator portal provides overview, gift-record, payment-history, campaign and settings sections. The Vite version provides a localStorage-only design and workflow preview.
 
 Typical journey:
 
-`Campaign page → Sign in / Create donor account → Pledge checkout → Donor dashboard`
+`Campaign page → Sign in / Create donor account → Paystack checkout → Server verification → Donor payment history`
 
 Administrator journey:
 
-`Admin invitation signup → Admin sign in → Review pledge queue → Acknowledge or cancel`
+`Admin invitation signup → Admin sign in → Review verified gift/payment history → Acknowledge or cancel`
 
 ## 08 / Admin usage
 
-- **Overview:** review donor, campaign and pledge counts in the admin dashboard.
-- **Pledge queue:** review donor/campaign details and notes; acknowledge or cancel a pledge.
+- **Overview:** review donor, campaign, gift and verified payment counts.
+- **Payment history:** inspect only transactions confirmed by Paystack on the backend.
+- **Gift records:** review donor/campaign details and notes; acknowledge or cancel only a verified payment.
 - **Access:** create admin accounts only with the server-side invitation code. API middleware checks roles on each protected endpoint.
 - **Donor privacy:** donor dashboards return only pledges owned by the authenticated account.
-- **Payment status:** pledge status is operational review only; it is not proof of receipt or settlement.
+- **Monthly gifts:** the current monthly choice charges once; it is not a recurring subscription.
+- **Payment status:** only a server-verified Paystack transaction is marked `Paid`; browser redirects alone are not proof of receipt or settlement.
 
 Useful commands:
 

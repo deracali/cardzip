@@ -4,12 +4,12 @@
 
 ## 1. Package choices
 
-- `home-services-hub/` — React/Vite storefront and client/admin screens.
+- `home-services-hub/` — standalone Vite showcase with seeded demo records and localStorage state (not production authentication).
 - `nextjs/` — separate native Next.js App Router pages, components, and API client.
 - `backend/` — Express API, MongoDB persistence, service catalog, and protected client/admin operations.
 - `docs/` — this guide, PDF generator/output, and local approved brand assets.
 
-The Vite and Next.js applications are separate frontend choices; start only one for a given deployment. The API is a separate service. Confirm which components are included in your order.
+The Vite and Next.js applications are separate frontend choices. Vite is a local demonstration; Next.js is the API-backed edition intended for a connected deployment. The API is a separate service. Confirm which components are included in your order.
 
 ## 2. Folder map and prerequisites
 
@@ -17,17 +17,17 @@ Use a supported Node.js/npm version. API-backed workflows require a reachable Mo
 
 | Folder | Purpose |
 | --- | --- |
-| `home-services-hub/` | Vite storefront, estimate options, signup/login, and request screens |
+| `home-services-hub/` | Vite demo storefront, estimate options, local demo signup/login, and request screens |
 | `nextjs/` | Native Next.js routes, screens, and API client |
 | `backend/` | Auth, client/admin controllers, service catalog, and API |
 | `docs/` | Guide, builder/output, and `assets/` branding |
 
-Keep server credentials in the backend environment only. Do not expose `MONGODB_URI`, administrator credentials, or `JWT_SECRET` to the browser.
+Keep server credentials in the backend environment only. Do not expose `MONGODB_URI`, administrator credentials, `JWT_SECRET`, or the Paystack secret key to the browser.
 
 ## 3. Backend setup
 
 1. Start MongoDB and copy `backend/.env.example` to `backend/.env`.
-2. Set `MONGODB_URI`, a random `JWT_SECRET` of at least 32 characters, `ADMIN_EMAIL`, a unique `ADMIN_PASSWORD` (12–128 characters), and exact Vite/Next.js origins in `ALLOWED_ORIGINS`.
+2. Set `MONGODB_URI`, a random `JWT_SECRET` of at least 32 characters, `ADMIN_EMAIL`, a unique `ADMIN_PASSWORD` (12–128 characters), and the exact Next.js origin in `ALLOWED_ORIGINS`. For Paystack, configure `PAYSTACK_SECRET_KEY` only on the API, use `PAYSTACK_CURRENCY=USD` for the displayed estimates, and set `PAYSTACK_CALLBACK_URL` to the Next.js `/payment/return` URL.
 3. Install and run the API:
 
    ```sh
@@ -48,7 +48,7 @@ npm install
 npm run dev
 ```
 
-The Vite app reads `VITE_HOME_SERVICE_API_URL`; the backend default is `http://localhost:5200/api`. Start the standalone Next.js app with:
+The Vite demo works without an API and uses browser localStorage. Demo accounts are listed in its README. Start the standalone Next.js app with:
 
 ```sh
 cd nextjs
@@ -56,7 +56,7 @@ npm install
 npm run dev
 ```
 
-Next.js reads `NEXT_PUBLIC_HOME_SERVICE_API_URL`, defaulting to the same API URL. Start the API before using authenticated request workflows. The Next.js package also has `npm run build` and `npm run typecheck`.
+Next.js reads `NEXT_PUBLIC_HOME_SERVICE_API_URL`, defaulting to `http://localhost:5200/api`. Start the API before using authenticated request workflows. The Next.js package also has `npm run build` and `npm run typecheck`.
 
 ## 5. Product walkthrough
 
@@ -67,14 +67,14 @@ The Next.js frontend has native routes under `app/` and reusable UI under `compo
 ## 6. Client and administrator workflows
 
 - **Client:** select a service and urgency, provide preferred timing, address, and issue details, then submit a request. The client dashboard shows that client's requests and status.
-- **Administrator:** sign in at `/admin/login`; `/admin` presents the service-request workspace for reviewing requests and updating status.
+- **Administrator:** sign in at `/admin/login`; `/admin` provides an operations overview, request queue, client directory, and workspace settings.
 - API middleware verifies the account and role for protected client and admin requests. Client-submitted prices and roles are not trusted as authorization or quote inputs.
 
 The API validates service and urgency against its own catalog and calculates the estimate server-side.
 
 ## 7. Limitations, security, and deployment
 
-A submitted request is not a confirmed appointment and does not guarantee availability. The package does not collect payment or dispatch a technician. Add and test calendar/availability, payment, dispatch, and operational workflows before accepting live jobs.
+A submitted request is not a confirmed appointment and does not guarantee availability. The Next.js dashboard can initiate a payment for the backend-calculated estimate through Paystack hosted checkout; it does not dispatch a technician. Configure Paystack only with server-side credentials, test with Paystack test credentials and a non-production API before launch, and confirm the business currency and actual service-payment terms before collecting live payments. The Vite edition does not perform payments.
 
 Deploy one frontend and the API as separate services. Use HTTPS, exact production `ALLOWED_ORIGINS`, strong private secrets, database backups, monitoring, and appropriate privacy/data-retention controls. Ensure the frontend API URL points to the backend's port `5200`.
 

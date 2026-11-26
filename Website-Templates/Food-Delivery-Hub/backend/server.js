@@ -1,10 +1,12 @@
 import "dotenv/config";
+import dns from "node:dns";
 import { createServer } from "node:http";
 import { randomBytes } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import express from "express";
 import { createApiRouter } from "./routes/api-routes.js";
+import { createPaystackService } from "./services/paystack-service.js";
 import { hashPassword } from "./services/auth-service.js";
 import { createMongoStore, createStore, newId } from "./models/store.js";
 import { HttpError, normalizedEmail } from "./utils/http.js";
@@ -18,6 +20,12 @@ export function createApp(options = {}) {
     throw new Error("JWT_SECRET must be set to at least 32 characters in production.");
   }
   const secret = options.jwtSecret || env.JWT_SECRET || randomBytes(32).toString("hex");
+  const paystack = options.paystack || createPaystackService({
+    secretKey: env.PAYSTACK_SECRET_KEY,
+    currency: env.PAYSTACK_CURRENCY || "NGN",
+    callbackUrl: env.PAYSTACK_CALLBACK_URL || "http://localhost:3000/payment/return",
+    production,
+  });
   const store = options.store || (options.dataFile
     ? createStore(options.dataFile)
     : createMongoStore(env.MONGODB_URI));
@@ -44,8 +52,11 @@ export function createApp(options = {}) {
     if (req.method === "OPTIONS") return res.sendStatus(204);
     next();
   });
-  app.use(express.json({ limit: "100kb" }));
-  app.use("/api", createApiRouter({ store, secret }));
+  app.use(express.json({
+    limit: "100kb",
+    verify: (req, _res, buffer) => { req.rawBody = Buffer.from(buffer); },
+  }));
+  app.use("/api", createApiRouter({ store, secret, paystack }));
   app.use((_req, res) => res.status(404).json({ error: "API endpoint not found." }));
   app.use((error, _req, res, next) => {
     if (res.headersSent) return next(error);
@@ -92,6 +103,8 @@ async function start() {
   }
   const port = Number(env.PORT || 5000);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("PORT must be a valid port number.");
+  const mongoDnsServers = (env.MONGODB_DNS_SERVERS || "").split(",").map((server) => server.trim()).filter(Boolean);
+  if (mongoDnsServers.length) dns.setServers(mongoDnsServers);
   const store = createMongoStore(env.MONGODB_URI);
   try {
     await store.connect();

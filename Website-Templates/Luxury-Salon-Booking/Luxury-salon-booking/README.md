@@ -1,23 +1,20 @@
 # Lumière Salon & Spa — Vite
 
-The Vite application contains the salon storefront, service catalog, appointment request flow, and client/admin portals. Its API is a separate Express/MongoDB service.
+The Vite application is a standalone local preview of the salon storefront and portals. It does not call the Express/MongoDB API; demo accounts, appointments, and editable prices are stored in the browser's local storage. The stylist roster and sample marketing content are static.
 
 ## Run locally
 
-1. Copy `.env.example` to `.env.local`.
-2. Start MongoDB and the API as described in `../backend/README.md`.
-3. Run `npm install` and `npm run dev`.
+Run `npm install` and `npm run dev`.
 
-The API defaults to `http://localhost:5600/api`. Set `VITE_SALON_API_URL` if it is hosted elsewhere.
+The demo administrator can sign in at `/admin/login` with `admin@lumiere.local` / `LumiereAdmin2026!`. This client-side demo login and its local storage are not secure and must not be used for real salon operations.
 
 ## Pages
 
-- `/` — salon storefront and service list
-- `/book` — authenticated client appointment requests
+- `/` — salon storefront
+- `/services`, `/stylists`, `/packages`, `/reviews` — dedicated public pages
+- `/book` — local demo appointment requests
 - `/login` and `/signup` — client access
-- `/dashboard` — client-owned appointment requests
-- `/admin/login` and `/admin` — administrator sign-in and studio dashboard
+- `/dashboard`, `/dashboard/appointments`, `/dashboard/profile` — local client dashboard pages
+- `/admin/login`, `/admin`, `/admin/appointments`, `/admin/clients`, `/admin/services` — local admin demo pages
 
-The API independently enforces roles on dashboard and booking routes. Public signup creates client accounts only; configure the initial administrator in the backend environment.
-
-See the [buyer guide](../docs/buyer-guide.md) for product setup and limitations.
+All Vite data is browser-local and persists only in that browser. Use the Next.js version for API-backed admin data and Paystack checkout.

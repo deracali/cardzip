@@ -4,6 +4,7 @@ import "./globals.css";
 import "./salon.css";
 import "./account.css";
 import "./native.css";
+import "./dashboard.css";
 
 export const metadata: Metadata = {
   title: "Lumière Salon & Spa | Beauty, thoughtfully done",

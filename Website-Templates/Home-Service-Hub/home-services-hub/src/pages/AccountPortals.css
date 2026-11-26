@@ -130,6 +130,12 @@
   min-height: 44px;
   justify-self: start;
   border: 0;
+  background: #f04e0a;
+  color: #fff;
+}
+
+.ff-portal-submit:hover:not(:disabled) {
+  background: #d94405;
 }
 
 .ff-portal-submit:disabled {
@@ -151,6 +157,8 @@
   color: #65738a;
   font-size: 13px;
 }
+.ff-demo-data-notice { margin: 0 0 16px; padding: 11px 13px; border: 1px solid #f0dfb8; border-radius: 8px; background: #fff9eb; color: #765d24; font-size: 11px; line-height: 1.5; }
+.ff-demo-data-label { width: fit-content; padding: 4px 7px; border-radius: 5px; background: #fff4dc; color: #87661f; font-size: 8px; font-weight: 800; letter-spacing: .06em; }
 
 .ff-appointment-list,
 .ff-admin-list {
@@ -398,4 +406,100 @@
   .ff-admin-table-wrap {
     padding: 14px;
   }
+}
+
+.ff-workspace {
+  display: grid;
+  min-height: 100vh;
+  grid-template-columns: 252px minmax(0, 1fr);
+  background: #f4f6fa;
+}
+
+.ff-sidebar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  height: 100vh;
+  flex-direction: column;
+  padding: 25px 16px 18px;
+  background: #17243a;
+  color: #d3ddec;
+}
+
+.ff-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 4px 38px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.ff-sidebar-brand > span:last-child { display: grid; gap: 4px; }
+.ff-sidebar-brand small { color: #8fa0b8; font-size: 8px; letter-spacing: .12em; }
+.ff-sidebar-label { padding: 0 12px 10px; color: #8392a8; font-size: 9px; font-weight: 800; letter-spacing: .12em; }
+.ff-sidebar nav { display: grid; gap: 5px; }
+.ff-sidebar nav a { padding: 11px 12px; border-radius: 7px; color: #c0cbda; font-size: 12px; font-weight: 600; text-decoration: none; }
+.ff-sidebar nav a:hover, .ff-sidebar nav a.is-active { background: #2b3a52; color: #fff; }
+.ff-sidebar nav a.is-active { box-shadow: inset 3px 0 #f04e0a; }
+.ff-sidebar-help { margin-top: auto; padding: 15px 13px; border: 1px solid #35445a; border-radius: 9px; background: #202f46; }
+.ff-sidebar-help strong { color: #fff; font-size: 11px; }
+.ff-sidebar-help p { margin: 7px 0; color: #aab8ca; font-size: 10px; line-height: 1.6; }
+.ff-sidebar-help a, .ff-sidebar-home { color: #ff9a6e; font-size: 10px; font-weight: 700; text-decoration: none; }
+.ff-sidebar-home { margin: 18px 12px 0; color: #bac6d6; }
+.ff-workspace-main { min-width: 0; color: #111a2e; }
+.ff-workspace-header { display: flex; min-height: 70px; align-items: center; justify-content: space-between; gap: 15px; padding: 12px 34px; border-bottom: 1px solid #e3e9f0; background: #fff; color: #58667c; font-size: 11px; }
+.ff-workspace-header > div { display: flex; align-items: center; gap: 10px; }
+.ff-workspace-header strong { color: #26344a; font-size: 11px; }
+.ff-user-avatar, .ff-client-avatar { display: grid; width: 31px; height: 31px; place-items: center; border-radius: 50%; background: #fff0e8; color: #c44a15; font-size: 10px; font-weight: 800; }
+.ff-workspace-content { width: min(100% - 68px, 1120px); margin: 0 auto; padding: 34px 0 60px; }
+.ff-dashboard-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 26px; }
+.ff-dashboard-heading h1 { margin: 6px 0; color: #18243a; font-size: clamp(25px, 3.2vw, 34px); letter-spacing: -.045em; }
+.ff-dashboard-heading p { margin: 0; color: #718096; font-size: 12px; }
+.ff-dashboard-heading > .ff-button { gap: 7px; flex: 0 0 auto; }
+.ff-dashboard-date { color: #738096; font-size: 11px; }
+.ff-dashboard-panel { display: grid; gap: 15px; padding: 20px; border: 1px solid #e3e9f0; border-radius: 11px; background: #fff; }
+.ff-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ff-panel-heading h2, .ff-dashboard-panel > h2 { margin: 0; color: #202c41; font-size: 15px; }
+.ff-panel-heading a { color: #c44a15; font-size: 10px; font-weight: 750; text-decoration: none; }
+.ff-panel-heading span { color: #748197; font-size: 10px; }
+.ff-profile-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 8px 0; }
+.ff-profile-details div { padding: 13px; border: 1px solid #edf0f4; border-radius: 8px; }
+.ff-profile-details dt { margin-bottom: 6px; color: #7b8799; font-size: 10px; }
+.ff-profile-details dd { margin: 0; color: #2c394e; font-size: 12px; font-weight: 650; }
+.ff-dashboard-panel .ff-button-light { justify-self: start; padding: 10px 13px; border: 1px solid #e3e9f0; border-radius: 7px; color: #344158; font-size: 10px; font-weight: 700; text-decoration: none; }
+.ff-client-list { display: grid; }
+.ff-client-list article { display: flex; align-items: center; gap: 11px; padding: 13px 0; border-top: 1px solid #edf0f4; }
+.ff-client-list article > div { display: grid; flex: 1; gap: 4px; }
+.ff-client-list strong { color: #2c394e; font-size: 11px; }
+.ff-client-list small, .ff-client-list article > span:last-child { color: #748197; font-size: 10px; }
+.ff-client-list .ff-client-avatar { flex: 0 0 auto; }
+
+@media (max-width: 800px) {
+  .ff-workspace { grid-template-columns: 72px minmax(0, 1fr); }
+  .ff-sidebar { align-items: center; padding-inline: 8px; }
+  .ff-sidebar-brand { margin: 0 0 34px; }
+  .ff-sidebar-brand > span:last-child, .ff-sidebar-label, .ff-sidebar nav a:not(.is-active), .ff-sidebar-help, .ff-sidebar-home { display: none; }
+  .ff-sidebar nav { width: 100%; }
+  .ff-sidebar nav a { overflow: hidden; padding: 12px 3px; text-align: center; font-size: 9px; }
+  .ff-sidebar nav a.is-active { box-shadow: none; }
+  .ff-workspace-content { width: min(100% - 36px, 1120px); }
+  .ff-workspace-header { padding-inline: 18px; }
+}
+
+@media (max-width: 520px) {
+  .ff-workspace { display: block; }
+  .ff-sidebar { position: static; height: auto; flex-direction: row; justify-content: space-between; padding: 10px 14px; }
+  .ff-sidebar-brand { margin: 0; }
+  .ff-sidebar nav { width: auto; display: flex; }
+  .ff-sidebar nav a, .ff-sidebar nav a:not(.is-active) { display: block; padding: 9px 7px; font-size: 9px; }
+  .ff-sidebar-brand > span:last-child, .ff-sidebar-label, .ff-sidebar-help, .ff-sidebar-home { display: none; }
+  .ff-workspace-header { min-height: 56px; padding-inline: 14px; }
+  .ff-workspace-header > span, .ff-workspace-header strong { display: none; }
+  .ff-workspace-content { width: min(100% - 28px, 1120px); padding-top: 24px; }
+  .ff-dashboard-heading { align-items: flex-start; flex-direction: column; }
+  .ff-profile-details { grid-template-columns: 1fr; }
+  .ff-client-list article > span:last-child { display: none; }
 }

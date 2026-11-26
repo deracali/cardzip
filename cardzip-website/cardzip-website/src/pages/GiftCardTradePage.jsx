@@ -44,17 +44,29 @@ const getGiftCardLogo = (card) => {
 
 function GiftCardSelect({ label, value, options, onChange, disabled = false }) {
   const menuRef = useRef(null)
+  const searchRef = useRef(null)
   const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
   const selectedOption = options.find((option) => option.value === value)
+  const filteredOptions = options.filter((option) => (
+    `${option.label} ${option.value}`.toLowerCase().includes(search.trim().toLowerCase())
+  ))
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) setOpen(false)
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setOpen(false)
+        setSearch('')
+      }
     }
 
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  useEffect(() => {
+    if (open) searchRef.current?.focus()
+  }, [open])
 
   return (
     <div className="gift-card-select" ref={menuRef}>
@@ -65,28 +77,50 @@ function GiftCardSelect({ label, value, options, onChange, disabled = false }) {
         aria-haspopup="listbox"
         aria-expanded={open}
         disabled={disabled}
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => {
+          if (open) {
+            setOpen(false)
+            setSearch('')
+          } else {
+            setOpen(true)
+          }
+        }}
       >
         <span>{selectedOption?.label || 'No options available'}</span>
         <ChevronDown size={16} className="gift-card-select-icon" aria-hidden="true" />
       </button>
       {open && (
-        <div className="gift-card-select-menu" role="listbox" aria-label={label}>
-          {options.length ? options.map((option) => (
+        <div className="gift-card-select-menu" role="group" aria-label={label}>
+          <input
+            ref={searchRef}
+            type="search"
+            className="gift-card-select-search"
+            aria-label={`Search ${label.toLowerCase()}`}
+            placeholder={`Search ${label.toLowerCase()}...`}
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                setOpen(false)
+                setSearch('')
+              }
+            }}
+          />
+          {filteredOptions.length ? filteredOptions.map((option) => (
             <button
               key={option.value}
               type="button"
               className={`gift-card-select-option ${option.value === value ? 'selected' : ''}`}
-              role="option"
-              aria-selected={option.value === value}
+              aria-pressed={option.value === value}
               onClick={() => {
                 onChange(option.value)
                 setOpen(false)
+                setSearch('')
               }}
             >
               {option.label}
             </button>
-          )) : <span className="gift-card-select-empty">No options available</span>}
+          )) : <span className="gift-card-select-empty">No matching options</span>}
         </div>
       )}
     </div>

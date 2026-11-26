@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { dishes, imageUrl } from "../lib/menu";
 import { getCart, saveCart } from "../lib/foodApi";
+import { formatMoney } from "../lib/money";
 import { FoodFooter, FoodHeader } from "./FoodShell";
 
 function DishCard({ dish }: { dish: typeof dishes[number] }) {
@@ -17,7 +18,7 @@ function DishCard({ dish }: { dish: typeof dishes[number] }) {
     saveCart(cart);
     setQuantity(next);
   }
-  return <article className="dish-card"><img src={imageUrl(dish.photo)} alt={dish.name} /><div><small>{dish.category} · ★ {dish.rating}</small><h3>{dish.name}</h3><p>{dish.restaurant}</p><div><strong>${dish.price.toFixed(2)}</strong><button type="button" onClick={() => update(1)}>{quantity ? `Add another (${quantity})` : "Add to cart"}</button></div></div></article>;
+  return <article className="dish-card"><img src={imageUrl(dish.photo)} alt={dish.name} /><div><small>{dish.category} · ★ {dish.rating}</small><h3>{dish.name}</h3><p>{dish.restaurant}</p><div><strong>{formatMoney(dish.price)}</strong><button type="button" onClick={() => update(1)}>{quantity ? `Add another (${quantity})` : "Add to cart"}</button></div></div></article>;
 }
 
 export default function MenuHome() {

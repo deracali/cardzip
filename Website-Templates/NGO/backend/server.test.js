@@ -1,14 +1,41 @@
 import assert from "node:assert/strict";
+import { createHmac } from "node:crypto";
 import { once } from "node:events";
 import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { after, before, test } from "node:test";
-import { createApp } from "./server.js";
+import { connectStoreWithDnsFallback, createApp } from "./server.js";
 
 let server;
 let baseUrl;
 let tempDirectory;
+const paymentTransactions = new Map();
+const webhookSecret = "kindred-test-paystack-secret";
+const fakePaystack = {
+  currency: "USD",
+  assertConfigured() {},
+  async initializeTransaction({ email, amount, reference, metadata }) {
+    paymentTransactions.set(reference, {
+      status: "success",
+      reference,
+      amount: Math.round(amount * 100),
+      currency: "USD",
+      customer: { email },
+      metadata,
+    });
+    return { authorizationUrl: `https://checkout.paystack.test/${reference}`, reference };
+  },
+  async verifyTransaction(reference) {
+    return paymentTransactions.get(reference) || { status: "abandoned", reference, amount: 0, currency: "USD" };
+  },
+  verifyWebhookSignature(rawBody, signature) {
+    if (!Buffer.isBuffer(rawBody) || typeof signature !== "string") return false;
+    const expected = createHmac("sha512", webhookSecret).update(rawBody).digest();
+    const received = Buffer.from(signature, "hex");
+    return received.length === expected.length && expected.equals(received);
+  },
+};
 
 before(async () => {
   tempDirectory = await mkdtemp(path.join(os.tmpdir(), "kindred-ngo-api-"));
@@ -19,6 +46,7 @@ before(async () => {
       ALLOWED_ORIGINS: "http://localhost:5173,http://localhost:3000",
     },
     jwtSecret: "a-test-secret-long-enough-for-kindred-api-tests",
+    paystack: fakePaystack,
     dataFile: path.join(tempDirectory, "kindred.json"),
   });
   server = app.listen(0);
@@ -34,13 +62,14 @@ after(async () => {
   if (tempDirectory) await rm(tempDirectory, { recursive: true, force: true });
 });
 
-async function api(pathname, { method = "GET", token, body, origin } = {}) {
+async function api(pathname, { method = "GET", token, body, origin, headers = {} } = {}) {
   const response = await fetch(`${baseUrl}${pathname}`, {
     method,
     headers: {
       ...(body ? { "Content-Type": "application/json" } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(origin ? { Origin: origin } : {}),
+      ...headers,
     },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
@@ -148,4 +177,114 @@ test("CORS accepts only configured storefront origins", async () => {
   assert.equal(allowed.response.headers.get("access-control-allow-origin"), "http://localhost:5173");
   const denied = await api("/health", { origin: "https://untrusted.example" });
   assert.equal(denied.response.status, 403);
+});
+
+test("MongoDB Atlas connection retries with alternate DNS after an SRV resolver refusal", async () => {
+  let attempts = 0;
+  let configuredServers;
+  const warnings = [];
+  const store = {
+    async connect() {
+      attempts += 1;
+      if (attempts === 1) {
+        const error = new Error("DNS resolver refused SRV lookup");
+        error.code = "ECONNREFUSED";
+        error.syscall = "querySrv";
+        throw error;
+      }
+    },
+  };
+
+  await connectStoreWithDnsFallback(store, {
+    env: {},
+    setDnsServers: (servers) => { configuredServers = servers; },
+    warn: (message) => warnings.push(message),
+  });
+
+  assert.equal(attempts, 2);
+  assert.deepEqual(configuredServers, ["1.1.1.1", "8.8.8.8"]);
+  assert.equal(warnings.length, 1);
+});
+
+test("Paystack checkout is owner-scoped and payment status changes only after verification", async () => {
+  const donor = await api("/auth/signup", {
+    method: "POST",
+    body: { name: "Paystack Donor", email: "paystack-donor@example.test", password: "a-safe-password-789" },
+  });
+  const initialized = await api("/client/payments/initialize", {
+    method: "POST",
+    token: donor.data.token,
+    body: { amount: 25.5, frequency: "monthly", campaignSlug: "clean-water-schools", note: "Keep supporting schools" },
+  });
+  assert.equal(initialized.response.status, 201);
+  assert.match(initialized.data.authorizationUrl, /^https:\/\/checkout\.paystack\.test\//);
+
+  const pending = await api("/client/dashboard", { token: donor.data.token });
+  const donation = pending.data.donations.find((item) => item.paymentReference === initialized.data.reference);
+  assert.equal(donation.amount, 25.5);
+  assert.equal(donation.currency, "USD");
+  assert.equal(donation.frequency, "monthly");
+  assert.equal(donation.paymentStatus, "Pending");
+
+  const otherDonor = await api("/auth/signup", {
+    method: "POST",
+    body: { name: "Other Donor", email: "other-paystack@example.test", password: "a-safe-password-789" },
+  });
+  const blockedVerification = await api("/client/payments/verify", {
+    method: "POST",
+    token: otherDonor.data.token,
+    body: { reference: initialized.data.reference },
+  });
+  assert.equal(blockedVerification.response.status, 404);
+
+  const expectedTransaction = paymentTransactions.get(initialized.data.reference);
+  paymentTransactions.set(initialized.data.reference, { ...expectedTransaction, amount: 1 });
+  const wrongAmount = await api("/client/payments/verify", {
+    method: "POST",
+    token: donor.data.token,
+    body: { reference: initialized.data.reference },
+  });
+  assert.equal(wrongAmount.response.status, 409);
+  paymentTransactions.set(initialized.data.reference, expectedTransaction);
+
+  const verified = await api("/client/payments/verify", {
+    method: "POST",
+    token: donor.data.token,
+    body: { reference: initialized.data.reference },
+  });
+  assert.equal(verified.response.status, 200);
+  assert.equal(verified.data.donation.paymentStatus, "Paid");
+
+  const admin = await api("/auth/login", {
+    method: "POST",
+    body: { email: "admin@example.test", password: "another-safe-password-123", expectedRole: "admin" },
+  });
+  const dashboard = await api("/admin/dashboard", { token: admin.data.token });
+  assert.equal(dashboard.data.metrics.payments, 1);
+  assert.equal(dashboard.data.metrics.totalPaid, 25.5);
+});
+
+test("Paystack webhook signature is checked and successful charges are idempotently recorded", async () => {
+  const donor = await api("/auth/signup", {
+    method: "POST",
+    body: { name: "Webhook Donor", email: "webhook-donor@example.test", password: "a-safe-password-789" },
+  });
+  const initialized = await api("/client/payments/initialize", {
+    method: "POST",
+    token: donor.data.token,
+    body: { amount: 12, frequency: "once" },
+  });
+  const event = { event: "charge.success", data: { reference: initialized.data.reference } };
+  const rawBody = Buffer.from(JSON.stringify(event));
+  const signature = createHmac("sha512", webhookSecret).update(rawBody).digest("hex");
+
+  const rejected = await api("/payments/paystack/webhook", { method: "POST", body: event, headers: { "x-paystack-signature": "invalid" } });
+  assert.equal(rejected.response.status, 401);
+  const accepted = await api("/payments/paystack/webhook", { method: "POST", body: event, headers: { "x-paystack-signature": signature } });
+  assert.equal(accepted.response.status, 200);
+  const repeated = await api("/payments/paystack/webhook", { method: "POST", body: event, headers: { "x-paystack-signature": signature } });
+  assert.equal(repeated.response.status, 200);
+
+  const dashboard = await api("/client/dashboard", { token: donor.data.token });
+  assert.equal(dashboard.data.donations[0].paymentStatus, "Paid");
 });

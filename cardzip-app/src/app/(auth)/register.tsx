@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet,
   Text,
   View,
@@ -9,7 +9,7 @@ import { StyleSheet,
   ActivityIndicator,
   Platform, } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import * as AppleAuthentication from 'expo-apple-authentication';
@@ -38,6 +38,7 @@ const COLORS = {
 
 export default function SignUpScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ ref?: string }>();
   const dispatch = useAppDispatch();
   const { loading, error } = useAppSelector((state) => state.auth);
 
@@ -49,6 +50,12 @@ export default function SignUpScreen() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ title: string; message: string; tone?: 'error' | 'info' } | null>(null);
+
+  useEffect(() => {
+    if (typeof params.ref === 'string' && params.ref.trim()) {
+      setReferrerCode(params.ref.trim().toUpperCase());
+    }
+  }, [params.ref]);
 
   const handleSignUp = () => {
     if (!fullName || !email || !password) return;
@@ -108,7 +115,10 @@ export default function SignUpScreen() {
       const response = await GoogleSignin.signIn();
       if (!isSuccessResponse(response)) return;
       if (!response.data.idToken) throw new Error('Google did not return an identity token. Check the configured OAuth client IDs.');
-      await dispatch(googleSignInUser(response.data.idToken)).unwrap();
+      await dispatch(googleSignInUser({
+        idToken: response.data.idToken,
+        ...(referrerCode.trim() ? { referralCode: referrerCode.trim() } : {}),
+      })).unwrap();
       router.replace('/(main)/(tabs)/home' as any);
     } catch (error) {
       setFeedback({
@@ -142,7 +152,11 @@ export default function SignUpScreen() {
       const name = [credential.fullName?.givenName, credential.fullName?.middleName, credential.fullName?.familyName]
         .filter(Boolean)
         .join(' ');
-      await dispatch(appleSignInUser({ idToken: credential.identityToken, ...(name ? { name } : {}) })).unwrap();
+      await dispatch(appleSignInUser({
+        idToken: credential.identityToken,
+        ...(name ? { name } : {}),
+        ...(referrerCode.trim() ? { referralCode: referrerCode.trim() } : {}),
+      })).unwrap();
       router.replace('/(main)/(tabs)/home' as any);
     } catch (error) {
       if ((error as { code?: string }).code === 'ERR_REQUEST_CANCELED') return;

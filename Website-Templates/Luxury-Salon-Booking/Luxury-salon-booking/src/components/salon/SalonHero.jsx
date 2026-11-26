@@ -23,7 +23,7 @@ function SalonHero() {
         <p>Precision cuts, restorative rituals and skin science — thoughtfully tailored to you. Call us to ask about today's openings.</p>
         <div className="salon-hero-actions">
           <a className="salon-button salon-button-primary" href="/book">Book Appointment <ArrowRight size={14} /></a>
-          <a className="salon-text-link" href="#services">Explore packages</a>
+          <a className="salon-text-link" href="/packages">Explore packages</a>
         </div>
         <div className="salon-hero-trust"><span className="salon-avatar-stack" aria-hidden="true"><i>M</i><i>A</i><i>S</i></span><strong>48 stylists online</strong><i /><BadgeCheck size={14} /> Certified clean studio</div>
       </div>

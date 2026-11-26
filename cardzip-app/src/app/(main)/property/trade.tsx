@@ -42,6 +42,7 @@ export default function TradeCardsScreen() {
   const [usdAmount, setUsdAmount] = useState<number>(200);
   const [activeCardIndex, setActiveCardIndex] = useState<number>(0);
   const [cardPickerVisible, setCardPickerVisible] = useState(false);
+  const [cardSearch, setCardSearch] = useState('');
   const [failedCardLogos, setFailedCardLogos] = useState<Set<string>>(() => new Set());
   const [tradeSpeed, setTradeSpeed] = useState<'fast' | 'slow'>(params.tradeSpeed === 'slow' ? 'slow' : 'fast');
   const [lastTradeSpeedParam, setLastTradeSpeedParam] = useState(params.tradeSpeed);
@@ -53,10 +54,20 @@ export default function TradeCardsScreen() {
   const [sliderLeft, setSliderLeft] = useState(0);
   const selectedCard = catalog[activeCardIndex]
     ?? catalog.find((card) => card.id === params.cardId || card.name === params.cardName);
+  const filteredCatalog = useMemo(() => {
+    const query = cardSearch.trim().toLowerCase();
+    return query
+      ? catalog.filter((card) => `${card.name} ${card.category}`.toLowerCase().includes(query))
+      : catalog;
+  }, [cardSearch, catalog]);
   const selectedRate = selectedCard?.types[0];
   const routeSelectionKey = `${params.cardId ?? ''}:${params.cardName ?? ''}`;
   const [appliedRouteSelectionKey, setAppliedRouteSelectionKey] = useState('');
   const requestedCardIndex = catalog.findIndex((card) => card.id === params.cardId || card.name === params.cardName);
+  const closeCardPicker = () => {
+    setCardPickerVisible(false);
+    setCardSearch('');
+  };
 
   if (requestedCardIndex >= 0 && routeSelectionKey !== appliedRouteSelectionKey) {
     setAppliedRouteSelectionKey(routeSelectionKey);
@@ -491,14 +502,14 @@ export default function TradeCardsScreen() {
         visible={cardPickerVisible}
         transparent
         animationType="slide"
-        onRequestClose={() => setCardPickerVisible(false)}
+        onRequestClose={closeCardPicker}
       >
         <View style={styles.cardPickerModalRoot}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Close gift card selection"
             style={styles.cardPickerBackdrop}
-            onPress={() => setCardPickerVisible(false)}
+            onPress={closeCardPicker}
           />
           <View style={[styles.cardPickerModal, { maxHeight: height * 0.78 }]}>
             <View style={styles.cardPickerModalHeader}>
@@ -509,14 +520,37 @@ export default function TradeCardsScreen() {
               <TouchableOpacity
                 accessibilityRole="button"
                 accessibilityLabel="Close gift card selection"
-                onPress={() => setCardPickerVisible(false)}
+                onPress={closeCardPicker}
                 style={styles.cardPickerClose}
               >
                 <Feather name="x" size={scale(20)} color="#52615A" />
               </TouchableOpacity>
             </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {catalog.map((card, index) => {
+            <View style={styles.cardPickerSearch}>
+              <Feather name="search" size={18} color="#82918B" />
+              <TextInput
+                accessibilityLabel="Search gift cards"
+                value={cardSearch}
+                onChangeText={setCardSearch}
+                placeholder="Search gift cards"
+                placeholderTextColor="#82918B"
+                style={styles.cardPickerSearchInput}
+                returnKeyType="search"
+              />
+              {cardSearch.length > 0 && (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear gift card search"
+                  onPress={() => setCardSearch('')}
+                  hitSlop={8}
+                >
+                  <Feather name="x-circle" size={17} color="#82918B" />
+                </TouchableOpacity>
+              )}
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {filteredCatalog.length ? filteredCatalog.map((card) => {
+                const index = catalog.findIndex((item) => item.id === card.id);
                 const rate = card.types[0];
                 const isSelected = index === activeCardIndex;
                 return (
@@ -527,7 +561,7 @@ export default function TradeCardsScreen() {
                     activeOpacity={0.75}
                     onPress={() => {
                       setActiveCardIndex(index);
-                      setCardPickerVisible(false);
+                      closeCardPicker();
                       cardCarouselRef.current?.scrollTo({
                         x: index * cardCarouselInterval,
                         animated: true,
@@ -547,7 +581,7 @@ export default function TradeCardsScreen() {
                     {isSelected && <Ionicons name="checkmark-circle" size={scale(20)} color="#00B856" />}
                   </TouchableOpacity>
                 );
-              })}
+              }) : <Text style={styles.cardPickerNoResults}>No gift cards match your search.</Text>}
             </ScrollView>
           </View>
         </View>
@@ -715,6 +749,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 19,
     backgroundColor: '#FFFFFF',
+  },
+  cardPickerSearch: {
+    minHeight: 46,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#D9E2DC',
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+  },
+  cardPickerSearchInput: {
+    flex: 1,
+    minHeight: 44,
+    color: '#12201B',
+    fontSize: 14,
+  },
+  cardPickerNoResults: {
+    paddingVertical: 20,
+    color: '#82918B',
+    fontSize: 13,
+    textAlign: 'center',
   },
   cardPickerOption: {
     flexDirection: 'row',

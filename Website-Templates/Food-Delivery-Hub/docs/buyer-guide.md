@@ -4,7 +4,7 @@
 
 ## 1. Package choices
 
-- `Food-Delivery-Hub/` — React/Vite restaurant storefront and portal UI.
+- `Food-Delivery-Hub/` — React/Vite browser-only restaurant storefront and local demo portals.
 - `nextjs/` — separate native Next.js App Router storefront, components, and API client.
 - `backend/` — Express API with MongoDB persistence, client accounts, demo orders, and protected admin operations.
 - `docs/` — this guide, its PDF builder and output, plus local approved brand assets.
@@ -17,7 +17,7 @@ Use a supported Node.js/npm version and a reachable MongoDB service for API-back
 
 | Folder | Purpose |
 | --- | --- |
-| `Food-Delivery-Hub/` | Vite menu, cart, reservations, and client/admin screens |
+| `Food-Delivery-Hub/` | Vite menu, delivery and deals pages, cart, reservations, and local demo portals |
 | `nextjs/` | Native Next.js routes, components, and API client |
 | `backend/` | API controllers, role middleware, data models, and tests |
 | `docs/` | Buyer guide, PDF generator/output, and `assets/` |
@@ -48,7 +48,7 @@ npm install
 npm run dev
 ```
 
-Vite reads `VITE_API_BASE_URL`, defaulting to `http://localhost:5000/api`. For the Next.js frontend:
+The Vite frontend is self-contained and does not call the API. It seeds sample customers and orders for the dashboards; sign-in, cart, and demo-order changes stay in the current browser and are not secure or shared. For the API-backed Next.js frontend:
 
 ```sh
 cd nextjs
@@ -56,27 +56,27 @@ npm install
 npm run dev
 ```
 
-Next.js reads `NEXT_PUBLIC_FOOD_API_URL`, also defaulting to `http://localhost:5000/api`. Start MongoDB and the API before using account and order workflows. `npm run build` and `npm run typecheck` are available in the Next.js project.
+Next.js reads `NEXT_PUBLIC_FOOD_API_URL`, also defaulting to `http://localhost:5000/api`. Start MongoDB and the API before using its account and order workflows. `npm run build` and `npm run typecheck` are available in the Next.js project.
 
 ## 5. Product walkthrough
 
-Browse dishes and restaurant details on `/` and `/restaurant`; use `/checkout` for the authenticated demo-order flow. `/reserve` and `/track` are front-end preview experiences. The Vite app also exposes `/login`, `/signup`, `/dashboard`, `/admin/login`, and `/admin`.
+Browse dishes and restaurant details on `/` and `/restaurant`; use `/delivery` and `/deals` for delivery details and featured offers. Next.js `/checkout` redirects to Paystack-hosted payment; `/reserve` and `/track` remain demo experiences. Both frontends include account and administrator pages; only the Next.js frontend authenticates and stores orders through the API.
 
 The Next.js app has its own `app/`, `components/`, and `lib/` folders and corresponding pages; it is not a mount of the Vite app. Food photography is loaded from Unsplash.
 
 ## 6. Client and administrator workflows
 
-- **Client:** register or sign in, browse the menu, place a demo order, and review order history at `/dashboard`.
-- **Administrator:** sign in at `/admin/login`, then review dashboard metrics and manage orders at `/admin`.
-- The API checks bearer-token sessions and the current account role for protected client/admin endpoints; the UI alone does not grant access.
+- **Vite preview:** any valid-looking email and password open a local demo session; dashboards start with sample data, and changes remain in browser storage rather than using secure authentication.
+- **Next.js:** clients register or sign in, pay for orders through Paystack, and review history at `/dashboard`; administrators sign in at `/admin/login` and manage paid orders at `/admin`.
+- The API checks bearer-token sessions and account roles for Next.js protected endpoints; the UI alone does not grant access.
 
 Reservations and tracking are preview flows and should not be mistaken for connected scheduling or live delivery operations.
 
 ## 7. Limitations, security, and deployment
 
-Orders are demo records. The API calculates totals using its server-side menu and does not accept or store card numbers, CVVs, or payment data. No payment is processed. Integrate and validate a payment provider, kitchen operations, delivery dispatch, and customer notifications before using this as a live ordering service.
+Next.js checkout redirects to Paystack-hosted payment. The backend calculates the total from its own menu, keeps the order pending, and marks it paid only after server-side transaction verification. Configure the backend Paystack secret, NGN currency, callback URL, and `/api/payments/paystack/webhook`; the secret must never be exposed to Next.js. Existing numeric menu prices are charged as NGN without exchange-rate conversion. Vite remains a local demo and does not process payments.
 
-Deploy one frontend and the API as separate services. Configure HTTPS, production origins, private credentials, backups, monitoring, and data retention. The Vite `.env.example` points to the default backend port, `5000`; maintain that match if the API port changes.
+The API-backed Next.js frontend and API should be deployed as separate services. Use Paystack test credentials and HTTPS in a test deployment before enabling live credentials. The Vite version is a local-storage demo and is not suitable for real accounts or orders. Configure HTTPS, production origins, private credentials, backups, monitoring, and data retention for API-backed deployments.
 
 ## 8. Buyer license summary
 

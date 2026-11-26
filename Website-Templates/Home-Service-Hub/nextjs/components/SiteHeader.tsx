@@ -1,6 +1,19 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { getSession, type HomeSession } from "../lib/homeServiceApi";
 
 export default function SiteHeader() {
+  const [session, setSession] = useState<HomeSession | null>(null);
+  useEffect(() => {
+    const syncSession = () => setSession(getSession());
+    syncSession();
+    window.addEventListener("fixflow-session-change", syncSession);
+    return () => window.removeEventListener("fixflow-session-change", syncSession);
+  }, []);
+  const dashboardHref = session?.user.role === "admin" ? "/admin" : "/dashboard";
+
   return (
     <header className="site-header">
       <Link className="brand" href="/">
@@ -8,10 +21,10 @@ export default function SiteHeader() {
         <span>FixFlow Pro<small>PLUMBING · HVAC · REPAIR</small></span>
       </Link>
       <nav aria-label="Main navigation">
-        <a href="/#services">Services</a>
-        <a href="/#estimate">Pricing</a>
-        <Link href="/dashboard">Client portal</Link>
-        <Link href="/admin/login">Admin</Link>
+        <Link href="/services">Services</Link>
+        <Link href="/pricing">Pricing</Link>
+        <Link href="/service-area">Service area</Link>
+        <Link className="button button-orange" href={session ? dashboardHref : "/login"}>{session ? "Dashboard" : "Sign in"}</Link>
         <Link className="button button-orange" href="/book-now">Request service</Link>
       </nav>
     </header>

@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { createServer } from "node:http";
 import { randomBytes } from "node:crypto";
+import dns from "node:dns";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import express from "express";
@@ -31,6 +32,27 @@ export async function seedAdmin(store, env = process.env) {
   });
 }
 
+export async function connectStoreWithDnsFallback(store, {
+  env = process.env,
+  setDnsServers = dns.setServers,
+  warn = console.warn,
+} = {}) {
+  try {
+    await store.connect();
+  } catch (error) {
+    const hasConfiguredDnsServers = (env.MONGODB_DNS_SERVERS || "")
+      .split(",")
+      .some((server) => server.trim());
+    if (hasConfiguredDnsServers || error?.code !== "ECONNREFUSED" || error?.syscall !== "querySrv") {
+      throw error;
+    }
+
+    warn("System DNS refused the MongoDB Atlas SRV lookup; retrying with Cloudflare and Google DNS.");
+    setDnsServers(["1.1.1.1", "8.8.8.8"]);
+    await store.connect();
+  }
+}
+
 export function createApp(options = {}) {
   const env = options.env || process.env;
   const production = (env.NODE_ENV || "development") === "production";
@@ -38,6 +60,17 @@ export function createApp(options = {}) {
     throw new Error("JWT_SECRET must be set to at least 32 characters in production.");
   }
   const secret = options.secret || env.JWT_SECRET || randomBytes(32).toString("hex");
+  const mongoDnsServers = (env.MONGODB_DNS_SERVERS || "")
+    .split(",")
+    .map((server) => server.trim())
+    .filter(Boolean);
+  if (mongoDnsServers.length) {
+    try {
+      dns.setServers(mongoDnsServers);
+    } catch {
+      throw new Error("MONGODB_DNS_SERVERS must contain comma-separated DNS server IP addresses.");
+    }
+  }
   const store = options.store || createMongoStore(env.MONGODB_URI, env.MONGODB_DB_NAME || "lumiere_salon");
   const allowedOrigins = new Set((env.ALLOWED_ORIGINS || "http://localhost:5173,http://localhost:3000")
     .split(",").map((origin) => origin.trim()).filter(Boolean));
@@ -57,7 +90,7 @@ export function createApp(options = {}) {
     next();
   });
   app.use(express.json({ limit: "50kb" }));
-  app.use("/api", createApiRouter({ store, secret }));
+  app.use("/api", createApiRouter({ store, secret, paymentProofSecret: env.PAYMENT_PROOF_SECRET }));
   app.use((req, res) => res.status(404).json({ error: "API endpoint not found." }));
   app.use((error, req, res, next) => {
     if (res.headersSent) return next(error);
@@ -75,7 +108,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === currentFile) {
   const port = Number(process.env.PORT || 5600);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("PORT must be a valid port number.");
   try {
-    await store.connect();
+    await connectStoreWithDnsFallback(store);
     await seedAdmin(store);
     const server = createServer(app).listen(port, () => {
       console.log(`Lumière Salon API listening on http://localhost:${port}`);

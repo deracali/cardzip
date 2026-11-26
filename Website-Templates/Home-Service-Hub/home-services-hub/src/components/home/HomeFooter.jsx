@@ -14,16 +14,16 @@ function HomeFooter() {
           </div>
           <div className="ff-footer-links">
             <h3>Services</h3>
-            <a href="#services">Pipe repair &amp; repiping</a>
-            <a href="#services">AC install &amp; maintenance</a>
-            <a href="#services">Drain cleaning</a>
-            <a href="#services">Heating &amp; furnace</a>
+            <a href="/services">Pipe repair &amp; repiping</a>
+            <a href="/services">AC install &amp; maintenance</a>
+            <a href="/services">Drain cleaning</a>
+            <a href="/services">Heating &amp; furnace</a>
           </div>
           <div className="ff-footer-links">
             <h3>Company</h3>
-            <a href="#estimate">Pricing</a>
-            <a href="#service-area">Areas served</a>
-            <a href="#reviews">Customer reviews</a>
+            <a href="/pricing">Pricing</a>
+            <a href="/service-area">Areas served</a>
+            <a href="/#reviews">Customer reviews</a>
             <a href="mailto:hello@fixflowpro.example">Support</a>
           </div>
           <div className="ff-footer-emergency">

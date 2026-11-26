@@ -11,6 +11,8 @@ Express API for the Vite and Next.js Kindred frontends. It stores donor accounts
 5. Set `ALLOWED_ORIGINS` to the exact deployed Vite/Next frontend origins.
 6. Run `npm install`, then `npm run dev`.
 
+If your system DNS refuses MongoDB Atlas SRV lookups, the API retries once using Cloudflare and Google DNS. You can override those resolvers by setting `MONGODB_DNS_SERVERS` to comma-separated DNS server IP addresses in your local environment.
+
 The API listens on `PORT` (default `5000`) and exposes endpoints under `/api`. For local development, the default allowed origins are `http://localhost:5173` and `http://localhost:3000`.
 
 ## Role-protected endpoints

@@ -1,8 +1,13 @@
 import { useState } from 'react'
 import { ArrowRight, CalendarDays, Check, Clock3, Sparkles, X } from 'lucide-react'
-import { appointmentDays, appointmentTimes, services, stylists } from './salonData'
+import { appointmentDays, appointmentTimes, services as defaultServices, stylists } from './salonData'
+import { getSalonServices } from '../../services/salonLocalStore'
 
 function BookingSection() {
+  const [services] = useState(() => {
+    const activeServices = getSalonServices().filter((service) => service.active !== false)
+    return activeServices.length ? activeServices : defaultServices
+  })
   const [selectedService, setSelectedService] = useState(services[0])
   const [selectedDay, setSelectedDay] = useState(appointmentDays[0].label)
   const [selectedTime, setSelectedTime] = useState(appointmentTimes[2])
@@ -26,8 +31,8 @@ function BookingSection() {
         <span className="salon-booking-close" aria-hidden="true"><X size={14} /></span>
         <span className="salon-kicker">INSTANT BOOKING</span>
         <label className="salon-select-label" htmlFor="salon-service-select">Choose a service</label>
-        <select id="salon-service-select" value={selectedService.name} onChange={(event) => setSelectedService(services.find((service) => service.name === event.target.value))}>
-          {services.map((service) => <option key={service.name} value={service.name}>{service.name} — ${service.price}</option>)}
+        <select id="salon-service-select" value={selectedService.id} onChange={(event) => setSelectedService(services.find((service) => service.id === event.target.value))}>
+          {services.map((service) => <option key={service.id} value={service.id}>{service.name} — ${service.price}</option>)}
         </select>
 
         <div className="salon-booking-field">
@@ -59,7 +64,7 @@ function BookingSection() {
         </div>
         <div className="salon-booking-total"><span>{selectedService.name}<small>{selectedDay}, {selectedTime} · {selectedStylist}</small></span><strong>${selectedService.price}.00</strong></div>
         <a className="salon-button salon-button-primary salon-confirm-button" href="/book">Continue to appointment request <ArrowRight size={14} /></a>
-        <small className="salon-booking-note">Sign in is required to send a request. No payment is taken online.</small>
+        <small className="salon-booking-note">Preview prices are saved in this browser. Sign in is required to send a local demo request.</small>
       </div>
     </section>
   )

@@ -1,6 +1,6 @@
 # FixFlow Pro
 
-FixFlow Pro is a home-service booking experience for plumbing, HVAC, and repair requests. Vite and Next.js each have their own frontend pages and components and connect to the same separate Express/MongoDB API.
+FixFlow Pro is a home-service booking experience for plumbing, HVAC, and repair requests. This Vite edition is a local interactive demo; its accounts, appointments, and dashboard state are stored in the browser's localStorage. It does not connect to the API.
 
 See the [buyer guide](../docs/buyer-guide.md) for the full overview, setup steps, role access, and demo limitations.
 
@@ -11,17 +11,23 @@ npm install
 npm run dev
 ```
 
-Set `VITE_HOME_SERVICE_API_URL` in `.env.local` if the API is not at `http://localhost:5200/api`. Start MongoDB and the API first; see [`../backend/README.md`](../backend/README.md).
+The demo works without MongoDB, API credentials, or environment configuration. Demo sign-ins:
+
+- Administrator: `admin@fixflow.demo` / `FixFlowDemo2026!`
+- Client: `client@fixflow.demo` / `FixFlowDemo2026!`
+
+New client accounts and all updates are saved to localStorage on that device. This is showcase-only authentication and must not be used for real accounts or production data.
 
 ## Portals
 
 - `/book-now` - authenticated client service request
 - `/login` and `/signup` - client access
-- `/dashboard` - client appointment history
+- `/dashboard` - client overview, requests, and profile pages
 - `/admin/login` - administrator sign-in
-- `/admin` - administrator service-request workspace
+- `/admin` - administrator overview, requests, client directory, and settings
+- `/services`, `/pricing`, `/service-area` - dedicated service, estimate, and coverage pages
 
-The UI may redirect users for convenience, but the API independently enforces client and administrator roles for protected requests.
+The client portal is the only dashboard destination in the public navigation; admin access is available through the demo account or the private `/admin/login` route.
 
 ## Checks
 

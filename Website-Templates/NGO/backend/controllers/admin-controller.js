@@ -7,6 +7,8 @@ export function createAdminController(store) {
       const donations = [...state.donations].sort((left, right) => right.createdAt.localeCompare(left.createdAt));
       const clients = state.users.filter((user) => user.role === "client");
       const totalPledges = donations.reduce((total, donation) => total + donation.amount, 0);
+      const paidDonations = donations.filter((donation) => donation.paymentStatus === "Paid");
+      const totalPaid = paidDonations.reduce((total, donation) => total + donation.amount, 0);
       res.json({
         user: req.user,
         metrics: {
@@ -14,8 +16,11 @@ export function createAdminController(store) {
           campaigns: state.campaigns.filter((campaign) => campaign.active).length,
           pledges: donations.length,
           totalPledged: Math.round(totalPledges * 100) / 100,
+          payments: paidDonations.length,
+          totalPaid: Math.round(totalPaid * 100) / 100,
           pendingReview: donations.filter((donation) => donation.status === "Pledge received").length,
         },
+        campaigns: state.campaigns.filter((campaign) => campaign.active),
         donations: donations.slice(0, 100),
       });
     },

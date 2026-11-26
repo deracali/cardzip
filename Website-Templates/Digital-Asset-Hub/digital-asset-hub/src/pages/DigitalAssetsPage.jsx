@@ -73,17 +73,22 @@ export default function DigitalAssetsPage({ onNavigate }) {
             const price = asset.isSellerListing
               ? [Number(asset.price)]
               : [asset.usePrice, asset.templatePrice].filter((value) => Number(value) > 0).map(Number)
+            const detailsUrl = `/digital-assets/${encodeURIComponent(asset.slug)}`
             return (
-              <article className="digital-asset-card" key={asset._id}>
+              <a className="digital-asset-card" href={detailsUrl} key={asset._id} onClick={(event) => {
+                if (onNavigate) {
+                  event.preventDefault()
+                  onNavigate(detailsUrl)
+                }
+              }}>
                 <div className="digital-asset-card-image">{asset.image ? <img src={asset.image} alt="" loading="lazy" /> : <Icon size={32} />}{asset.isPromoted && <span className="digital-asset-promoted">PROMOTED</span>}</div>
                 <div className="digital-asset-card-content">
                   <span className="digital-asset-type"><Icon size={13} /> {typeLabels[asset.productType] || 'Digital product'}</span>
                   <h2>{asset.name}</h2>
                   <p>{asset.description || asset.usageInstructions || 'Explore details, use options, and setup support.'}</p>
                   <div className="digital-asset-price">{price.length ? `Options from ${formatNaira(Math.min(...price))}` : 'Contact for options'}</div>
-                  <button type="button" className="digital-asset-open" onClick={() => onNavigate?.(`/digital-assets/${encodeURIComponent(asset.slug)}`)}>Explore details <ArrowRight size={15} /></button>
                 </div>
-              </article>
+              </a>
             )
           })}
         </section>

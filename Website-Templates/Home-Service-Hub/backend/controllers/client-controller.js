@@ -19,7 +19,19 @@ export function createClientController(store) {
   return {
     dashboard: async (req, res) => {
       const state = await store.read();
-      res.json({ user: req.user, appointments: clientAppointments(state, req.user.id) });
+      const payments = state.payments || [];
+      res.json({
+        user: req.user,
+        appointments: clientAppointments(state, req.user.id).map((appointment) => {
+          const payment = payments.find((item) => item.appointmentId === appointment.id && item.status === "paid")
+            || payments.find((item) => item.appointmentId === appointment.id);
+          return {
+            ...appointment,
+            paymentStatus: payment?.status || "unpaid",
+            paymentReference: payment?.reference,
+          };
+        }),
+      });
     },
 
     createAppointment: async (req, res) => {

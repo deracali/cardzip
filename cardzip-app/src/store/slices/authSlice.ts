@@ -89,12 +89,12 @@ export const loginUser = createAsyncThunk(
 
 export const googleSignInUser = createAsyncThunk(
   'auth/googleSignIn',
-  async (idToken: string, { rejectWithValue }) => {
+  async (credentials: { idToken: string; referralCode?: string }, { rejectWithValue }) => {
     try {
       const response = await fetch(`${API_URL}/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken }),
+        body: JSON.stringify(credentials),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Google sign-in failed.');
@@ -109,7 +109,7 @@ export const googleSignInUser = createAsyncThunk(
 
 export const appleSignInUser = createAsyncThunk(
   'auth/appleSignIn',
-  async (credentials: { idToken: string; name?: string }, { rejectWithValue }) => {
+  async (credentials: { idToken: string; name?: string; referralCode?: string }, { rejectWithValue }) => {
     try {
       const response = await fetch(`${API_URL}/apple`, {
         method: 'POST',

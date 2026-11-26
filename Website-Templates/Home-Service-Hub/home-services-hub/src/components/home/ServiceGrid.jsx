@@ -6,7 +6,7 @@ function ServiceGrid({ onSelectRepair }) {
     <section className="ff-container ff-services-section" id="services" aria-labelledby="ff-services-title">
       <div className="ff-section-heading">
         <div><h2 id="ff-services-title">Services with upfront flat rates</h2><p>Know what it costs before the work begins.</p></div>
-        <a href="#estimate">View all services <ArrowRight size={14} /></a>
+        <a href="/services">View all services <ArrowRight size={14} /></a>
       </div>
       <div className="ff-service-grid">
         {serviceCards.map(({ name, description, price, response, issue, icon: Icon }) => (
@@ -25,7 +25,7 @@ function ServiceGrid({ onSelectRepair }) {
                 type="button"
                 onClick={() => {
                   onSelectRepair(issue)
-                  document.getElementById('estimate')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                  window.location.assign(`/pricing?service=${encodeURIComponent(issue)}`)
                 }}
               >
                 Book now <ArrowRight size={13} />

@@ -185,6 +185,12 @@
   font-size: 10px;
 }
 
+.ff-header-account {
+  min-height: 34px;
+  padding-inline: 12px;
+  color: #fff !important;
+}
+
 .ff-menu-toggle {
   display: none;
   width: 38px;

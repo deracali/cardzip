@@ -89,7 +89,7 @@ export default function LoginScreen() {
       if (!isSuccessResponse(response)) return;
       const idToken = response.data.idToken;
       if (!idToken) throw new Error('Google did not return an identity token. Check the configured OAuth client IDs.');
-      const result = await dispatch(googleSignInUser(idToken)).unwrap();
+      const result = await dispatch(googleSignInUser({ idToken })).unwrap();
       if (result.token) router.replace('/(main)/(tabs)/home' as any);
     } catch (error) {
       setFeedback({ title: 'Google sign-in failed', message: error instanceof Error ? error.message : 'Could not sign in with Google.', tone: 'error' });

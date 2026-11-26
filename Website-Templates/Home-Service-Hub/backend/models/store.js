@@ -1,10 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { MongoClient } from "mongodb";
 
 export function createInitialState() {
-  return { users: [], appointments: [] };
+  return { users: [], appointments: [], payments: [] };
 }
 
 export function createStore(filePath) {
@@ -49,14 +48,17 @@ export function createStore(filePath) {
 
 export function createMongoStore(uri, { databaseName = "fixflow_pro" } = {}) {
   if (!uri) throw new Error("MONGODB_URI must be set before starting the FixFlow API.");
-  const client = new MongoClient(uri, { serverSelectionTimeoutMS: 10000 });
+  let client;
   const collection = () => client.db(databaseName).collection("home_service_state");
   let connectPromise;
   let writeQueue = Promise.resolve();
 
   async function connect() {
     if (!connectPromise) {
-      connectPromise = client.connect().then(async () => {
+      connectPromise = import("mongodb").then(({ MongoClient }) => {
+        client = new MongoClient(uri, { serverSelectionTimeoutMS: 10000 });
+        return client.connect();
+      }).then(async () => {
         await collection().updateOne(
           { _id: "primary" },
           { $setOnInsert: { revision: 0, state: createInitialState() } },
@@ -97,7 +99,14 @@ export function createMongoStore(uri, { databaseName = "fixflow_pro" } = {}) {
     return operation;
   }
 
-  return { connect, close: () => client.close(), read, update };
+  return {
+    connect,
+    close: async () => {
+      if (client) await client.close();
+    },
+    read,
+    update,
+  };
 }
 
 export function newId(prefix) {

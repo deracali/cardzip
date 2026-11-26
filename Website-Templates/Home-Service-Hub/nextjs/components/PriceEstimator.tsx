@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const services = [
   { id: "pipe", name: "Pipe repair", price: 129 },
@@ -17,6 +17,10 @@ const urgencies = [
 export default function PriceEstimator() {
   const [serviceId, setServiceId] = useState("pipe");
   const [urgencyId, setUrgencyId] = useState("standard");
+  useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get("service");
+    if (services.some((item) => item.id === requested)) setServiceId(requested!);
+  }, []);
   const service = services.find((item) => item.id === serviceId) || services[0];
   const urgency = urgencies.find((item) => item.id === urgencyId) || urgencies[0];
 

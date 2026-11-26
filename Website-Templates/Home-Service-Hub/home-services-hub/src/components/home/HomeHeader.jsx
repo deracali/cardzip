@@ -1,9 +1,12 @@
 import { ArrowUpRight, Menu, Phone, Wrench, X } from 'lucide-react'
 import { useState } from 'react'
+import { getHomeServiceSession } from '../../services/homeServiceDemoStore'
 
 function HomeHeader() {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [session] = useState(getHomeServiceSession)
   const closeMenu = () => setMenuOpen(false)
+  const dashboardHref = session?.user?.role === 'admin' ? '/admin' : '/dashboard'
 
   return (
     <header className="ff-header">
@@ -25,11 +28,12 @@ function HomeHeader() {
         </button>
 
         <nav id="ff-main-nav" className={menuOpen ? 'ff-nav is-open' : 'ff-nav'} aria-label="Main navigation">
-          <a href="#services" onClick={closeMenu}>Services</a>
-          <a href="#estimate" onClick={closeMenu}>Pricing</a>
-          <a href="#service-area" onClick={closeMenu}>Areas served</a>
-          <a href="/dashboard" onClick={closeMenu}>Client portal</a>
-          <a href="/admin/login" onClick={closeMenu}>Admin</a>
+          <a href="/services" onClick={closeMenu}>Services</a>
+          <a href="/pricing" onClick={closeMenu}>Pricing</a>
+          <a href="/service-area" onClick={closeMenu}>Service area</a>
+          <a className="ff-button ff-button-orange ff-header-account" href={session ? dashboardHref : '/login'} onClick={closeMenu}>
+            {session ? 'Dashboard' : 'Sign in'}
+          </a>
           <div className="ff-header-actions">
             <a className="ff-phone-link" href="tel:+18005550199"><Phone size={14} /> (800) 555-0199</a>
             <a className="ff-button ff-button-orange ff-header-cta" href="/book-now" onClick={closeMenu}>

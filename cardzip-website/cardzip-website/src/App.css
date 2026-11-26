@@ -476,6 +476,25 @@ body *:not(code):not(pre) {
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
 }
 
+.gift-card-select-search {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid #dfe7f1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0b1120;
+  font: inherit;
+  font-size: 12px;
+}
+
+.gift-card-select-search:focus {
+  border-color: #10b981;
+  outline: 2px solid rgba(16, 185, 129, 0.12);
+}
+
 .gift-card-select-option {
   width: 100%;
   padding: 10px 12px;

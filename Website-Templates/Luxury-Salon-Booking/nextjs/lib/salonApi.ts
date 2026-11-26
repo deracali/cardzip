@@ -17,7 +17,31 @@ export type SalonAppointment = {
   notes: string;
   status: string;
   createdAt: string;
+  paymentReference?: string;
+  paymentAmountMinor?: number;
+  paymentCurrency?: string;
 };
+export type SalonService = {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  duration: string;
+  price: number;
+  image: string;
+  badge?: string;
+  active: boolean;
+};
+export type SalonServiceInput = Omit<SalonService, "id">;
+export type SalonStylist = {
+  id: string;
+  name: string;
+  role: string;
+  bio: string;
+  image: string;
+  active: boolean;
+};
+export type SalonStylistInput = Omit<SalonStylist, "id">;
 
 const sessionKey = "lumiere-session";
 const apiBaseUrl = (process.env.NEXT_PUBLIC_SALON_API_URL || "http://localhost:5600/api").replace(/\/+$/, "");
@@ -76,6 +100,8 @@ async function request<T>(path: string, { method = "GET", body }: RequestOptions
 }
 
 export const salonApi = {
+  services: () => request<{ services: SalonService[] }>("/services"),
+  stylists: () => request<{ stylists: SalonStylist[] }>("/stylists"),
   signup: (body: { name: string; email: string; password: string; phone?: string }) =>
     request<SalonSession>("/auth/signup", { method: "POST", body }),
   login: (body: { email: string; password: string }) =>
@@ -90,4 +116,14 @@ export const salonApi = {
   }>("/admin/dashboard"),
   updateAppointment: (id: string, status: string) =>
     request<{ appointment: SalonAppointment }>(`/admin/appointments/${encodeURIComponent(id)}`, { method: "PATCH", body: { status } }),
+  adminServices: () => request<{ services: SalonService[] }>("/admin/services"),
+  createService: (body: SalonServiceInput) =>
+    request<{ service: SalonService }>("/admin/services", { method: "POST", body }),
+  updateService: (id: string, body: Partial<SalonServiceInput>) =>
+    request<{ service: SalonService }>(`/admin/services/${encodeURIComponent(id)}`, { method: "PATCH", body }),
+  adminStylists: () => request<{ stylists: SalonStylist[] }>("/admin/stylists"),
+  createStylist: (body: SalonStylistInput) =>
+    request<{ stylist: SalonStylist }>("/admin/stylists", { method: "POST", body }),
+  updateStylist: (id: string, body: Partial<SalonStylistInput>) =>
+    request<{ stylist: SalonStylist }>(`/admin/stylists/${encodeURIComponent(id)}`, { method: "PATCH", body }),
 };

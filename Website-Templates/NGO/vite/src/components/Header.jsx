@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Menu, UserRound, X } from 'lucide-react'
 import Logo from './Logo'
-import { getNGOSession } from '../services/ngoApi'
+import { getNGOSession } from '../services/localStore'
 
 const links = [
   ['Our Causes', '/causes'],
@@ -29,6 +29,7 @@ export default function Header() {
         <Logo />
         <nav className={open ? 'main-nav is-open' : 'main-nav'} aria-label="Main navigation">
           {links.map(([label, href]) => <a href={href} key={href} onClick={() => setOpen(false)}>{label}</a>)}
+          {session?.user?.role === 'client' && <a href="/dashboard#gift-history" onClick={() => setOpen(false)}>My pledges</a>}
         </nav>
         <div className="header-actions">
           <a className="header-icon" href={session?.user?.role === 'admin' ? '/admin' : session ? '/dashboard' : '/signin'} aria-label={session ? 'Open your dashboard' : 'Sign in'}><UserRound size={16} /></a>

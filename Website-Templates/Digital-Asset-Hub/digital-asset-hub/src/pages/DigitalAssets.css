@@ -62,17 +62,17 @@
 .digital-assets-search button,.digital-assets-empty button { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; gap: 6px; padding: 0 14px; border: 0; border-radius: 10px; background: #087a4c; color: #fff; font: inherit; font-size: 10px; font-weight: 800; cursor: pointer; }
 .digital-assets-search .digital-assets-clear-search { border: 1px solid #d9e2e6; background: #fff; color: #52636d; }
 .digital-assets-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 17px; }
-.digital-asset-card { overflow: hidden; border: 1px solid #e0e7e9; border-radius: 17px; background: #fff; box-shadow: 0 8px 24px #13293908; }
-.digital-asset-card-image { position: relative; display: grid; height: 180px; place-items: center; background: linear-gradient(135deg,#102032,#1d5160); color: #7ce6b0; }
-.digital-asset-card-image img { width: 100%; height: 100%; object-fit: cover; }
+.digital-asset-card { display: block; overflow: hidden; border: 1px solid #e0e7e9; border-radius: 17px; background: #fff; box-shadow: 0 8px 24px #13293908; color: inherit; text-decoration: none; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+.digital-asset-card:hover,.digital-asset-card:focus-visible { transform: translateY(-2px); border-color: #9acbb6; box-shadow: 0 12px 28px #13293912; }
+.digital-asset-card:focus-visible { outline: 3px solid #087a4c; outline-offset: 3px; }
+.digital-asset-card-image { position: relative; display: flex; width: 100%; height: 180px; min-height: 180px; max-height: 180px; align-items: center; justify-content: center; overflow: hidden; background: linear-gradient(135deg,#102032,#1d5160); color: #7ce6b0; }
+.digital-asset-card-image img { display: block; width: 100%; height: 100%; min-width: 0; min-height: 0; max-width: 100%; max-height: 100%; flex: 0 0 100%; object-fit: cover; object-position: center; }
 .digital-asset-promoted { position: absolute; top: 12px; left: 12px; padding: 6px 9px; border-radius: 999px; background: #087a4c; color: #fff; font-size: 9px; font-weight: 900; letter-spacing: .5px; }
 .digital-asset-card-content { padding: 18px; }
 .digital-asset-type { display: inline-flex; align-items: center; gap: 6px; color: #087a4c; font-size: 9px; font-weight: 900; letter-spacing: .7px; text-transform: uppercase; }
 .digital-asset-card h2 { margin: 9px 0 7px; color: #14253a; font-size: 18px; }
 .digital-asset-card p { min-height: 54px; margin: 0; color: #66747c; font-size: 11px; line-height: 1.6; }
 .digital-asset-price { margin: 13px 0; color: #0a6947; font-size: 11px; font-weight: 800; }
-.digital-asset-open { display: inline-flex; align-items: center; gap: 7px; padding: 0; border: 0; background: none; color: #0a754b; font: inherit; font-size: 11px; font-weight: 850; cursor: pointer; }
-.digital-asset-open:hover { color: #064f34; }
 .digital-assets-state,.digital-assets-error { padding: 16px; color: #687781; font-size: 12px; }
 .digital-assets-error { color: #a22b38; }
 .digital-assets-empty { display: grid; min-height: 180px; justify-items: center; align-content: center; gap: 9px; border: 1px dashed #cbd9d4; border-radius: 17px; background: #fff; color: #087a4c; text-align: center; }
@@ -111,4 +111,4 @@
 .digital-promotion-buttons button:disabled { opacity: .65; cursor: wait; }
 .digital-detail-code { display: flex; align-items: center; gap: 7px; margin-top: 20px; color: #65757d; font-size: 10px; }
 @media (max-width: 760px) { .digital-assets-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .digital-detail-layout { grid-template-columns: 1fr; } }
-@media (max-width: 540px) { .digital-assets-page { padding: 22px 15px 60px; } .digital-assets-grid { grid-template-columns: 1fr; } .digital-asset-card-image { height: 190px; } .digital-detail-hero { align-items: flex-start; flex-direction: column; padding: 17px; } .digital-detail-art { width: 100%; height: 180px; } .digital-instructions-card,.digital-options-card { padding: 17px; } .digital-purchase-option { align-items: flex-start; flex-direction: column; } }
+@media (max-width: 540px) { .digital-assets-page { padding: 22px 15px 60px; } .digital-assets-grid { grid-template-columns: 1fr; } .digital-detail-hero { align-items: flex-start; flex-direction: column; padding: 17px; } .digital-detail-art { width: 100%; height: 180px; } .digital-instructions-card,.digital-options-card { padding: 17px; } .digital-purchase-option { align-items: flex-start; flex-direction: column; } }
