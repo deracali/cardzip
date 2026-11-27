@@ -93,8 +93,8 @@
 .digital-asset-card { overflow: hidden; border: 1px solid #e0e7e9; border-radius: 17px; background: #fff; box-shadow: 0 8px 24px #13293908; cursor: pointer; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
 .digital-asset-card:hover,.digital-asset-card:focus-visible { transform: translateY(-2px); border-color: #9acfb0; box-shadow: 0 12px 30px #13293915; }
 .digital-asset-card:focus-visible { outline: 2px solid #087a4c; outline-offset: 3px; }
-.digital-asset-card-image { position: relative; display: grid; height: 180px; place-items: center; background: linear-gradient(135deg,#102032,#1d5160); color: #7ce6b0; }
-.digital-asset-card-image img { width: 100%; height: 100%; object-fit: cover; }
+.digital-asset-card-image { position: relative; display: grid; aspect-ratio: 16 / 10; min-height: 0; overflow: hidden; place-items: center; background: linear-gradient(135deg,#102032,#1d5160); color: #7ce6b0; }
+.digital-asset-card-image img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; }
 .digital-asset-promoted { position: absolute; top: 12px; left: 12px; padding: 6px 9px; border-radius: 999px; background: #087a4c; color: #fff; font-size: 9px; font-weight: 900; letter-spacing: .5px; }
 .digital-asset-card-content { padding: 18px; }
 .digital-asset-type { display: inline-flex; align-items: center; gap: 6px; color: #087a4c; font-size: 9px; font-weight: 900; letter-spacing: .7px; text-transform: uppercase; }
@@ -137,7 +137,6 @@
 .digital-website-preview > header h2 { margin: 3px 0 0; color: #152a3c; font-size: 14px; }
 .digital-website-preview > header button { display: grid; width: 38px; height: 38px; flex: 0 0 auto; place-items: center; border: 1px solid #dbe5e1; border-radius: 50%; background: #fff; color: #263d4c; cursor: pointer; }
 .digital-website-preview-actions { display: flex; align-items: center; gap: 8px; }
-.digital-website-preview-actions a { display: inline-flex; min-height: 38px; align-items: center; gap: 6px; padding: 8px 11px; border: 1px solid #cfe2d8; border-radius: 8px; background: #f3faf6; color: #087a4c; font-size: 11px; font-weight: 800; text-decoration: none; }
 .digital-website-preview-frame { position: relative; display: flex; min-height: 0; flex: 1; }
 .digital-website-preview-frame iframe { width: 100%; height: 100%; border: 0; background: #f7faf8; }
 .digital-website-preview-loading { position: absolute; z-index: 1; inset: 0; display: grid; place-items: center; background: #f7faf8; pointer-events: none; }
@@ -195,7 +194,6 @@
   .digital-assets-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
   .digital-asset-card { min-width: 0; border-radius: 12px; }
   .digital-asset-card-content { min-width: 0; padding: 10px; }
-  .digital-asset-card-image { height: 118px; }
   .digital-asset-promoted { top: 7px; left: 7px; padding: 5px 7px; font-size: 8px; }
   .digital-asset-type { gap: 4px; font-size: 8px; letter-spacing: .4px; }
   .digital-asset-card h2 { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; margin: 7px 0 6px; font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }
@@ -224,7 +222,6 @@
   .digital-website-preview > header { min-height: 58px; padding: 8px 10px; }
   .digital-website-preview > header h2 { max-width: 42vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .digital-website-preview-actions { gap: 5px; }
-  .digital-website-preview-actions a { min-height: 36px; gap: 4px; padding: 7px; font-size: 9px; }
   .digital-website-preview > header button { width: 36px; height: 36px; }
   .digital-image-lightbox { padding: 55px 45px; }
   .digital-image-lightbox-nav.previous { left: 5px; }
@@ -241,13 +238,10 @@
   .digital-assets-page { padding-right: 9px; padding-left: 9px; }
   .digital-assets-grid,.digital-related-grid { gap: 7px; }
   .digital-asset-card-content { padding: 8px; }
-  .digital-asset-card-image { height: 100px; }
   .digital-asset-card h2 { font-size: 12px; }
   .digital-asset-card p { font-size: 9px; }
   .digital-asset-type { font-size: 7px; }
   .digital-assets-search > button[type="submit"] { gap: 4px; padding: 0 7px; font-size: 9px; }
   .digital-assets-search .digital-assets-clear-search { padding: 0 7px; }
-  .digital-website-preview-actions a { font-size: 0; }
-  .digital-website-preview-actions a svg { width: 16px; height: 16px; }
   .digital-website-preview > header h2 { max-width: 38vw; }
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, Code2, Download, ExternalLink, Globe2, LifeBuoy, Smartphone, X, ZoomIn } from 'lucide-react'
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, Code2, Download, Globe2, LifeBuoy, Smartphone, X, ZoomIn } from 'lucide-react'
 import { getUserToken, userApi } from '../services/api'
 import { formatNaira } from '../utils/currency'
 import CardzipLoader from '../components/CardzipLoader'
@@ -452,7 +452,6 @@ export default function DigitalAssetDetailsPage({ digitalAssetSlug, onNavigate }
                 <h2 id="digital-website-preview-title">{asset.name}</h2>
               </div>
               <div className="digital-website-preview-actions">
-                <a href={previewUrl} target="_blank" rel="noopener noreferrer">Open in new tab <ExternalLink size={14} /></a>
                 <button type="button" onClick={() => setWebsitePreviewOpen(false)} aria-label="Close website preview"><X size={20} /></button>
               </div>
             </header>
