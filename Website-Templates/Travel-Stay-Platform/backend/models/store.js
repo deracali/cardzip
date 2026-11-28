@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { MongoClient } from "mongodb";
+import { createMongoLookup } from "../utils/mongodb-dns.js";
 
 export function createInitialState() {
   return { users: [], reservations: [], stays: [] };
@@ -29,7 +30,10 @@ export function createMemoryStore(initialState = createInitialState()) {
 
 export function createMongoStore(uri, { databaseName = "escapes_travel_stay" } = {}) {
   if (!uri) throw new Error("MONGODB_URI must be set before starting the Escapes API.");
-  const client = new MongoClient(uri, { serverSelectionTimeoutMS: 10000 });
+  const client = new MongoClient(uri, {
+    serverSelectionTimeoutMS: 10000,
+    lookup: createMongoLookup(),
+  });
   const collection = () => client.db(databaseName).collection("application_state");
   let connected;
   let queue = Promise.resolve();

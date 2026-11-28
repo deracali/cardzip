@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { ChevronDown, Menu, X } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 import Logo from './Logo'
+import { getSession } from '../services/escapesApi'
 
 const navItems = [
   ['Destinations', '/destinations'],
@@ -11,6 +12,8 @@ const navItems = [
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
+  const session = getSession()
+  const dashboardHref = session?.user.role === 'admin' ? '/admin/dashboard' : '/client/dashboard'
   return (
     <header className="site-header">
       <div className="header-inner">
@@ -21,9 +24,9 @@ export default function Header() {
           ))}
         </nav>
         <div className="header-actions">
-          <a className="currency-link" href="/stays" aria-label="Choose currency">EN · USD <ChevronDown size={13} /></a>
-          <a className="sign-in-link" href="/client/dashboard">My trips</a>
-          <a className="button button-primary button-small" href="/signin">Sign in</a>
+          <span className="currency-link">EN · USD</span>
+          <a className="sign-in-link" href={dashboardHref}>Dashboard</a>
+          {!session && <a className="button button-primary button-small" href="/signin">Sign in</a>}
         </div>
         <button className="menu-toggle" type="button" aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>
           {menuOpen ? <X size={21} /> : <Menu size={21} />}

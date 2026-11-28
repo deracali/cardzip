@@ -23,6 +23,14 @@ export const fetchMyAccountApi = async (token: string): Promise<AccountSummary> 
   return result.data as AccountSummary;
 };
 
+export const deleteMyAccountApi = async (token: string): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/api/users/me`, {
+    method: 'DELETE',
+    headers: authHeaders(token),
+  });
+  await parseResponse(response);
+};
+
 export const uploadProfileImageApi = async (
   token: string,
   file: { uri: string; name: string; type: string },

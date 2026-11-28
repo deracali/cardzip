@@ -7,6 +7,7 @@ const initialData = {
   [usersKey]: [
     { id: 'demo-client-001', name: 'Avery Morgan', email: 'avery@example.demo', phone: '512-555-0118', role: 'client', createdAt: '2026-10-12T15:00:00.000Z' },
     { id: 'demo-client-002', name: 'Jordan Ellis', email: 'jordan@example.demo', phone: '512-555-0142', role: 'client', createdAt: '2026-10-18T15:00:00.000Z' },
+    { id: 'demo-admin-001', name: 'PolarFlow Demo Admin', email: 'admin@example.demo', phone: '', role: 'admin', createdAt: '2026-10-10T15:00:00.000Z' },
   ],
   [bookingsKey]: [
     { id: 'demo-booking-001', reference: 'PF-DEMO101', userId: 'demo-client-001', serviceId: 'ac-tune-up', urgency: 'standard', estimate: 89, name: 'Avery Morgan', phone: '512-555-0118', email: 'avery@example.demo', zip: '78704', date: '2026-12-02', time: '8:00 AM - 10:00 AM', notes: '', status: 'requested', createdAt: '2026-10-22T15:00:00.000Z' },
@@ -126,6 +127,12 @@ async function login({ email: inputEmail, password, expectedRole }) {
   return makeSession(user)
 }
 
+function demoSession(id, role) {
+  const user = readList(usersKey).find((record) => record.id === id && record.role === role)
+  if (!user) throw new Error('Sample dashboard account is unavailable in local storage.')
+  return makeSession(user)
+}
+
 function requireUser(role) {
   const session = getTechnicianSession()
   if (!session || session.user.role !== role) throw new Error(`Sign in with a ${role} account to continue.`)
@@ -133,6 +140,11 @@ function requireUser(role) {
 }
 
 export const technicianApi = {
+  getSession: getTechnicianSession,
+  saveSession: saveTechnicianSession,
+  clearSession: clearTechnicianSession,
+  demoClientSession: async () => demoSession('demo-client-001', 'client'),
+  demoAdminSession: async () => demoSession('demo-admin-001', 'admin'),
   login,
   signupClient: (body) => signup(body, 'client'),
   signupAdmin: (body) => signup(body, 'admin'),

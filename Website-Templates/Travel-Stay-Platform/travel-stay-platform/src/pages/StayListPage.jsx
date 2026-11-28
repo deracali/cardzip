@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
-import { ArrowRight, Search, ShieldCheck } from 'lucide-react'
+import { Search, ShieldCheck } from 'lucide-react'
 import PageShell from '../components/PageShell'
 import StayCard from '../components/StayCard'
-import { getStays } from '../services/escapesApi'
+import { getStays } from '../services/escapesLocalStore'
 
 export default function StayListPage() {
   const params = new URLSearchParams(window.location.search)
@@ -17,7 +17,7 @@ export default function StayListPage() {
   return (
     <PageShell>
       <main className="page-main listing-page">
-        <div className="listing-top"><div><p className="breadcrumbs"><a href="/">Home</a><span>/</span> Stays</p><h1>Stays in Bali, Indonesia</h1><p className="muted-copy">120 beautiful places · Nov 18 – Nov 20 · 2 guests</p></div><div className="view-switch"><button type="button" className="active">▦ &nbsp;List</button><button type="button" onClick={() => document.getElementById('stay-results')?.scrollIntoView({ behavior: 'smooth' })}>⌖ &nbsp;Map</button></div></div>
+        <div className="listing-top"><div><p className="breadcrumbs"><a href="/">Home</a><span>/</span> Stays</p><h1>Stays in Bali, Indonesia</h1><p className="muted-copy">120 beautiful places · Nov 18 – Nov 20 · 2 guests</p></div></div>
         <div className="listing-layout">
           <aside className="filters-panel">
             <label className="filter-label" htmlFor="destination-filter">Destination</label><input className="filter-input" id="destination-filter" value={destination} onChange={(event) => setDestination(event.target.value)} placeholder="Bali, Indonesia" />
@@ -29,7 +29,6 @@ export default function StayListPage() {
           <section className="results-area" id="stay-results">
             <div className="results-heading"><div><strong>{filteredStays.length} stays found</strong><p>Find your next favorite place to stay.</p></div><select aria-label="Sort stays"><option>Recommended</option><option>Price: low to high</option><option>Guest rating</option></select></div>
             {filteredStays.length ? <div className="results-grid">{filteredStays.map((stay) => <StayCard key={stay.slug} stay={stay} />)}</div> : <div className="empty-state"><Search size={26} /><h2>No stays match those filters</h2><p>Try a different destination, property type, or price range.</p><button className="button button-primary" type="button" onClick={() => { setDestination(''); setMaxPrice(500); setStyle('All stays') }}>Clear filters</button></div>}
-            <nav className="pagination" aria-label="Stay results pages"><a href="/stays" aria-label="Previous page">‹</a><a className="active" href="/stays">1</a><a href="/stays?page=2">2</a><a href="/stays?page=3">3</a><a href="/stays?page=2" aria-label="Next page">Next <ArrowRight size={13} /></a></nav>
           </section>
         </div>
       </main>

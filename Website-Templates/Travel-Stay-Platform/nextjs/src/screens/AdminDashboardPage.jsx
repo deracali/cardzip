@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowRight, Building2, CalendarDays, LogOut, MapPin, ShieldCheck } from 'lucide-react'
+import { ArrowRight, BarChart3, Building2, CalendarDays, CreditCard, LogOut, MapPin, Settings, ShieldCheck } from 'lucide-react'
 import { clearSession, escapesApi, getSession } from '../services/escapesApi'
 import { stays } from '../data/stays'
 
@@ -8,6 +8,9 @@ const adminSections = {
   reservations: { title: 'Reservations', description: 'Review guest stays and update request statuses.' },
   guests: { title: 'Guest accounts', description: 'Browse guest accounts and reservation history.' },
   properties: { title: 'Property listings', description: 'Add properties and manage the stays offered to guests.' },
+  payments: { title: 'Payments', description: 'Review verified payment states and reservation totals.' },
+  reports: { title: 'Reports', description: 'Review booking, guest, and property activity.' },
+  settings: { title: 'Workspace settings', description: 'Review your administrator workspace details.' },
 }
 
 export default function AdminDashboardPage({ section = 'overview' }) {
@@ -74,6 +77,9 @@ export default function AdminDashboardPage({ section = 'overview' }) {
             <a className={activeSection === 'reservations' ? 'is-active' : ''} href="/admin/reservations"><CalendarDays size={17} /> Reservations</a>
             <a className={activeSection === 'properties' ? 'is-active' : ''} href="/admin/stays"><Building2 size={17} /> Properties</a>
             <a className={activeSection === 'guests' ? 'is-active' : ''} href="/admin/guests"><MapPin size={17} /> Guest accounts</a>
+            <a className={activeSection === 'payments' ? 'is-active' : ''} href="/admin/payments"><CreditCard size={17} /> Payments</a>
+            <a className={activeSection === 'reports' ? 'is-active' : ''} href="/admin/reports"><BarChart3 size={17} /> Reports</a>
+            <a className={activeSection === 'settings' ? 'is-active' : ''} href="/admin/settings"><Settings size={17} /> Settings</a>
           </nav>
           <div className="dashboard-sidebar-footer"><a href="/">Back to Escapes <ArrowRight size={14} /></a><span><i /> Operations workspace</span></div>
         </aside>
@@ -98,6 +104,8 @@ export default function AdminDashboardPage({ section = 'overview' }) {
             <a href="/admin/reservations"><CalendarDays size={18} /><span><strong>Reservations</strong><small>Review guest stays and update statuses.</small></span><ArrowRight size={15} /></a>
             <a href="/admin/stays"><Building2 size={18} /><span><strong>Properties</strong><small>Add and manage available stays.</small></span><ArrowRight size={15} /></a>
             <a href="/admin/guests"><MapPin size={18} /><span><strong>Guest accounts</strong><small>Browse guest account details.</small></span><ArrowRight size={15} /></a>
+            <a href="/admin/payments"><CreditCard size={18} /><span><strong>Payments</strong><small>Review confirmed provider transactions.</small></span><ArrowRight size={15} /></a>
+            <a href="/admin/reports"><BarChart3 size={18} /><span><strong>Reports</strong><small>View booking and guest summaries.</small></span><ArrowRight size={15} /></a>
           </div>
           </>}
           {activeSection === 'properties' && <>
@@ -148,6 +156,22 @@ export default function AdminDashboardPage({ section = 'overview' }) {
             {dashboard.customers.length === 0 ? <p className="dashboard-loading">No guest accounts yet.</p> : <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Name</th><th>Email</th><th>Joined</th></tr></thead><tbody>
               {dashboard.customers.map((customer) => <tr key={customer.id}><td>{customer.name}</td><td>{customer.email}</td><td>{new Date(customer.createdAt).toLocaleDateString()}</td></tr>)}
             </tbody></table></div>}
+          </section>}
+          {activeSection === 'payments' && <section className="dashboard-panel admin-reservations">
+            <div className="dashboard-panel-heading"><div><h2>Reservation payments</h2><p>Payment status is confirmed server-side by Paystack or Stripe.</p></div></div>
+            <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Reference</th><th>Guest</th><th>Stay</th><th>Total</th><th>Provider</th><th>Payment</th></tr></thead><tbody>
+              {dashboard.reservations.map((reservation) => <tr key={reservation.id}><td>{reservation.reference}</td><td>{reservation.guestName}<small>{reservation.guestEmail}</small></td><td>{reservation.stayName}</td><td>${reservation.total} {reservation.currency || 'USD'}</td><td>{reservation.paymentProvider || '—'}</td><td>{reservation.paymentStatus === 'not_collected' ? 'Not collected' : reservation.paymentStatus}</td></tr>)}
+              {!dashboard.reservations.length && <tr><td colSpan="6">No reservation payments yet.</td></tr>}
+            </tbody></table></div>
+          </section>}
+          {activeSection === 'reports' && <section className="dashboard-panel">
+            <div className="dashboard-panel-heading"><div><h2>Booking performance</h2><p>Live totals from the API reservation records.</p></div></div>
+            <div className="dashboard-metrics"><article><span>Reservations</span><strong>{dashboard.metrics.reservations}</strong></article><article><span>Confirmed</span><strong>{dashboard.metrics.confirmedReservations}</strong></article><article><span>Pending review</span><strong>{dashboard.metrics.requestedReservations}</strong></article><article><span>Guest accounts</span><strong>{dashboard.metrics.customers}</strong></article><article><span>Gross booking value</span><strong>${dashboard.metrics.grossBookingValue.toLocaleString()} USD</strong></article></div>
+          </section>}
+          {activeSection === 'settings' && <section className="dashboard-panel">
+            <div className="dashboard-panel-heading"><div><h2>Administrator account</h2><p>Account identity is provided by the authenticated API session.</p></div></div>
+            <dl className="profile-details"><div><dt>Name</dt><dd>{session.user.name}</dd></div><div><dt>Email</dt><dd>{session.user.email}</dd></div><div><dt>Role</dt><dd>Administrator</dd></div><div><dt>Payment processing</dt><dd>Server-side hosted checkout</dd></div></dl>
+            <p className="payment-disclaimer">Payment secrets are configured in the backend environment, never in the browser or Next.js public environment.</p>
           </section>}
         </>}
         </div>

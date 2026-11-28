@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, StyleSheet,
+import { ActivityIndicator, Alert, StyleSheet,
   View,
   Text,
   Image,
@@ -23,8 +23,8 @@ import FeedbackModal from '../components/FeedbackModal';
 import CardzipLoader from '../../../components/CardzipLoader';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { uploadProfileImageApi } from '../../../services/api/accountApi';
-import { setAccountProfileImage } from '../../../store/slices/accountSlice';
+import { deleteMyAccountApi, uploadProfileImageApi } from '../../../services/api/accountApi';
+import { clearAccount, setAccountProfileImage } from '../../../store/slices/accountSlice';
 
 
 
@@ -38,6 +38,7 @@ export default function ProfileScreen() {
   const [profileImageLoading, setProfileImageLoading] = useState(false);
   const [profileImageError, setProfileImageError] = useState('');
   const [pendingProfileImage, setPendingProfileImage] = useState<string | null>(null);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   // Responsive scaling dynamic helper based on 375px reference width
   const scale = (size: number) => (width / 375) * size;
@@ -82,6 +83,37 @@ export default function ProfileScreen() {
     } finally {
       setProfileImageLoading(false);
     }
+  };
+
+  const confirmDeleteAccount = () => {
+    if (!token || deletingAccount) return;
+    Alert.alert(
+      'Delete your account?',
+      'This permanently deletes your profile and signs you out. Financial and trading records may be retained. Your wallet balance must be zero before you can continue.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete account',
+          style: 'destructive',
+          onPress: () => {
+            setDeletingAccount(true);
+            void deleteMyAccountApi(token)
+              .then(async () => {
+                await dispatch(logoutUser()).unwrap();
+                dispatch(clearAccount());
+                router.replace('/(auth)/login');
+              })
+              .catch((requestError: unknown) => {
+                setFeedback({
+                  title: 'Could not delete account',
+                  message: requestError instanceof Error ? requestError.message : 'Please try again.',
+                });
+              })
+              .finally(() => setDeletingAccount(false));
+          },
+        },
+      ],
+    );
   };
 
   if (!summary && loading) {
@@ -243,6 +275,19 @@ export default function ProfileScreen() {
         >
           <Feather name="log-out" size={scale(16)} color="#FF4D4D" style={{ marginRight: 8 }} />
           <Text style={styles.logoutText}>Log out</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.deleteAccountButton}
+          activeOpacity={0.7}
+          onPress={confirmDeleteAccount}
+          disabled={deletingAccount}
+          accessibilityRole="button"
+          accessibilityLabel="Delete account"
+        >
+          {deletingAccount
+            ? <ActivityIndicator size="small" color="#B42318" />
+            : <Feather name="trash-2" size={scale(15)} color="#B42318" style={{ marginRight: 8 }} />}
+          <Text style={styles.deleteAccountText}>{deletingAccount ? 'Deleting account…' : 'Delete account'}</Text>
         </TouchableOpacity>
       </ScrollView>
       <FeedbackModal
@@ -468,5 +513,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#FF4D4D',
+  },
+  deleteAccountButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 12,
+    backgroundColor: '#FFF7F7',
+    opacity: 1,
+  },
+  deleteAccountText: {
+    fontFamily: 'Poppins',
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#B42318',
   },
 });

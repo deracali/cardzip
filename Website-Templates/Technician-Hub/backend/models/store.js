@@ -1,8 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { MongoClient } from "mongodb";
+import { initialServices, initialTechnicians } from "../services/catalog-data.js";
 
 export function createInitialState() {
-  return { users: [], bookings: [], memberships: [] };
+  return {
+    users: [],
+    bookings: [],
+    memberships: [],
+    services: initialServices.map((service) => ({ ...service })),
+    technicians: initialTechnicians.map((technician) => ({ ...technician })),
+  };
 }
 
 export function createMemoryStore(initialState = createInitialState()) {
@@ -41,6 +48,14 @@ export function createMongoStore(uri, { databaseName = "polarflow_hvac" } = {}) 
           { _id: "primary" },
           { $setOnInsert: { revision: 0, state: createInitialState() } },
           { upsert: true },
+        );
+        await collection().updateOne(
+          { _id: "primary", "state.services": { $exists: false } },
+          { $set: { "state.services": initialServices } },
+        );
+        await collection().updateOne(
+          { _id: "primary", "state.technicians": { $exists: false } },
+          { $set: { "state.technicians": initialTechnicians } },
         );
       }).catch((error) => {
         connected = undefined;

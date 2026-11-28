@@ -1,23 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { HttpError, normalizedEmail, requiredText } from "../utils/http.js";
 
-const servicePrices = {
-  "ac-tune-up": 89,
-  "furnace-repair": 129,
-  "heat-pump-install": 169,
-  "thermostat-install": 99,
-  "emergency-repair": 189,
-  "duct-cleaning": 149,
-  "air-quality": 79,
-};
 const bookingStatuses = new Set(["requested", "confirmed", "completed", "cancelled"]);
 
 export function createBookingController(store) {
   return {
     create: async (req, res) => {
       const serviceId = requiredText(req.body.serviceId, "Service", 60);
-      const basePrice = servicePrices[serviceId];
-      if (!basePrice) throw new HttpError(400, "Choose a valid HVAC service. Memberships use the membership checkout.");
       const urgency = req.body.urgency === "emergency" ? "emergency" : "standard";
       const name = requiredText(req.body.name, "Name", 120);
       const phone = requiredText(req.body.phone, "Phone number", 40);
@@ -31,13 +20,15 @@ export function createBookingController(store) {
       const time = requiredText(req.body.time, "Arrival window", 60);
       const notes = typeof req.body.notes === "string" ? req.body.notes.trim().slice(0, 1000) : "";
       const booking = await store.update((state) => {
+        const service = state.services.find((item) => item.id === serviceId && item.active);
+        if (!service) throw new HttpError(400, "Choose an available HVAC service. Memberships use the membership checkout.");
         const created = {
           id: `booking_${randomUUID()}`,
           reference: `PF-${randomUUID().slice(0, 8).toUpperCase()}`,
           userId: req.user?.role === "client" ? req.user.id : null,
           serviceId,
           urgency,
-          estimate: basePrice + (urgency === "emergency" ? 100 : 0),
+          estimate: service.price + (urgency === "emergency" ? 100 : 0),
           name,
           phone,
           email,
@@ -79,6 +70,8 @@ export function createBookingController(store) {
         bookings: state.bookings.sort((left, right) => right.createdAt.localeCompare(left.createdAt)),
         memberships: memberships.sort((left, right) => right.createdAt.localeCompare(left.createdAt)),
         customers: state.users.filter((item) => item.role === "client").map(({ passwordHash, ...user }) => user),
+        services: state.services,
+        technicians: state.technicians,
       });
     },
 

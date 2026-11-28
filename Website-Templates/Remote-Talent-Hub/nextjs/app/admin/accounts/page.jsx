@@ -1,5 +1,5 @@
-import AdminPortal from "../../../src/components/AdminPortal";
+import { redirect } from "next/navigation";
 
 export default function Page() {
-  return <AdminPortal section="accounts" />;
+  redirect("/admin/users");
 }

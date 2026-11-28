@@ -12,7 +12,14 @@ export function requiredText(value, label, min = 1, max = 5000) {
 }
 
 export function safeJob(job) {
-  const { ownerId, ...publicFields } = job;
+  const {
+    ownerId,
+    paymentReference,
+    paymentAuthorizationUrl,
+    paymentQuoteKobo,
+    paymentExchangeRate,
+    ...publicFields
+  } = job;
   return publicFields;
 }
 

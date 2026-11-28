@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, ArrowRight, MapPin } from 'lucide-react'
+import { ArrowRight, MapPin } from 'lucide-react'
 import PageShell from '../components/PageShell'
 import SearchBar from '../components/SearchBar'
 import StayCard from '../components/StayCard'
@@ -40,7 +40,7 @@ export default function HomePage() {
           <div className="style-grid">{styles.map(([name, count, icon]) => <a className="style-card" href={`/stays?style=${encodeURIComponent(name)}`} key={name}><span className="style-icon">{icon}</span><strong>{name}</strong><small>{count}</small></a>)}</div>
         </section>
         <section className="section-block">
-          <div className="section-heading"><div><h2>Featured stays</h2><p>Lovely places, lovely hosts — handpicked for you.</p></div><div className="carousel-actions"><a className="icon-button" href="/stays" aria-label="Previous stays"><ArrowLeft size={15} /></a><a className="icon-button is-dark" href="/stays" aria-label="More stays"><ArrowRight size={15} /></a></div></div>
+          <div className="section-heading"><div><h2>Featured stays</h2><p>Lovely places, lovely hosts — handpicked for you.</p></div><a className="text-link" href="/stays">View all <ArrowRight size={14} /></a></div>
           <div className="stay-grid">{featuredStays.slice(0, 3).map((stay) => <StayCard key={stay.slug} stay={stay} />)}</div>
           {catalogError && <p className="form-error" role="status">New properties could not be loaded: {catalogError}</p>}
         </section>

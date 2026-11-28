@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ArrowLeft, ShieldCheck } from 'lucide-react'
 import Logo from '../components/Logo'
-import { escapesApi, saveSession } from '../services/escapesApi'
+import { escapesLocalStore, saveSession } from '../services/escapesLocalStore'
 
 export default function AuthPage({ signup = false }) {
   const [error, setError] = useState('')
@@ -14,8 +14,8 @@ export default function AuthPage({ signup = false }) {
     const form = Object.fromEntries(new FormData(event.currentTarget).entries())
     try {
       const session = signup
-        ? await escapesApi.signup(form)
-        : await escapesApi.login({ email: form.email, password: form.password, expectedRole: 'client' })
+        ? await escapesLocalStore.signup(form)
+        : await escapesLocalStore.login({ email: form.email, password: form.password, expectedRole: 'client' })
       saveSession(session)
       const next = new URLSearchParams(window.location.search).get('next')
       window.location.assign(next?.startsWith('/') && !next.startsWith('//') ? next : '/client/dashboard')
@@ -45,7 +45,7 @@ export default function AuthPage({ signup = false }) {
           {error && <p className="form-error" role="alert">{error}</p>}
           <button className="button button-primary full-button" type="submit" disabled={submitting}>{submitting ? 'Please wait…' : signup ? 'Create account' : 'Sign in'}</button>
           <p className="auth-switch">{signup ? 'Already have an account?' : 'New to Escapes?'} <a href={signup ? '/signin' : '/signup'}>{signup ? 'Sign in' : 'Create account'}</a></p>
-          <div className="auth-safe"><ShieldCheck size={15} /> Demo account details stay in this browser. Do not enter sensitive information.</div>
+          <div className="auth-safe"><ShieldCheck size={15} /> Local demo accounts stay in this browser only. Do not enter sensitive information.</div>
         </form>
       </section>
     </main>

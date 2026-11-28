@@ -8,7 +8,7 @@ The customer experience covers service discovery, ZIP-code entry, appointment re
 
 ## 2. Package contents
 
-- `technician-hub/` is the React + Vite storefront.
+- `technician-hub/` is the React + Vite local demo. Accounts, service requests and membership attempts are stored in browser `localStorage`; it does not call the API.
 - `nextjs/` is the independent Next.js App Router frontend using the same product UI and API.
 - `backend/` is the Express API, organized into MVC controllers, routes, middleware, models, services and HTTP utilities.
 - `docs/` contains this guide, the PDF generator and the generated Cardzip-branded PDF.
@@ -17,17 +17,17 @@ The Next.js app uses its own route entry points and React components. It does no
 
 ## 3. Development setup
 
-Install Node.js and provide a reachable MongoDB database. In `backend/`, copy `.env.example` to `.env`, set `MONGODB_URI`, set a random `JWT_SECRET` with at least 32 characters, and set a private `ADMIN_SIGNUP_CODE`. Install dependencies and run `npm run dev`; the API listens on port `5000` by default.
+Install Node.js and provide a reachable MongoDB database. In `backend/`, copy `.env.example` to `.env`, set `MONGODB_URI`, set a random `JWT_SECRET` with at least 32 characters, and set a private `ADMIN_SIGNUP_CODE`. Install dependencies and run `npm run dev`; the API listens on port `5001` by default, and any legacy `PORT=5000` setting is remapped to `5001`.
 
-For Vite, copy `technician-hub/.env.example` to `.env.local`, install dependencies and run `npm run dev`. For Next.js, copy `nextjs/.env.example` to `.env.local`, install dependencies and run `npm run dev`. Both frontends default to `http://localhost:5000/api`; set `VITE_TECHNICIAN_API_URL` or `NEXT_PUBLIC_TECHNICIAN_API_URL` if the API uses another URL.
+For Vite, install dependencies in `technician-hub/` and run `npm run dev`; no API or environment file is required. For Next.js, copy `nextjs/.env.example` to `.env.local`, install dependencies and run `npm run dev`. Next.js defaults to `http://localhost:5001/api`; set `NEXT_PUBLIC_TECHNICIAN_API_URL` if the API uses another URL.
 
 Set API `ALLOWED_ORIGINS` to the exact frontend origins. When using Next.js for the payment-return flow, set the API's `FRONTEND_URL` to the Next.js origin. Do not copy real production secrets into a frontend environment file.
 
 ## 4. Authentication and access control
 
-Customer registration creates a customer role only. The API hashes passwords using scrypt, signs expiring HMAC tokens and checks the account's current role on each protected request. Customer accounts can see their own dashboard data and membership orders. Administrators must use the private invitation code for registration; the API does not expose a public admin bootstrap.
+On Next.js, customer registration creates a customer role only. The API hashes passwords using scrypt, signs expiring HMAC tokens and checks the account's current role on each protected request. Customer accounts can see their own dashboard data and membership orders. Administrators must use the private invitation code for registration; the API does not expose a public admin bootstrap. Vite's local demo uses editable browser storage and is not production authentication or authorization.
 
-`GET /api/client/dashboard` and all membership endpoints require a customer token. `GET /api/admin/dashboard` and `PATCH /api/admin/bookings/:id` require an admin token. These checks are enforced at the API boundary, not just by hiding frontend pages. Appointment requests submitted while signed in are linked to that customer account. Guest bookings are not linked to any customer based on the submitted email address alone.
+`GET /api/client/dashboard` and all membership endpoints require a customer token. `GET /api/admin/dashboard`, booking updates and all `/api/admin/catalog/*` endpoints require an admin token. The public catalogue is available at `GET /api/public/catalog`; service prices used to calculate estimates are read from the same server-side catalogue. These checks are enforced at the API boundary, not just by hiding frontend pages. Appointment requests submitted while signed in are linked to that customer account. Guest bookings are not linked to any customer based on the submitted email address alone.
 
 ## 5. Membership checkout
 
@@ -39,13 +39,13 @@ Membership lasts 365 days from verified payment and is not automatically renewed
 
 ## 6. Main routes and operations
 
-Public routes include `/`, `/services`, `/services/:serviceId`, `/maintenance`, `/about`, `/contact`, `/privacy`, `/terms`, `/warranty`, `/book`, `/checkout` and `/booking-confirmation`. Customer routes include `/portal/login`, `/portal/signup`, `/portal/dashboard` and `/membership/checkout`. Administrator routes include `/admin/login`, `/admin/signup` and `/admin/dashboard`.
+Public routes include `/`, `/services`, `/services/:serviceId`, `/technicians`, `/maintenance`, `/about`, `/contact`, `/privacy`, `/terms`, `/warranty`, `/book`, `/checkout` and `/booking-confirmation`. Customer routes include `/portal/login`, `/portal/signup`, `/portal/dashboard`, `/portal/dashboard/requests`, `/portal/dashboard/membership` and `/membership/checkout`. Administrator routes include `/admin/login`, `/admin/signup`, `/admin/dashboard`, `/admin/requests`, `/admin/memberships`, `/admin/customers`, `/admin/services` and `/admin/technicians`.
 
-Administrators can review appointment contact details, estimates, requested dates and status, then update each request to requested, confirmed, completed or cancelled. The operations dashboard summarizes customers, bookings and active memberships. Customers see only their own appointments and membership.
+Administrators can review appointment contact details, estimates, requested dates and status, then update each request to requested, confirmed, completed or cancelled. They can add services, edit service descriptions and starting prices, hide services from the public catalogue, and add or update technicians. Changes are persisted by the API and used for public display and server-side booking estimates. The operations dashboard summarizes customers, bookings and active memberships. Customers see only their own appointments and membership.
 
 ## 7. Customize the template
 
-Update the service names, descriptions, categories and starting prices in each frontend's `src/TechnicianApp.jsx` (Next.js) and `technician-hub/src/App.jsx` (Vite). Keep service identifiers and server-side price mappings in `backend/controllers/booking-controller.js` aligned. Membership name, currency and amount are server-owned in `backend/services/payment-service.js`; update that source and related tests together if changing the plan price.
+The Vite demo uses static sample services and technicians with a local-only storage adapter. Next.js reads its public catalogue from the API; initial service and technician examples are in `backend/services/catalog-data.js`, and administrators can maintain those records in the dashboard. Membership name, currency and amount are server-owned in `backend/services/payment-service.js`; update that source and related tests together if changing the plan price.
 
 Adjust branding and layouts in each frontend's `src/App.css` and `src/Portal.css`. Update service area, telephone, warranty statements and legal copy before launch. The current website content references Austin, TX and sample contact details; replace them with accurate business information.
 

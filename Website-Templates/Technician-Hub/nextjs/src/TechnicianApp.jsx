@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
@@ -27,13 +27,6 @@ import {
   X,
   Zap,
 } from 'lucide-react'
-import {
-  clearTechnicianSession,
-  getTechnicianSession,
-  saveTechnicianSession,
-  technicianApi,
-} from './services/technicianApi.js'
-
 const services = [
   {
     id: 'ac-tune-up',
@@ -109,10 +102,55 @@ const services = [
   },
 ]
 
-const serviceById = Object.fromEntries(services.map((service) => [service.id, service]))
+const defaultServiceById = Object.fromEntries(services.map((service) => [service.id, service]));
+const defaultTechnicians = [
+  {
+    id: 'technician-marcus',
+    name: 'Marcus Reed',
+    specialty: 'Heating and cooling',
+    experience: '8 years',
+    location: 'Austin, TX',
+    bio: 'EPA-certified technician focused on dependable, energy-efficient home comfort.',
+    active: true,
+  },
+  {
+    id: 'technician-jordan',
+    name: 'Jordan Ellis',
+    specialty: 'Indoor air quality',
+    experience: '6 years',
+    location: 'Austin, TX',
+    bio: 'Specialist in clean-air solutions, ductwork, and practical system improvements.',
+    active: true,
+  },
+]
+const CatalogContext = createContext({ services, technicians: defaultTechnicians })
 const money = (amount) => `$${Number(amount).toLocaleString('en-US')}`
 const today = new Date()
 const minBookingDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+
+function useCatalog() {
+  const catalog = useContext(CatalogContext)
+  return {
+    ...catalog,
+    serviceById: Object.fromEntries(catalog.services.map((service) => [service.id, service])),
+  }
+}
+
+function normalizeCatalog(catalog) {
+  if (!Array.isArray(catalog?.services) || !Array.isArray(catalog?.technicians)) {
+    throw new Error('The PolarFlow API returned an invalid service catalogue.')
+  }
+  const normalizedServices = catalog.services.map((service) => ({
+    ...defaultServiceById[service.id],
+    ...service,
+    icon: defaultServiceById[service.id]?.icon || Wrench,
+  }))
+  const membershipPlan = defaultServiceById['maintenance-plan']
+  return {
+    services: [...normalizedServices, membershipPlan],
+    technicians: catalog.technicians,
+  }
+}
 
 function useNavigation() {
   const [route, setRoute] = useState(() => `${window.location.pathname}${window.location.search}`)
@@ -165,10 +203,11 @@ function SiteHeader() {
         <nav className={`main-nav${menuOpen ? ' nav-open' : ''}`} aria-label="Main navigation">
           <a href="/services" onClick={closeMenu}>Services</a>
           <a href="/maintenance" onClick={closeMenu}>Maintenance plans</a>
+          <a href="/technicians" onClick={closeMenu}>Our technicians</a>
           <a href="/about" onClick={closeMenu}>Why PolarFlow</a>
           <a className="nav-phone" href="tel:+18005550147"><Phone size={15} /> (800) 555-0147</a>
           <a className="button button-primary nav-cta" href="/book" onClick={closeMenu}>Schedule a tech <ArrowRight size={15} /></a>
-          <a className="nav-portal" href="/portal/login" onClick={closeMenu}>Customer portal</a>
+          <a className="nav-portal" href="/portal/dashboard" onClick={closeMenu}>Dashboard</a>
         </nav>
       </div>
     </header>
@@ -183,8 +222,8 @@ function SiteFooter() {
           <Brand light />
           <p>Local HVAC experts, here to keep your home comfortable through every season.</p>
         </div>
-        <div className="footer-column"><strong>Explore</strong><a href="/services">All services</a><a href="/maintenance">Maintenance plans</a><a href="/about">About us</a></div>
-        <div className="footer-column"><strong>Get help</strong><a href="/contact">Contact</a><a href="/portal/login">Customer portal</a><a href="/admin/login">Admin portal</a><a href="/buyer-guide.pdf">Buyer guide (PDF)</a><a href="/warranty">Our warranty</a></div>
+        <div className="footer-column"><strong>Explore</strong><a href="/services">All services</a><a href="/technicians">Our technicians</a><a href="/maintenance">Maintenance plans</a><a href="/about">About us</a></div>
+        <div className="footer-column"><strong>Get help</strong><a href="/contact">Contact</a><a href="/portal/dashboard">Dashboard</a><a href="/buyer-guide.pdf">Buyer guide (PDF)</a><a href="/warranty">Our warranty</a></div>
         <div className="footer-column"><strong>Call anytime</strong><a href="tel:+18005550147">(800) 555-0147</a><span>24/7 emergency dispatch</span></div>
       </div>
       <div className="container footer-bottom">
@@ -225,12 +264,14 @@ function ServiceCard({ service }) {
 }
 
 function QuoteCalculator() {
+  const { services, serviceById } = useCatalog()
   const [serviceId, setServiceId] = useState('ac-tune-up')
   const [urgency, setUrgency] = useState('standard')
   const [zip, setZip] = useState('')
   const [availability, setAvailability] = useState('')
-  const selected = serviceById[serviceId]
-  const estimate = selected.price + (urgency === 'emergency' ? 100 : 0)
+  const serviceOptions = services.filter((service) => service.id !== 'maintenance-plan')
+  const selected = serviceById[serviceId] || serviceOptions[0]
+  const estimate = selected ? selected.price + (urgency === 'emergency' ? 100 : 0) : 0
   const checkAvailability = (event) => {
     event.preventDefault()
     if (!/^\d{5}$/.test(zip)) {
@@ -248,8 +289,8 @@ function QuoteCalculator() {
       <div className="quote-content">
         <div className="quote-controls">
           <label className="input-label" htmlFor="quote-service">01 — Service type</label>
-          <select id="quote-service" value={serviceId} onChange={(event) => setServiceId(event.target.value)}>
-            {services.slice(0, 5).map((service) => <option value={service.id} key={service.id}>{service.name}</option>)}
+          <select id="quote-service" value={selected?.id || ''} disabled={!selected} onChange={(event) => setServiceId(event.target.value)}>
+            {serviceOptions.slice(0, 5).map((service) => <option value={service.id} key={service.id}>{service.name}</option>)}
           </select>
           <label className="input-label urgency-label">02 — When do you need us?</label>
           <div className="urgency-options">
@@ -259,10 +300,10 @@ function QuoteCalculator() {
         </div>
         <div className="quote-estimate">
           <span className="input-label">YOUR FLAT-RATE ESTIMATE</span>
-          <div className="estimate-price">{money(estimate)}<small>+ tax</small></div>
+          <div className="estimate-price">{selected ? money(estimate) : 'Unavailable'}{selected && <small>+ tax</small>}</div>
           <p><ShieldCheck size={14} /> Price locked for 14 days</p>
           <span className="estimate-note">Includes diagnosis and the listed service.</span>
-          <a className="button button-primary estimate-cta" href={`/book?service=${serviceId}&urgency=${urgency}&estimate=${estimate}`}>Book this price <ArrowRight size={15} /></a>
+          {selected ? <a className="button button-primary estimate-cta" href={`/book?service=${selected.id}&urgency=${urgency}&estimate=${estimate}`}>Book this price <ArrowRight size={15} /></a> : <span className="small-muted">No services are available right now.</span>}
           <span className="estimate-small">Free diagnosis with repair</span>
         </div>
       </div>
@@ -277,6 +318,7 @@ function QuoteCalculator() {
 }
 
 function HomePage() {
+  const { services } = useCatalog()
   const [heroZip, setHeroZip] = useState('')
   const [heroNotice, setHeroNotice] = useState('')
   return (
@@ -341,6 +383,7 @@ function PageIntro({ eyebrow, title, description }) {
 }
 
 function ServicesPage() {
+  const { services } = useCatalog()
   return (
     <SiteShell>
       <main><PageIntro eyebrow="Services & upfront pricing" title="The right fix, at the right price." description="Browse our most-requested home comfort services. Every estimate is upfront, flat-rate, and free of surprises." />
@@ -351,7 +394,30 @@ function ServicesPage() {
   )
 }
 
+function TechniciansPage() {
+  const { technicians } = useCatalog()
+  return (
+    <SiteShell>
+      <main>
+        <PageIntro eyebrow="Our technicians" title="Meet the people behind your comfort." description="Get to know the local specialists who care for your home's heating, cooling, and air quality." />
+        <section className="container page-section">
+          {technicians.length === 0 ? <p className="small-muted">Our technician roster is being updated. Please check back soon.</p> : <div className="services-grid">
+            {technicians.map((technician) => <article className="service-card" key={technician.id}>
+              <div className="service-icon"><UserRound size={20} /></div>
+              <span className="service-category">{technician.specialty}</span>
+              <h3>{technician.name}</h3>
+              <p>{technician.bio}</p>
+              <div className="service-card-bottom"><span><strong>{technician.experience}</strong></span><span className="duration"><MapPin size={13} /> {technician.location}</span></div>
+            </article>)}
+          </div>}
+        </section>
+      </main>
+    </SiteShell>
+  )
+}
+
 function ServiceDetailPage({ serviceId }) {
+  const { services, serviceById } = useCatalog()
   const service = serviceById[serviceId]
   if (!service) return <NotFoundPage />
   const Icon = service.icon
@@ -371,15 +437,25 @@ function ServiceDetailPage({ serviceId }) {
   )
 }
 
-function BookingPage({ navigate }) {
+function BookingPage({ navigate, api }) {
+  const { services, serviceById } = useCatalog()
   const query = new URLSearchParams(window.location.search)
-  const initialService = serviceById[query.get('service')] && query.get('service') !== 'maintenance-plan' ? query.get('service') : 'ac-tune-up'
+  const requestedServiceId = query.get('service')
+  const serviceOptions = services.filter((item) => item.id !== 'maintenance-plan')
+  const initialService = serviceById[requestedServiceId] && requestedServiceId !== 'maintenance-plan' ? requestedServiceId : serviceOptions[0]?.id || ''
   const [serviceId, setServiceId] = useState(initialService)
   const [urgency, setUrgency] = useState(query.get('urgency') === 'emergency' ? 'emergency' : 'standard')
   const [formError, setFormError] = useState('')
   const [zip, setZip] = useState('')
-  const service = serviceById[serviceId]
-  const estimate = service.price + (urgency === 'emergency' ? 100 : 0)
+  const service = serviceById[serviceId] || serviceOptions[0]
+  const estimate = service ? service.price + (urgency === 'emergency' ? 100 : 0) : 0
+
+  useEffect(() => {
+    if (requestedServiceId && requestedServiceId !== 'maintenance-plan' && services.some((item) => item.id === requestedServiceId)) {
+      setServiceId(requestedServiceId)
+    }
+  }, [requestedServiceId, services])
+
   const submitBooking = (event) => {
     event.preventDefault()
     setFormError('')
@@ -389,7 +465,7 @@ function BookingPage({ navigate }) {
     }
     const formData = new FormData(event.currentTarget)
     const booking = {
-      serviceId,
+      serviceId: service.id,
       urgency,
       estimate,
       name: formData.get('name'),
@@ -409,6 +485,10 @@ function BookingPage({ navigate }) {
     }
   }
 
+  if (!service) {
+    return <SiteShell><main className="empty-state container"><div className="service-icon"><Wrench size={22} /></div><h1>No services are available</h1><p>Please contact PolarFlow to arrange a service visit.</p><a className="button button-primary" href="/contact">Contact us <ArrowRight size={15} /></a></main></SiteShell>
+  }
+
   return (
     <SiteShell>
       <main><PageIntro eyebrow="Schedule a technician" title="Book a time that works for you." description="Tell us what you need and choose an arrival window. Review your request before confirming." />
@@ -417,7 +497,7 @@ function BookingPage({ navigate }) {
             {formError && <p className="form-error" role="alert">{formError}</p>}
             <div className="form-section-title"><span>01</span><div><h2>Your service</h2><p>Choose the help you need.</p></div></div>
             <div className="field-grid">
-              <label className="field-label full-span">Service<select name="service" value={serviceId} onChange={(event) => setServiceId(event.target.value)}>{services.filter((item) => item.id !== 'maintenance-plan').map((item) => <option value={item.id} key={item.id}>{item.name} — from {money(item.price)}</option>)}</select></label>
+              <label className="field-label full-span">Service<select name="service" value={service.id} onChange={(event) => setServiceId(event.target.value)}>{serviceOptions.map((item) => <option value={item.id} key={item.id}>{item.name} — from {money(item.price)}</option>)}</select></label>
               <label className="field-label">ZIP code<input name="zip" value={zip} onChange={(event) => setZip(event.target.value.replace(/\D/g, '').slice(0, 5))} inputMode="numeric" autoComplete="postal-code" placeholder="78704" required /></label>
               <label className="field-label">Appointment date<input name="date" type="date" min={minBookingDate} required /></label>
               <label className="field-label full-span">Arrival window<select name="time" defaultValue="" required><option value="" disabled>Select a time window</option><option>8:00 AM – 10:00 AM</option><option>10:00 AM – 12:00 PM</option><option>12:00 PM – 2:00 PM</option><option>2:00 PM – 4:00 PM</option><option>4:00 PM – 6:00 PM</option></select></label>
@@ -468,7 +548,8 @@ function readBooking() {
   }
 }
 
-function CheckoutPage({ navigate }) {
+function CheckoutPage({ navigate, api }) {
+  const { serviceById } = useCatalog()
   const [booking] = useState(readBooking)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -481,7 +562,7 @@ function CheckoutPage({ navigate }) {
     setSaving(true)
     setError('')
     try {
-      const result = await technicianApi.createBooking(booking)
+      const result = await api.createBooking(booking)
       window.localStorage.removeItem('polarflow-booking')
       navigate(`/booking-confirmation?reference=${encodeURIComponent(result.booking.reference)}`)
     } catch (requestError) {
@@ -528,6 +609,7 @@ function CheckoutPage({ navigate }) {
 }
 
 function BookingConfirmationPage() {
+  const { serviceById } = useCatalog()
   const [booking] = useState(readBooking)
   const service = booking ? serviceById[booking.serviceId] : null
   const reference = new URLSearchParams(window.location.search).get('reference')
@@ -540,14 +622,14 @@ function BookingConfirmationPage() {
           <p>{reference ? 'A PolarFlow team member will contact you to confirm your arrival window and service details. No service payment was collected online.' : booking ? `Thanks, ${booking.name}. Review your appointment details and submit the request to PolarFlow.` : 'Schedule a service to see your appointment confirmation here.'}</p>
           {reference && <p className="request-reference">Request number <strong>{reference}</strong></p>}
           {booking && service && <div className="confirmation-details"><span>Request number<strong>{booking.reference}</strong></span><span>Service<strong>{service.name}</strong></span><span>Appointment<strong>{booking.date} · {booking.time}</strong></span><span>Estimate<strong>{money(booking.estimate)} + tax</strong></span></div>}
-          <div className="confirmation-actions"><a className="button button-primary" href="tel:+18005550147"><Phone size={15} /> Call to confirm appointment</a><a className="text-link" href="/portal/login">Customer portal</a><a className="text-link" href="/">Back to home</a></div>
+          <div className="confirmation-actions"><a className="button button-primary" href="tel:+18005550147"><Phone size={15} /> Call to confirm appointment</a><a className="text-link" href="/portal/dashboard">Dashboard</a><a className="text-link" href="/">Back to home</a></div>
         </div>
       </main>
     </SiteShell>
   )
 }
 
-function PortalPage({ isSignUp, navigate }) {
+function PortalPage({ isSignUp, navigate, api }) {
   const [notice, setNotice] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
@@ -560,13 +642,26 @@ function PortalPage({ isSignUp, navigate }) {
     const body = Object.fromEntries(values.entries())
     try {
       const result = isSignUp
-        ? await technicianApi.signupClient(body)
-        : await technicianApi.login({ email: body.email, password: body.password, expectedRole: 'client' })
-      saveTechnicianSession(result)
+        ? await api.signupClient(body)
+        : await api.login({ email: body.email, password: body.password, expectedRole: 'client' })
+      api.saveSession(result)
       const requestedPath = new URLSearchParams(window.location.search).get('next')
       navigate(requestedPath?.startsWith('/') ? requestedPath : '/portal/dashboard')
     } catch (error) {
       setFormError(error instanceof Error ? error.message : 'Your account request could not be completed.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+  const openDemoDashboard = async () => {
+    setSubmitting(true)
+    setFormError('')
+    try {
+      const session = await api.demoClientSession()
+      api.saveSession(session)
+      navigate('/portal/dashboard')
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'The sample customer dashboard could not be opened.')
     } finally {
       setSubmitting(false)
     }
@@ -598,6 +693,7 @@ function PortalPage({ isSignUp, navigate }) {
             <div className="portal-form-options">{!isSignUp && <label><input type="checkbox" defaultChecked /> Remember me</label>}{!isSignUp && <a href="/portal/reset-password">Forgot password?</a>}</div>
             <button className="button button-primary full-button" type="submit" disabled={submitting}>{submitting ? 'Please wait…' : isSignUp ? 'Create account' : 'Sign in'} <ArrowRight size={15} /></button>
           </form>
+          {!isSignUp && api.demoClientSession && <button className="button button-secondary full-button" type="button" disabled={submitting} onClick={openDemoDashboard}>Explore sample customer dashboard <ArrowRight size={15} /></button>}
           {formError && <p className="form-error" role="alert">{formError}</p>}
           {notice && <p className="form-notice" role="status">{notice}</p>}
           {!isSignUp && <><div className="portal-divider"><span>or continue with</span></div><div className="social-buttons"><button type="button" onClick={() => setNotice('Google sign-in is not configured for this site.')}>G&nbsp; Google</button><button type="button" onClick={() => setNotice('Apple sign-in is not configured for this site.')}>&nbsp; Apple</button></div></>}
@@ -697,8 +793,8 @@ function NotFoundPage() {
   return <SiteShell><main className="empty-state container"><div className="service-icon"><Wrench size={22} /></div><span className="eyebrow">404 · Page not found</span><h1>Looks like this page needs a tune-up.</h1><p>The page may have moved. Head home or browse our HVAC services.</p><div className="not-found-actions"><a className="button button-primary" href="/">Back to home <ArrowRight size={15} /></a><a className="text-link" href="/services">Browse services</a></div></main></SiteShell>
 }
 
-function MembershipCheckoutPage() {
-  const [session] = useState(getTechnicianSession)
+function MembershipCheckoutPage({ api }) {
+  const [session] = useState(api.getSession)
   const [providers, setProviders] = useState([])
   const [membership, setMembership] = useState(null)
   const [error, setError] = useState('')
@@ -712,13 +808,13 @@ function MembershipCheckoutPage() {
     let active = true
     const search = new URLSearchParams(window.location.search)
     Promise.all([
-      technicianApi.membershipProviders(),
+      api.membershipProviders(),
       (async () => {
         const provider = search.get('provider')
         const membershipId = search.get('membershipId')
         const reference = provider === 'stripe' ? search.get('session_id') : search.get('reference')
         if (!provider || !membershipId || !reference) return null
-        return technicianApi.verifyMembership({ provider, membershipId, reference })
+        return api.verifyMembership({ provider, membershipId, reference })
       })(),
     ]).then(([available, verification]) => {
       if (!active) return
@@ -737,7 +833,7 @@ function MembershipCheckoutPage() {
     setSubmitting(true)
     setError('')
     try {
-      const checkout = await technicianApi.createMembershipCheckout(provider)
+      const checkout = await api.createMembershipCheckout(provider)
       window.location.assign(checkout.redirectUrl)
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Secure checkout could not be started.')
@@ -790,23 +886,24 @@ function MembershipCheckoutPage() {
   )
 }
 
-function PortalDashboardPage() {
-  const [session] = useState(getTechnicianSession)
+function PortalDashboardPage({ api, section = 'overview' }) {
+  const { serviceById } = useCatalog()
+  const [session] = useState(api.getSession)
   const [dashboard, setDashboard] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(() => session?.user.role === 'client')
 
   useEffect(() => {
     if (!session || session.user.role !== 'client') return
-    technicianApi.clientDashboard()
+    api.clientDashboard()
       .then(setDashboard)
       .catch((requestError) => setError(requestError instanceof Error ? requestError.message : 'Customer dashboard could not be loaded.'))
       .finally(() => setLoading(false))
-  }, [session])
+  }, [api, session])
   const accessError = session && session.user.role !== 'client' ? 'This account does not have customer portal access.' : ''
 
   const signOut = () => {
-    clearTechnicianSession()
+    api.clearSession()
     window.location.assign('/portal/login')
   }
 
@@ -817,28 +914,28 @@ function PortalDashboardPage() {
           <a className="dashboard-sidebar-brand" href="/"><img src="/favicon.svg" alt="" /><span>PolarFlow<small>Customer portal</small></span></a>
           <span className="dashboard-nav-label">WORKSPACE</span>
           <nav className="dashboard-sidebar-nav" aria-label="Customer dashboard">
-            <a className="is-active" href="/portal/dashboard"><Home size={17} /> Overview</a>
-            <a href="/portal/dashboard#requests"><CalendarDays size={17} /> Service requests</a>
-            <a href="/portal/dashboard#membership"><CreditCard size={17} /> Membership</a>
+            <a className={section === 'overview' ? 'is-active' : ''} href="/portal/dashboard"><Home size={17} /> Overview</a>
+            <a className={section === 'requests' ? 'is-active' : ''} href="/portal/dashboard/requests"><CalendarDays size={17} /> Service requests</a>
+            <a className={section === 'membership' ? 'is-active' : ''} href="/portal/dashboard/membership"><CreditCard size={17} /> Membership</a>
             <a href="/book"><Phone size={17} /> Schedule service</a>
           </nav>
           <div className="dashboard-sidebar-footer"><a href="/">Back to website <ArrowRight size={14} /></a><span><i /> Customer workspace</span></div>
         </aside>
         <div className="dashboard-main">
           <div className="dashboard-heading">
-            <div><span className="eyebrow">CUSTOMER PORTAL</span><h1>Your home comfort, at a glance.</h1><p>{session?.user.name || 'Sign in to view your account.'}</p></div>
+            <div><span className="eyebrow">CUSTOMER PORTAL</span><h1>{section === 'requests' ? 'Your service requests' : section === 'membership' ? 'Your membership' : 'Your home comfort, at a glance.'}</h1><p>{session?.user.name || 'Sign in to view your account.'}</p></div>
             {session && <button className="button button-secondary" type="button" onClick={signOut}>Sign out</button>}
           </div>
           {!session && <div className="form-card"><p>Please sign in to access your private customer dashboard.</p><a className="button button-primary" href="/portal/login">Customer sign in <ArrowRight size={15} /></a></div>}
           {(error || accessError) && <p className="form-error" role="alert">{error || accessError} <a href="/portal/login">Sign in to the customer portal</a></p>}
           {loading && <p>Loading your account…</p>}
           {dashboard && <>
-            <div className="dashboard-metrics">
+            {section === 'overview' && <div className="dashboard-metrics">
               <article><span>Service requests</span><strong>{dashboard.bookings.length}</strong></article>
               <article><span>Plan membership</span><strong>{dashboard.activeMembership ? 'Active' : 'Not enrolled'}</strong></article>
-            </div>
-            <div className="dashboard-grid">
-              <section className="form-card" id="requests">
+            </div>}
+            {section === 'overview' && <div className="dashboard-grid">
+              <section className="form-card">
                 <div className="dashboard-section-heading"><h2>Service requests</h2><a className="text-link" href="/book">Schedule a technician <ArrowRight size={14} /></a></div>
                 {dashboard.bookings.length === 0 ? <p className="small-muted">Your submitted requests will appear here.</p> : dashboard.bookings.map((booking) => (
                   <article className="dashboard-record" key={booking.id}>
@@ -847,11 +944,24 @@ function PortalDashboardPage() {
                   </article>
                 ))}
               </section>
-              <section className="form-card" id="membership">
+              <section className="form-card">
                 <div className="dashboard-section-heading"><h2>Membership</h2><a className="text-link" href="/membership/checkout">View plan <ArrowRight size={14} /></a></div>
                 {dashboard.activeMembership ? <div className="dashboard-record"><div><strong>Home Comfort Plan</strong><span>Active through {new Date(dashboard.activeMembership.expiresAt).toLocaleDateString()}</span></div><span className="status-pill status-active">active</span></div> : <><p className="small-muted">Enroll for two seasonal tune-ups and priority scheduling.</p><a className="button button-primary" href="/membership/checkout">Join for $199 / year</a></>}
               </section>
-            </div>
+            </div>}
+            {section === 'requests' && <section className="form-card">
+              <div className="dashboard-section-heading"><h2>Service requests</h2><a className="text-link" href="/book">Schedule a technician <ArrowRight size={14} /></a></div>
+              {dashboard.bookings.length === 0 ? <p className="small-muted">Your submitted requests will appear here.</p> : dashboard.bookings.map((booking) => (
+                <article className="dashboard-record" key={booking.id}>
+                  <div><strong>{serviceById[booking.serviceId]?.name || booking.serviceId}</strong><span>{booking.date} · {booking.time} · {booking.zip}</span><small>{booking.reference}</small></div>
+                  <span className={`status-pill status-${booking.status}`}>{booking.status}</span>
+                </article>
+              ))}
+            </section>}
+            {section === 'membership' && <section className="form-card">
+              <div className="dashboard-section-heading"><h2>Membership</h2><a className="text-link" href="/membership/checkout">View plan <ArrowRight size={14} /></a></div>
+              {dashboard.activeMembership ? <div className="dashboard-record"><div><strong>Home Comfort Plan</strong><span>Active through {new Date(dashboard.activeMembership.expiresAt).toLocaleDateString()}</span></div><span className="status-pill status-active">active</span></div> : <><p className="small-muted">Enroll for two seasonal tune-ups and priority scheduling.</p><a className="button button-primary" href="/membership/checkout">Join for $199 / year</a></>}
+            </section>}
           </>}
         </div>
       </main>
@@ -859,7 +969,7 @@ function PortalDashboardPage() {
   )
 }
 
-function AdminAuthPage({ isSignUp, navigate }) {
+function AdminAuthPage({ isSignUp, navigate, api }) {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -870,12 +980,26 @@ function AdminAuthPage({ isSignUp, navigate }) {
     const values = Object.fromEntries(new FormData(event.currentTarget).entries())
     try {
       const result = isSignUp
-        ? await technicianApi.signupAdmin(values)
-        : await technicianApi.login({ email: values.email, password: values.password, expectedRole: 'admin' })
-      saveTechnicianSession(result)
+        ? await api.signupAdmin(values)
+        : await api.login({ email: values.email, password: values.password, expectedRole: 'admin' })
+      api.saveSession(result)
       navigate('/admin/dashboard')
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Administrator access could not be verified.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const openDemoDashboard = async () => {
+    setSubmitting(true)
+    setError('')
+    try {
+      const session = await api.demoAdminSession()
+      api.saveSession(session)
+      navigate('/admin/dashboard')
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'The sample administrator dashboard could not be opened.')
     } finally {
       setSubmitting(false)
     }
@@ -896,6 +1020,7 @@ function AdminAuthPage({ isSignUp, navigate }) {
           {error && <p className="form-error" role="alert">{error}</p>}
           <button className="button button-primary full-button" type="submit" disabled={submitting}>{submitting ? 'Please wait…' : isSignUp ? 'Create administrator' : 'Sign in'} <ArrowRight size={15} /></button>
         </form>
+        {!isSignUp && api.demoAdminSession && <button className="button button-secondary full-button" type="button" disabled={submitting} onClick={openDemoDashboard}>Explore sample admin dashboard <ArrowRight size={15} /></button>}
         <p className="portal-switch">{isSignUp ? 'Already have an admin account?' : 'Need the private registration page?'} <a href={isSignUp ? '/admin/login' : '/admin/signup'}>{isSignUp ? 'Sign in' : 'Register'}</a></p>
       </div>
     </main>
@@ -907,41 +1032,104 @@ const adminSections = {
   requests: { title: 'Service requests', description: 'Review appointment requests and update their status.' },
   memberships: { title: 'Memberships', description: 'Review membership payments and enrollment status.' },
   customers: { title: 'Customers', description: 'Browse customer accounts and contact details.' },
+  services: { title: 'Services and pricing', description: 'Manage the public service catalogue and starting prices.' },
+  technicians: { title: 'Technicians', description: 'Manage the technicians shown on the public team page.' },
 }
 
-function AdminDashboardPage({ section = 'overview' }) {
-  const [session] = useState(getTechnicianSession)
+function AdminDashboardPage({ section = 'overview', api, onCatalogChange }) {
+  const { serviceById } = useCatalog()
+  const [session] = useState(api.getSession)
   const [dashboard, setDashboard] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(() => session?.user.role === 'admin')
   const [updating, setUpdating] = useState('')
+  const [savingCatalog, setSavingCatalog] = useState(false)
+  const [editingService, setEditingService] = useState(null)
+  const [editingTechnician, setEditingTechnician] = useState(null)
   const activeSection = adminSections[section] ? section : 'overview'
 
   useEffect(() => {
     if (!session || session.user.role !== 'admin') return
-    technicianApi.adminDashboard()
+    api.adminDashboard()
       .then(setDashboard)
       .catch((requestError) => setError(requestError instanceof Error ? requestError.message : 'Administrator dashboard could not be loaded.'))
       .finally(() => setLoading(false))
-  }, [session])
+  }, [api, session])
   const accessError = session && session.user.role !== 'admin' ? 'Administrator access is required to view this dashboard.' : ''
 
   const signOut = () => {
-    clearTechnicianSession()
+    api.clearSession()
     window.location.assign('/admin/login')
+  }
+
+  const reloadDashboard = async () => {
+    const result = await api.adminDashboard()
+    setDashboard(result)
   }
 
   const updateStatus = async (id, status) => {
     setUpdating(id)
     setError('')
     try {
-      await technicianApi.updateBooking(id, status)
-      const result = await technicianApi.adminDashboard()
-      setDashboard(result)
+      await api.updateBooking(id, status)
+      await reloadDashboard()
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Booking status could not be updated.')
     } finally {
       setUpdating('')
+    }
+  }
+
+  const saveService = async (event) => {
+    event.preventDefault()
+    setSavingCatalog(true)
+    setError('')
+    const values = Object.fromEntries(new FormData(event.currentTarget).entries())
+    const body = {
+      ...(editingService ? {} : { id: values.id }),
+      name: values.name,
+      description: values.description,
+      price: Number(values.price),
+      duration: values.duration,
+      category: values.category,
+      active: values.active === 'on',
+    }
+    try {
+      if (editingService) await api.updateService(editingService.id, body)
+      else await api.createService(body)
+      await reloadDashboard()
+      await onCatalogChange()
+      setEditingService(null)
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'The service catalogue could not be saved.')
+    } finally {
+      setSavingCatalog(false)
+    }
+  }
+
+  const saveTechnician = async (event) => {
+    event.preventDefault()
+    setSavingCatalog(true)
+    setError('')
+    const values = Object.fromEntries(new FormData(event.currentTarget).entries())
+    const body = {
+      name: values.name,
+      specialty: values.specialty,
+      experience: values.experience,
+      location: values.location,
+      bio: values.bio,
+      active: values.active === 'on',
+    }
+    try {
+      if (editingTechnician) await api.updateTechnician(editingTechnician.id, body)
+      else await api.createTechnician(body)
+      await reloadDashboard()
+      await onCatalogChange()
+      setEditingTechnician(null)
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'The technician roster could not be saved.')
+    } finally {
+      setSavingCatalog(false)
     }
   }
 
@@ -955,6 +1143,8 @@ function AdminDashboardPage({ section = 'overview' }) {
           <a className={activeSection === 'requests' ? 'is-active' : ''} href="/admin/requests"><CalendarDays size={17} /> Service requests</a>
           <a className={activeSection === 'memberships' ? 'is-active' : ''} href="/admin/memberships"><CreditCard size={17} /> Memberships</a>
           <a className={activeSection === 'customers' ? 'is-active' : ''} href="/admin/customers"><UserRound size={17} /> Customers</a>
+          {api.createService && <a className={activeSection === 'services' ? 'is-active' : ''} href="/admin/services"><Wrench size={17} /> Services and pricing</a>}
+          {api.createTechnician && <a className={activeSection === 'technicians' ? 'is-active' : ''} href="/admin/technicians"><UserRound size={17} /> Technicians</a>}
         </nav>
         <div className="dashboard-sidebar-footer"><a href="/">Back to website <ArrowRight size={14} /></a><span><ShieldCheck size={14} /> Operations workspace</span></div>
       </aside>
@@ -978,6 +1168,8 @@ function AdminDashboardPage({ section = 'overview' }) {
             <a href="/admin/requests"><CalendarDays size={18} /><span><strong>Service requests</strong><small>Review appointments and update statuses.</small></span><ArrowRight size={15} /></a>
             <a href="/admin/memberships"><CreditCard size={18} /><span><strong>Memberships</strong><small>Review plan enrollments and payment status.</small></span><ArrowRight size={15} /></a>
             <a href="/admin/customers"><UserRound size={18} /><span><strong>Customers</strong><small>Browse registered customer accounts.</small></span><ArrowRight size={15} /></a>
+            {api.createService && <a href="/admin/services"><Wrench size={18} /><span><strong>Services and pricing</strong><small>Edit public services and starting prices.</small></span><ArrowRight size={15} /></a>}
+            {api.createTechnician && <a href="/admin/technicians"><UserRound size={18} /><span><strong>Technicians</strong><small>Add and update your public technician roster.</small></span><ArrowRight size={15} /></a>}
           </div>
           </>}
           {activeSection === 'requests' && <section className="form-card dashboard-table-card">
@@ -1012,35 +1204,125 @@ function AdminDashboardPage({ section = 'overview' }) {
               <tbody>{dashboard.customers.map((customer) => <tr key={customer.id}><td>{customer.name}</td><td>{customer.email}</td><td>{customer.phone || '—'}</td><td>{new Date(customer.createdAt).toLocaleDateString()}</td></tr>)}</tbody>
             </table></div>}
           </section>}
+          {activeSection === 'services' && api.createService && <div className="dashboard-grid">
+            <section className="form-card">
+              <div className="dashboard-section-heading"><h2>{editingService ? 'Edit service' : 'Add a service'}</h2><button className="text-link" type="button" onClick={() => setEditingService(null)}>Clear</button></div>
+              <form key={editingService?.id || 'new-service'} onSubmit={saveService}>
+                {!editingService && <label className="field-label">Service ID<input name="id" placeholder="example-service" pattern="[a-z0-9]+(-[a-z0-9]+)*" required /></label>}
+                <label className="field-label">Service name<input name="name" defaultValue={editingService?.name || ''} maxLength={100} required /></label>
+                <label className="field-label">Description<textarea name="description" defaultValue={editingService?.description || ''} maxLength={1000} rows="3" required /></label>
+                <div className="field-grid">
+                  <label className="field-label">Starting price (USD)<input name="price" type="number" min="1" max="100000" step="1" defaultValue={editingService?.price ?? ''} required /></label>
+                  <label className="field-label">Duration<input name="duration" defaultValue={editingService?.duration || ''} maxLength={60} required /></label>
+                  <label className="field-label full-span">Category<input name="category" defaultValue={editingService?.category || ''} maxLength={60} required /></label>
+                </div>
+                <label className="catalog-active-toggle"><input name="active" type="checkbox" defaultChecked={editingService?.active ?? true} /> Show this service on the website</label>
+                <button className="button button-primary full-button" type="submit" disabled={savingCatalog}>{savingCatalog ? 'Saving…' : editingService ? 'Save service' : 'Add service'} <ArrowRight size={15} /></button>
+              </form>
+            </section>
+            <section className="form-card dashboard-table-card">
+              <div className="dashboard-section-heading"><h2>Service catalogue</h2><span>{dashboard.services.length} services</span></div>
+              <div className="dashboard-table-wrap"><table className="dashboard-table">
+                <thead><tr><th>Service</th><th>Starting price</th><th>Status</th><th></th></tr></thead>
+                <tbody>{dashboard.services.map((service) => <tr key={service.id}>
+                  <td><strong>{service.name}</strong><small>{service.category} · {service.duration}</small></td>
+                  <td>{money(service.price)}</td>
+                  <td><span className={`status-pill status-${service.active ? 'active' : 'cancelled'}`}>{service.active ? 'active' : 'hidden'}</span></td>
+                  <td><button className="text-link" type="button" onClick={() => setEditingService(service)}>Edit</button></td>
+                </tr>)}</tbody>
+              </table></div>
+            </section>
+          </div>}
+          {activeSection === 'technicians' && api.createTechnician && <div className="dashboard-grid">
+            <section className="form-card">
+              <div className="dashboard-section-heading"><h2>{editingTechnician ? 'Edit technician' : 'Add a technician'}</h2><button className="text-link" type="button" onClick={() => setEditingTechnician(null)}>Clear</button></div>
+              <form key={editingTechnician?.id || 'new-technician'} onSubmit={saveTechnician}>
+                <label className="field-label">Name<input name="name" defaultValue={editingTechnician?.name || ''} maxLength={100} required /></label>
+                <label className="field-label">Specialty<input name="specialty" defaultValue={editingTechnician?.specialty || ''} maxLength={100} required /></label>
+                <div className="field-grid">
+                  <label className="field-label">Experience<input name="experience" defaultValue={editingTechnician?.experience || ''} maxLength={60} placeholder="5 years" required /></label>
+                  <label className="field-label">Location<input name="location" defaultValue={editingTechnician?.location || ''} maxLength={120} required /></label>
+                </div>
+                <label className="field-label">Biography<textarea name="bio" defaultValue={editingTechnician?.bio || ''} maxLength={500} rows="3" required /></label>
+                <label className="catalog-active-toggle"><input name="active" type="checkbox" defaultChecked={editingTechnician?.active ?? true} /> Show this technician on the website</label>
+                <button className="button button-primary full-button" type="submit" disabled={savingCatalog}>{savingCatalog ? 'Saving…' : editingTechnician ? 'Save technician' : 'Add technician'} <ArrowRight size={15} /></button>
+              </form>
+            </section>
+            <section className="form-card dashboard-table-card">
+              <div className="dashboard-section-heading"><h2>Technician roster</h2><span>{dashboard.technicians.length} technicians</span></div>
+              <div className="dashboard-table-wrap"><table className="dashboard-table">
+                <thead><tr><th>Technician</th><th>Specialty</th><th>Status</th><th></th></tr></thead>
+                <tbody>{dashboard.technicians.map((technician) => <tr key={technician.id}>
+                  <td><strong>{technician.name}</strong><small>{technician.experience} · {technician.location}</small></td>
+                  <td>{technician.specialty}</td>
+                  <td><span className={`status-pill status-${technician.active ? 'active' : 'cancelled'}`}>{technician.active ? 'active' : 'hidden'}</span></td>
+                  <td><button className="text-link" type="button" onClick={() => setEditingTechnician(technician)}>Edit</button></td>
+                </tr>)}</tbody>
+              </table></div>
+            </section>
+          </div>}
         </>}
       </div>
     </main>
   )
 }
 
-export default function App() {
+export default function App({ api }) {
   const { route, navigate, handleLinkClick } = useNavigation()
+  const [catalog, setCatalog] = useState({ services, technicians: defaultTechnicians })
+  const [catalogError, setCatalogError] = useState('')
   const [pathname, search = ''] = route.split('?')
   const serviceId = decodeURIComponent(pathname.split('/').filter(Boolean).at(-1) || '')
+  const refreshCatalog = async () => {
+    if (typeof api.catalog !== 'function') return
+    const result = await api.catalog()
+    setCatalog(normalizeCatalog(result))
+    setCatalogError('')
+  }
+
+  useEffect(() => {
+    if (typeof api.catalog !== 'function') return
+    let active = true
+    api.catalog()
+      .then((result) => {
+        if (active) {
+          setCatalog(normalizeCatalog(result))
+          setCatalogError('')
+        }
+      })
+      .catch((requestError) => {
+        if (active) setCatalogError(requestError instanceof Error ? requestError.message : 'The live service catalogue could not be loaded.')
+      })
+    return () => { active = false }
+  }, [api])
+
   let page
   if (pathname === '/') page = <HomePage />
   else if (pathname === '/services') page = <ServicesPage />
+  else if (pathname === '/technicians') page = <TechniciansPage />
   else if (pathname.startsWith('/services/')) page = <ServiceDetailPage serviceId={serviceId} />
-  else if (pathname === '/book') page = <BookingPage key={route} navigate={navigate} />
-  else if (pathname === '/checkout') page = <CheckoutPage navigate={navigate} />
+  else if (pathname === '/book') page = <BookingPage key={route} navigate={navigate} api={api} />
+  else if (pathname === '/checkout') page = <CheckoutPage navigate={navigate} api={api} />
   else if (pathname === '/booking-confirmation') page = <BookingConfirmationPage />
-  else if (pathname === '/portal/login') page = <PortalPage isSignUp={false} navigate={navigate} />
-  else if (pathname === '/portal/signup') page = <PortalPage isSignUp navigate={navigate} />
-  else if (pathname === '/portal/dashboard') page = <PortalDashboardPage />
-  else if (pathname === '/membership/checkout') page = <MembershipCheckoutPage />
-  else if (pathname === '/admin/login') page = <AdminAuthPage isSignUp={false} navigate={navigate} />
-  else if (pathname === '/admin/signup') page = <AdminAuthPage isSignUp navigate={navigate} />
-  else if (pathname === '/admin/dashboard') page = <AdminDashboardPage key={pathname} section="overview" />
-  else if (pathname === '/admin/requests') page = <AdminDashboardPage key={pathname} section="requests" />
-  else if (pathname === '/admin/memberships') page = <AdminDashboardPage key={pathname} section="memberships" />
-  else if (pathname === '/admin/customers') page = <AdminDashboardPage key={pathname} section="customers" />
+  else if (pathname === '/portal/login') page = <PortalPage isSignUp={false} navigate={navigate} api={api} />
+  else if (pathname === '/portal/signup') page = <PortalPage isSignUp navigate={navigate} api={api} />
+  else if (pathname === '/portal/dashboard') page = <PortalDashboardPage key={pathname} api={api} section="overview" />
+  else if (pathname === '/portal/dashboard/requests') page = <PortalDashboardPage key={pathname} api={api} section="requests" />
+  else if (pathname === '/portal/dashboard/membership') page = <PortalDashboardPage key={pathname} api={api} section="membership" />
+  else if (pathname === '/membership/checkout') page = <MembershipCheckoutPage api={api} />
+  else if (pathname === '/admin/login') page = <AdminAuthPage isSignUp={false} navigate={navigate} api={api} />
+  else if (pathname === '/admin/signup') page = <AdminAuthPage isSignUp navigate={navigate} api={api} />
+  else if (pathname === '/admin/dashboard') page = <AdminDashboardPage key={pathname} api={api} onCatalogChange={refreshCatalog} section="overview" />
+  else if (pathname === '/admin/requests') page = <AdminDashboardPage key={pathname} api={api} onCatalogChange={refreshCatalog} section="requests" />
+  else if (pathname === '/admin/memberships') page = <AdminDashboardPage key={pathname} api={api} onCatalogChange={refreshCatalog} section="memberships" />
+  else if (pathname === '/admin/customers') page = <AdminDashboardPage key={pathname} api={api} onCatalogChange={refreshCatalog} section="customers" />
+  else if (pathname === '/admin/services' && api.createService) page = <AdminDashboardPage key={pathname} api={api} onCatalogChange={refreshCatalog} section="services" />
+  else if (pathname === '/admin/technicians' && api.createTechnician) page = <AdminDashboardPage key={pathname} api={api} onCatalogChange={refreshCatalog} section="technicians" />
   else if (pathname === '/portal/reset-password') page = <ResetPasswordPage />
   else if (information[pathname.slice(1)]) page = <InformationPage page={pathname.slice(1)} />
   else page = <NotFoundPage />
-  return <div onClick={handleLinkClick} data-search={search}>{page}</div>
+  return <CatalogContext.Provider value={catalog}><div onClick={handleLinkClick} data-search={search}>
+    {catalogError && <p className="container form-error" role="alert">Live service catalogue is unavailable: {catalogError}. Displaying sample catalogue data.</p>}
+    {page}
+  </div></CatalogContext.Provider>
 }

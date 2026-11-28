@@ -22,7 +22,7 @@ Copy `.env.example` to `.env`; do not commit `.env`. Set:
 - `ALLOWED_ORIGINS` to the exact Vite and/or Next.js browser origins.
 - `FRONTEND_URL` to the frontend origin used for payment return URLs.
 
-`npm install` and `npm run dev` start the API on port `5000`. The API refuses to start without MongoDB and a signing secret.
+`npm install` and `npm run dev` start the API on port `5001` by default, keeping it separate from other local template APIs. A legacy `PORT=5000` setting is remapped to port `5001`. The API refuses to start without MongoDB and a signing secret.
 
 ## Roles and routes
 

@@ -10,7 +10,7 @@ import ClientDashboardPage from './pages/ClientDashboardPage'
 import AdminAuthPage from './pages/AdminAuthPage'
 import AdminDashboardPage from './pages/AdminDashboardPage'
 import PaymentCallbackPage from './pages/PaymentCallbackPage'
-import { getStays } from './services/escapesApi'
+import { getStays } from './services/escapesLocalStore'
 import './App.css'
 
 function getPageTitle(pathname, stay) {
@@ -20,6 +20,7 @@ function getPageTitle(pathname, stay) {
   if (pathname === '/signin') return 'Sign in | Escapes'
   if (pathname === '/signup') return 'Create an account | Escapes'
   if (pathname === '/client/dashboard') return 'My trips | Escapes'
+  if (pathname.startsWith('/client/')) return 'Guest dashboard | Escapes'
   if (pathname.startsWith('/admin')) return 'Admin portal | Escapes'
   if (stay) return `${stay.name} | Escapes`
   if (pathname === '/destinations') return 'Explore destinations | Escapes'
@@ -47,12 +48,19 @@ export default function App() {
   if (pathname === '/signin') return <AuthPage />
   if (pathname === '/signup') return <AuthPage signup />
   if (pathname === '/client/dashboard') return <ClientDashboardPage />
+  if (pathname === '/client/reservations') return <ClientDashboardPage section="reservations" />
+  if (pathname === '/client/saved') return <ClientDashboardPage section="saved" />
+  if (pathname === '/client/profile') return <ClientDashboardPage section="profile" />
+  if (pathname === '/admin') return <AdminDashboardPage section="overview" />
   if (pathname === '/admin/login') return <AdminAuthPage />
   if (pathname === '/admin/signup') return <AdminAuthPage signup />
   if (pathname === '/admin/dashboard') return <AdminDashboardPage section="overview" />
   if (pathname === '/admin/reservations') return <AdminDashboardPage section="reservations" />
   if (pathname === '/admin/stays') return <AdminDashboardPage section="properties" />
   if (pathname === '/admin/guests') return <AdminDashboardPage section="guests" />
+  if (pathname === '/admin/payments') return <AdminDashboardPage section="payments" />
+  if (pathname === '/admin/reports') return <AdminDashboardPage section="reports" />
+  if (pathname === '/admin/settings') return <AdminDashboardPage section="settings" />
   if (pathname.startsWith('/reserve/')) {
     return selectedStay
       ? <BookingPage stay={selectedStay} />

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, BriefcaseBusiness, CheckCircle2, ShieldCheck, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, BriefcaseBusiness, CheckCircle2, ShieldCheck, Users } from "lucide-react";
 import { apiRequest, clearToken, getToken, saveToken } from "../services/api.js";
 
 function goTo(path, navigate) {
@@ -24,9 +24,11 @@ function AccountFrame({ children }) {
 
 export function ConnectedAuthPage({ signup = false, defaultRole = "candidate", admin = false, redirectTo = "", navigate }) {
   const [role, setRole] = useState(admin ? "admin" : defaultRole);
+  const [adminSignup, setAdminSignup] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const creatingAdmin = admin && adminSignup;
 
   async function submit(event) {
     event.preventDefault();
@@ -36,22 +38,25 @@ export function ConnectedAuthPage({ signup = false, defaultRole = "candidate", a
     const body = {
       email: String(form.get("email") || ""),
       password: String(form.get("password") || ""),
-      role,
+      role: admin ? "admin" : role,
     };
-    if (signup) {
+    if (signup || creatingAdmin) {
       body.name = String(form.get("name") || "");
       body.primaryRole = String(form.get("primaryRole") || "");
     }
 
     setBusy(true);
     try {
-      const result = await apiRequest(signup ? "/auth/signup" : "/auth/login", {
+      const result = await apiRequest(
+        creatingAdmin ? "/admin/local-signup" : signup ? "/auth/signup" : "/auth/login",
+        {
         method: "POST",
         body,
         token: "",
-      });
+        },
+      );
       saveToken(result.token);
-      setNotice(signup ? "Your account has been created." : "You are signed in.");
+      setNotice(creatingAdmin ? "Your local administrator account has been created." : signup ? "Your account has been created." : "You are signed in.");
       goTo(admin ? "/admin" : redirectTo || "/dashboard", navigate);
     } catch (requestError) {
       setError(requestError.message);
@@ -69,31 +74,37 @@ export function ConnectedAuthPage({ signup = false, defaultRole = "candidate", a
       <p>{admin ? "Review accounts, applications, and job listings from one protected workspace." : "Find meaningful remote work or connect your team with exceptional talent."}</p>
     </section>
     <section className="auth-card">
-      <a className="auth-home" href="/"><ArrowRight size={14} /> Back to Remote.ly</a>
+      <a className="auth-home" href="/"><ArrowLeft size={14} /> Back to Remote.ly</a>
       <a className="brand" href="/"><span className="brand-icon"><img src="/favicon.svg" alt="" /></span><strong>Remote<span>.ly</span></strong></a>
-      <h2>{admin ? "Administrator sign in" : signup ? "Create your account" : "Sign in"}</h2>
-      <p className="auth-subtitle">{admin ? "Use the local demo administrator account documented in the Vite README." : signup ? "Choose how you will use the talent marketplace." : "Access your candidate or employer workspace."}</p>
+      <h2>{creatingAdmin ? "Create a local administrator" : admin ? "Administrator sign in" : signup ? "Create your account" : "Sign in"}</h2>
+      <p className="auth-subtitle">{admin ? creatingAdmin ? "This account is stored only in this browser's localStorage." : "Sign in with the local demo account or create an administrator for this browser." : signup ? "Choose how you will use the talent marketplace." : "Access your candidate or employer workspace."}</p>
+      {admin && !creatingAdmin && <div className="info-panel local-demo-credentials">
+        <strong>Vite local demo account</strong>
+        <span>Email: <code>admin@remotely.demo</code></span>
+        <span>Password: <code>DemoAdmin123!</code></span>
+        <small>Demo only. Anyone with access to this browser can inspect localStorage; do not use a real or sensitive password.</small>
+      </div>}
       {!admin && <div className="role-switch" role="group" aria-label="Account type">
         <button type="button" className={role === "candidate" ? "selected" : ""} onClick={() => setRole("candidate")}>Candidate</button>
         <button type="button" className={role === "employer" ? "selected" : ""} onClick={() => setRole("employer")}>Employer</button>
       </div>}
       <form onSubmit={submit}>
-        {signup && <>
+        {(signup || creatingAdmin) && <>
           <label className="field-label">Full name<input name="name" autoComplete="name" placeholder="Alexandra Okafor" minLength={2} required /></label>
-          <label className="field-label">{role === "candidate" ? "Primary role" : "Hiring role"}<input name="primaryRole" placeholder={role === "candidate" ? "Full-Stack Engineer" : "Hiring Manager"} /></label>
+          {!admin && <label className="field-label">{role === "candidate" ? "Primary role" : "Hiring role"}<input name="primaryRole" placeholder={role === "candidate" ? "Full-Stack Engineer" : "Hiring Manager"} /></label>}
         </>}
         <label className="field-label">Work email<input name="email" type="email" autoComplete="email" placeholder="alex@example.com" required /></label>
-        <label className="field-label">Password<input name="password" type="password" autoComplete={signup ? "new-password" : "current-password"} minLength={signup ? 8 : undefined} required /></label>
+        <label className="field-label">Password<input name="password" type="password" autoComplete={signup || creatingAdmin ? "new-password" : "current-password"} minLength={signup || creatingAdmin ? 8 : undefined} required /></label>
         {error && <ApiNotice error>{error}</ApiNotice>}
         {notice && <ApiNotice>{notice}</ApiNotice>}
         <button className="button button-purple full auth-submit" type="submit" disabled={busy}>
-          {busy ? "Please wait..." : admin ? "Sign in as administrator" : signup ? "Create account" : "Sign in"}
+          {busy ? "Please wait..." : creatingAdmin ? "Create local admin account" : admin ? "Sign in as administrator" : signup ? "Create account" : "Sign in"}
           <ArrowRight size={15} />
         </button>
       </form>
-      {admin ? <p className="auth-switch">Admin registration is disabled. <a href="/login">Client sign in</a></p> :
+      {admin ? <p className="auth-switch">{creatingAdmin ? "Already have a local admin account?" : "Need another local admin account?"} <button className="text-button" type="button" onClick={() => { setError(""); setNotice(""); setAdminSignup(!adminSignup); }}>{creatingAdmin ? "Sign in" : "Create account"}</button> · <a href="/login">Client sign in</a></p> :
         <p className="auth-switch">{signup ? "Already registered?" : "Don't have an account?"} <a href={signup ? `/login?role=${role}` : `/signup?role=${role}`}>{signup ? "Sign in" : "Sign up"}</a></p>}
-      <p className="auth-security"><ShieldCheck size={13} /> Vite demo accounts and records stay in this browser.</p>
+      <p className="auth-security"><ShieldCheck size={13} /> Vite demo accounts and records stay in this browser. This local admin flow is not connected to the Next.js/backend administrator accounts.</p>
     </section>
   </main>;
 }
@@ -159,7 +170,7 @@ export function ConnectedApplyPage({ jobId, jobTitle, navigate }) {
   </div></main></AccountFrame>;
 }
 
-export function ClientDashboardPage({ navigate }) {
+export function ClientDashboardPage({ navigate, section = "overview" }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -208,25 +219,52 @@ export function ClientDashboardPage({ navigate }) {
   if (!data) return null;
 
   const employer = data.user.role === "employer";
-  const records = employer ? data.jobs : data.applications;
+  const activeSection = ["overview", "jobs", "applications", "profile"].includes(section) ? section : "overview";
+  const sectionTitle = {
+    overview: "Dashboard overview",
+    jobs: "Your job listings",
+    applications: employer ? "Applications" : "My applications",
+    profile: "Profile",
+  }[activeSection];
+  const sectionDescription = {
+    overview: employer ? "Manage your listings and review applicants." : "Keep track of your remote job search.",
+    jobs: "Review your listing status and payment state.",
+    applications: employer ? "Review applications for your job listings." : "Track each application you have submitted.",
+    profile: "Your account details for the Remote.ly marketplace.",
+  }[activeSection];
   return <AccountFrame><div className="workspace-layout">
     <aside className="workspace-sidebar">
       <a className="workspace-sidebar-brand" href="/"><BriefcaseBusiness size={22} /><span>Remote Talent<small>{employer ? "Employer workspace" : "Candidate workspace"}</small></span></a>
       <span className="workspace-nav-label">WORKSPACE</span>
       <nav aria-label="Client dashboard">
-        <a className="is-active" href="/dashboard"><BriefcaseBusiness size={17} /> Overview</a>
-        {employer ? <><a href="/post-job"><CheckCircle2 size={17} /> Post a job</a><a href="/talent"><ShieldCheck size={17} /> Browse talent</a><a href="/dashboard#applications"><CheckCircle2 size={17} /> Applications</a></> : <><a href="/jobs"><BriefcaseBusiness size={17} /> Find jobs</a><a href="/dashboard#applications"><CheckCircle2 size={17} /> My applications</a><a href="/talent"><ShieldCheck size={17} /> Browse talent</a></>}
+        <a className={activeSection === "overview" ? "is-active" : ""} href="/dashboard"><BriefcaseBusiness size={17} /> Overview</a>
+        {employer ? <><a className={activeSection === "jobs" ? "is-active" : ""} href="/dashboard/jobs"><BriefcaseBusiness size={17} /> Job listings</a><a className={activeSection === "applications" ? "is-active" : ""} href="/dashboard/applications"><CheckCircle2 size={17} /> Applications</a><a href="/post-job"><CheckCircle2 size={17} /> Post a job</a></> : <><a className={activeSection === "applications" ? "is-active" : ""} href="/dashboard/applications"><CheckCircle2 size={17} /> My applications</a><a href="/jobs"><BriefcaseBusiness size={17} /> Find jobs</a></>}
+        <a className={activeSection === "profile" ? "is-active" : ""} href="/dashboard/profile"><ShieldCheck size={17} /> Profile</a>
+        {employer && <a href="/talent"><ShieldCheck size={17} /> Browse talent</a>}
       </nav>
       <div className="workspace-sidebar-footer"><a href="/">Back to marketplace <ArrowRight size={14} /></a><span><i /> Secure workspace</span></div>
     </aside>
     <main className="wrap account-page client-workspace">
-      <div className="account-heading"><div><span className="eyebrow">{employer ? "EMPLOYER WORKSPACE" : "CANDIDATE WORKSPACE"}</span><h1>Welcome, {data.user.name}</h1><p>{employer ? "Manage your listings and review their moderation status." : "Track the applications you have submitted."}</p></div><button className="button button-outline" onClick={() => { clearToken(); goTo("/login", navigate); }}>Sign out</button></div>
-      <section className="account-summary"><article><BriefcaseBusiness /><strong>{records.length}</strong><span>{employer ? "Job listings" : "Applications"}</span></article><article><CheckCircle2 /><strong>{records.filter((item) => item.status === "approved" || item.status === "submitted").length}</strong><span>{employer ? "Approved or in review" : "Submitted"}</span></article></section>
-      <section className="info-panel account-panel" id={employer ? "listings" : "applications"}><div className="section-title-row"><div><h2>{employer ? "Your job listings" : "Your applications"}</h2><p>Your records are saved to this browser's local demo workspace.</p></div>{employer && <a className="button button-purple" href="/post-job">Post a job <ArrowRight size={14} /></a>}</div>
-        {records.length === 0 ? <p className="empty-account">{employer ? "You have not posted a job yet." : "You have not submitted an application yet."}</p> :
-          <div className="account-record-list">{records.map((item) => <article key={item.id} className="account-record"><div><strong>{employer ? item.title : item.jobTitle}</strong><small>{employer ? `${item.category} · ${item.location}` : new Date(item.createdAt).toLocaleDateString()}</small>{employer && item.paymentStatus === "demo" && <small>Local demo listing; no payment was collected.</small>}</div><span className={`status-pill status-${item.status}`}>{item.status.replaceAll("_", " ")}</span></article>)}</div>}
-      </section>
-      {employer && <section className="info-panel account-panel" id="applications"><h2>Applications for your listings</h2>{data.applications.length === 0 ? <p className="empty-account">Applications for your approved listings will appear here.</p> : <div className="account-record-list">{data.applications.map((application) => <article key={application.id} className="account-record account-record-admin"><div><strong>{application.candidateName} · {application.jobTitle}</strong><small>{application.candidateEmail} · {new Date(application.createdAt).toLocaleDateString()}</small><span className={`status-pill status-${application.status}`}>{application.status}</span></div><div className="admin-actions"><button className="button button-outline" disabled={busyApplication === application.id} onClick={() => updateApplication(application.id, "rejected")}>Reject</button><button className="button button-purple" disabled={busyApplication === application.id} onClick={() => updateApplication(application.id, "shortlisted")}>{busyApplication === application.id ? "Saving..." : "Shortlist"}</button></div></article>)}</div>}</section>}
+      <div className="account-heading"><div><span className="eyebrow">{employer ? "EMPLOYER WORKSPACE" : "CANDIDATE WORKSPACE"}</span><h1>{sectionTitle}</h1><p>{sectionDescription}</p></div><button className="button button-outline" onClick={() => { clearToken(); goTo("/login", navigate); }}>Sign out</button></div>
+      {activeSection === "overview" && <>
+        <section className="account-summary">
+          <article><BriefcaseBusiness /><strong>{employer ? data.jobs.length : data.applications.length}</strong><span>{employer ? "Job listings" : "Applications"}</span></article>
+          <article><CheckCircle2 /><strong>{employer ? data.applications.length : data.applications.filter((application) => application.status === "submitted").length}</strong><span>{employer ? "Applications" : "Submitted"}</span></article>
+          {employer && <article><Users /><strong>{data.applications.filter((application) => application.status === "submitted").length}</strong><span>New applications</span></article>}
+        </section>
+        <section className="remote-admin-shortcuts">
+          <a href={employer ? "/dashboard/jobs" : "/dashboard/applications"}><BriefcaseBusiness /><span><strong>{employer ? "Manage job listings" : "Track applications"}</strong><small>{employer ? "Check review status and manage your open roles." : "See the latest status of every application."}</small></span><ArrowRight /></a>
+          {employer && <a href="/dashboard/applications"><CheckCircle2 /><span><strong>Review candidates</strong><small>Shortlist or decline applicants for your roles.</small></span><ArrowRight /></a>}
+          <a href={employer ? "/post-job" : "/jobs"}><ArrowRight /><span><strong>{employer ? "Post another job" : "Find your next role"}</strong><small>{employer ? "Create a new remote job listing." : "Browse the latest remote opportunities."}</small></span><ArrowRight /></a>
+        </section>
+      </>}
+      {activeSection === "jobs" && employer && <section className="info-panel account-panel"><div className="section-title-row"><div><h2>Your job listings</h2><p>Listings stay in this browser in the Vite demo.</p></div><a className="button button-purple" href="/post-job">Post a job <ArrowRight size={14} /></a></div>
+        {!data.jobs.length ? <p className="empty-account">You have not posted a job yet.</p> : <div className="account-record-list">{data.jobs.map((job) => <article key={job.id} className="account-record"><div><strong>{job.title}</strong><small>{job.category} · {job.location}</small><small>Payment: not collected in the local demo.</small></div><span className={`status-pill status-${job.status}`}>{job.status.replaceAll("_", " ")}</span></article>)}</div>}
+      </section>}
+      {activeSection === "applications" && <section className="info-panel account-panel"><h2>{employer ? "Applications for your listings" : "Your applications"}</h2>
+        {data.applications.length === 0 ? <p className="empty-account">{employer ? "Applications for your listings will appear here." : "You have not submitted an application yet."}</p> : <div className="account-record-list">{data.applications.map((application) => <article key={application.id} className="account-record account-record-admin"><div><strong>{employer ? `${application.candidateName} · ${application.jobTitle}` : application.jobTitle}</strong><small>{employer ? application.candidateEmail : new Date(application.createdAt).toLocaleDateString()}</small>{employer && <span className={`status-pill status-${application.status}`}>{application.status}</span>}</div>{employer && <div className="admin-actions"><button className="button button-outline" disabled={busyApplication === application.id} onClick={() => updateApplication(application.id, "rejected")}>Reject</button><button className="button button-purple" disabled={busyApplication === application.id} onClick={() => updateApplication(application.id, "shortlisted")}>{busyApplication === application.id ? "Saving..." : "Shortlist"}</button></div>}{!employer && <span className={`status-pill status-${application.status}`}>{application.status}</span>}</article>)}</div>}
+      </section>}
+      {activeSection === "profile" && <section className="info-panel account-panel"><h2>Account details</h2><div className="account-record-list"><article className="account-record"><div><strong>Name</strong><small>{data.user.name}</small></div></article><article className="account-record"><div><strong>Email</strong><small>{data.user.email}</small></div></article><article className="account-record"><div><strong>Account type</strong><small>{employer ? "Employer" : "Candidate"}{data.user.primaryRole ? ` · ${data.user.primaryRole}` : ""}</small></div></article><article className="account-record"><div><strong>Member since</strong><small>{data.user.createdAt ? new Date(data.user.createdAt).toLocaleDateString() : "Local demo account"}</small></div></article></div></section>}
     </main>
   </div></AccountFrame>;
 }

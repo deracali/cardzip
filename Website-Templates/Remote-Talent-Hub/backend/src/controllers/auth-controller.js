@@ -22,6 +22,7 @@ export function createAuthController({ store, jwtSecret }) {
           primaryRole: typeof request.body.primaryRole === "string"
             ? request.body.primaryRole.trim().slice(0, 120)
             : "",
+          status: "active",
           createdAt: new Date().toISOString(),
         });
         response.status(201).json({ token: createToken(user, jwtSecret), user: publicUser(user) });
@@ -38,6 +39,7 @@ export function createAuthController({ store, jwtSecret }) {
         if (!user || !(await verifyPassword(password, user.passwordHash))) {
           throw httpError(401, "Email or password is incorrect.");
         }
+        if (user.status === "suspended") throw httpError(403, "This account has been suspended.");
         if (request.body.role && user.role !== request.body.role) {
           throw httpError(403, "This account cannot access that portal.");
         }

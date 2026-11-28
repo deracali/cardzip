@@ -387,6 +387,23 @@ button:disabled {
   white-space: nowrap;
 }
 
+.catalog-active-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0;
+  color: #c6d1e1;
+  font-size: 12px;
+}
+
+.catalog-active-toggle input {
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #87b6ff;
+}
+
 .dashboard-record {
   padding: 17px 0;
   border-color: rgba(154, 168, 191, .14);
@@ -442,9 +459,41 @@ button:disabled {
 }
 
 .dashboard-table select {
-  min-height: 36px;
+  min-width: 130px;
+  min-height: 38px;
+  padding: 0 34px 0 12px;
+  appearance: none;
+  -webkit-appearance: none;
   border-color: rgba(154, 168, 191, .23);
   border-radius: 8px;
+  color: #eef4f1;
+  color-scheme: dark;
+  background-color: #101a2d;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A3F05C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px;
+  cursor: pointer;
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+
+.dashboard-table select:hover:not(:disabled) {
+  border-color: rgba(163, 240, 92, .6);
+}
+
+.dashboard-table select:focus-visible {
+  border-color: #a3f05c;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(163, 240, 92, .16);
+}
+
+.dashboard-table select:disabled {
+  cursor: wait;
+  opacity: .65;
+}
+
+.dashboard-table select option {
+  color: #eef4f1;
   background: #101a2d;
 }
 

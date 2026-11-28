@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import { after, before, test } from "node:test";
 import { createMemoryStore } from "./models/store.js";
-import { createApp } from "./server.js";
+import { connectStoreWithDnsFallback, createApp, resolveServerPort } from "./server.js";
 
 let server;
 let baseUrl;
@@ -12,6 +12,74 @@ let adminToken;
 let membershipId;
 let stripeReference;
 let stripeForm;
+
+test("MongoDB Atlas SRV DNS refusal retries once with fallback DNS", async () => {
+  const dnsServers = [];
+  const warnings = [];
+  let attempts = 0;
+  const store = {
+    async connect() {
+      attempts += 1;
+      if (attempts === 1) {
+        const error = new Error("querySrv ECONNREFUSED");
+        error.code = "ECONNREFUSED";
+        error.syscall = "querySrv";
+        throw error;
+      }
+    },
+  };
+
+  await connectStoreWithDnsFallback(store, {
+    env: {},
+    setDnsServers: (servers) => dnsServers.push(servers),
+    warn: (message) => warnings.push(message),
+  });
+
+  assert.equal(attempts, 2);
+  assert.deepEqual(dnsServers, [["1.1.1.1", "8.8.8.8"]]);
+  assert.equal(warnings.length, 1);
+});
+
+test("MongoDB DNS fallback does not mask other connection failures or override configured DNS", async () => {
+  const unrelatedError = new Error("MongoDB authentication failed");
+  let attempts = 0;
+  await assert.rejects(
+    connectStoreWithDnsFallback({
+      async connect() {
+        attempts += 1;
+        throw unrelatedError;
+      },
+    }, { env: {}, setDnsServers: () => assert.fail("Unexpected DNS fallback") }),
+    unrelatedError,
+  );
+  assert.equal(attempts, 1);
+
+  const configuredDns = [];
+  attempts = 0;
+  await assert.rejects(
+    connectStoreWithDnsFallback({
+      async connect() {
+        attempts += 1;
+        const error = new Error("querySrv ECONNREFUSED");
+        error.code = "ECONNREFUSED";
+        error.syscall = "querySrv";
+        throw error;
+      },
+    }, {
+      env: { MONGODB_DNS_SERVERS: "9.9.9.9, 149.112.112.112" },
+      setDnsServers: (servers) => configuredDns.push(servers),
+    }),
+  );
+  assert.equal(attempts, 1);
+  assert.deepEqual(configuredDns, [["9.9.9.9", "149.112.112.112"]]);
+});
+
+test("API uses port 5001 by default and remaps the legacy port 5000", () => {
+  assert.equal(resolveServerPort(undefined), 5001);
+  assert.equal(resolveServerPort("5000"), 5001);
+  assert.equal(resolveServerPort("5600"), 5600);
+  assert.throws(() => resolveServerPort("70000"), /PORT must be a valid port/);
+});
 
 const fakeFetch = async (url, options = {}) => {
   if (url === "https://api.stripe.com/v1/checkout/sessions" && options.method === "POST") {
@@ -168,6 +236,77 @@ test("appointment prices are server-calculated and requests stay scoped to their
     body: { status: "completed" },
   });
   assert.equal(clientDeniedUpdate.response.status, 403);
+});
+
+test("administrators manage the public service catalogue and technician roster", async () => {
+  const publicCatalog = await api("/public/catalog");
+  assert.equal(publicCatalog.response.status, 200);
+  assert.equal(publicCatalog.data.services.find((service) => service.id === "ac-tune-up").price, 89);
+  assert.ok(publicCatalog.data.technicians.length > 0);
+
+  const clientDenied = await api("/admin/catalog", { token: clientToken });
+  assert.equal(clientDenied.response.status, 403);
+
+  const priceUpdate = await api("/admin/catalog/services/ac-tune-up", {
+    method: "PATCH",
+    token: adminToken,
+    body: { price: 95 },
+  });
+  assert.equal(priceUpdate.response.status, 200);
+  assert.equal(priceUpdate.data.service.price, 95);
+
+  const createdService = await api("/admin/catalog/services", {
+    method: "POST",
+    token: adminToken,
+    body: {
+      id: "smart-thermostat-install",
+      name: "Smart Thermostat Installation",
+      description: "Installation and setup of a compatible smart thermostat.",
+      price: 149,
+      duration: "60 min",
+      category: "Smart home",
+    },
+  });
+  assert.equal(createdService.response.status, 201);
+
+  const createdTechnician = await api("/admin/catalog/technicians", {
+    method: "POST",
+    token: adminToken,
+    body: {
+      name: "Taylor Morgan",
+      specialty: "Smart home systems",
+      experience: "4 years",
+      location: "Austin, TX",
+      bio: "Helps homeowners get the most from connected comfort systems.",
+    },
+  });
+  assert.equal(createdTechnician.response.status, 201);
+  const updatedTechnician = await api(`/admin/catalog/technicians/${createdTechnician.data.technician.id}`, {
+    method: "PATCH",
+    token: adminToken,
+    body: { active: false },
+  });
+  assert.equal(updatedTechnician.data.technician.active, false);
+
+  const updatedCatalog = await api("/public/catalog");
+  assert.equal(updatedCatalog.data.services.find((service) => service.id === "ac-tune-up").price, 95);
+  assert.ok(updatedCatalog.data.services.some((service) => service.id === "smart-thermostat-install"));
+  assert.ok(!updatedCatalog.data.technicians.some((technician) => technician.id === createdTechnician.data.technician.id));
+
+  const booking = await api("/public/bookings", {
+    method: "POST",
+    token: clientToken,
+    body: {
+      serviceId: "smart-thermostat-install",
+      name: "Jordan Customer",
+      phone: "512-555-0100",
+      email: "jordan@example.test",
+      zip: "78704",
+      date: "2030-01-17",
+      time: "8:00 AM - 10:00 AM",
+    },
+  });
+  assert.equal(booking.data.booking.estimate, 149);
 });
 
 test("annual membership payment is verified by Stripe before activation", async () => {

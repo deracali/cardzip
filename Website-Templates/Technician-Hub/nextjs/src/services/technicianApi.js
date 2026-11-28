@@ -1,4 +1,4 @@
-const apiBaseUrl = (process.env.NEXT_PUBLIC_TECHNICIAN_API_URL || 'http://localhost:5000/api').replace(/\/+$/, '')
+const apiBaseUrl = (process.env.NEXT_PUBLIC_TECHNICIAN_API_URL || 'http://localhost:5001/api').replace(/\/+$/, '')
 const sessionKey = 'polarflow-session'
 
 export function getTechnicianSession() {
@@ -36,9 +36,13 @@ async function request(path, { method = 'GET', body, authenticated = true } = {}
 }
 
 export const technicianApi = {
+  getSession: getTechnicianSession,
+  saveSession: saveTechnicianSession,
+  clearSession: clearTechnicianSession,
   login: (body) => request('/auth/login', { method: 'POST', body, authenticated: false }),
   signupClient: (body) => request('/auth/signup', { method: 'POST', body, authenticated: false }),
   signupAdmin: (body) => request('/auth/admin-signup', { method: 'POST', body, authenticated: false }),
+  catalog: () => request('/public/catalog', { authenticated: false }),
   createBooking: (body) => request('/public/bookings', { method: 'POST', body, authenticated: false }),
   clientDashboard: () => request('/client/dashboard'),
   membershipProviders: () => request('/client/membership/providers'),
@@ -46,4 +50,8 @@ export const technicianApi = {
   verifyMembership: (body) => request('/client/membership/verify', { method: 'POST', body }),
   adminDashboard: () => request('/admin/dashboard'),
   updateBooking: (id, status) => request(`/admin/bookings/${encodeURIComponent(id)}`, { method: 'PATCH', body: { status } }),
+  createService: (body) => request('/admin/catalog/services', { method: 'POST', body }),
+  updateService: (id, body) => request(`/admin/catalog/services/${encodeURIComponent(id)}`, { method: 'PATCH', body }),
+  createTechnician: (body) => request('/admin/catalog/technicians', { method: 'POST', body }),
+  updateTechnician: (id, body) => request(`/admin/catalog/technicians/${encodeURIComponent(id)}`, { method: 'PATCH', body }),
 }

@@ -139,6 +139,7 @@ function Header({ active = '', compact = false }) {
         <nav className={`nav-links${open ? ' nav-open' : ''}`} aria-label="Main navigation">
           <a className={active === 'jobs' ? 'active' : ''} href="/jobs" onClick={() => setOpen(false)}>Find Jobs</a>
           <a className={active === 'talent' ? 'active' : ''} href="/talent" onClick={() => setOpen(false)}>Browse Talent</a>
+          <a href="/dashboard" onClick={() => setOpen(false)}>Dashboard</a>
           {!compact && <a className={active === 'post' ? 'active' : ''} href="/post-job" onClick={() => setOpen(false)}>Post a Job</a>}
           <a className={active === 'pricing' ? 'active' : ''} href="/pricing" onClick={() => setOpen(false)}>Pricing</a>
           <span className="nav-spacer" />
@@ -500,7 +501,10 @@ export function RemotePage({ route = '/', navigate }) {
   else if (pathname === '/admin/jobs') page = <AdminDashboardPage key={pathname} navigate={navigate} section="jobs" />
   else if (pathname === '/admin/applications') page = <AdminDashboardPage key={pathname} navigate={navigate} section="applications" />
   else if (pathname === '/admin/accounts') page = <AdminDashboardPage key={pathname} navigate={navigate} section="accounts" />
-  else if (pathname === '/dashboard') page = <ClientDashboardPage navigate={navigate} />
+  else if (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) {
+    const section = pathname === '/dashboard' ? 'overview' : segments.at(-1)
+    page = <ClientDashboardPage key={pathname} navigate={navigate} section={section} />
+  }
   else if (pathname === '/apply' || pathname.startsWith('/apply/')) {
     const jobId = decodeURIComponent(segments.at(-1) || '')
     const job = jobs.find((item) => item.id === jobId)

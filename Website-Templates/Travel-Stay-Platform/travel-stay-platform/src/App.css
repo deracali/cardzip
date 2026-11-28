@@ -493,6 +493,34 @@ h1, h2, h3, h4, h5, h6 { font-family: var(--website-template-heading-font) !impo
   letter-spacing: -.045em;
 }
 
+.profile-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+  margin: 0;
+}
+
+.profile-details > div {
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #fbfcfd;
+}
+
+.profile-details dt {
+  margin-bottom: 6px;
+  color: #788394;
+  font-size: 11px;
+}
+
+.profile-details dd {
+  margin: 0;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
 .dashboard-panel {
   margin-top: 18px;
   padding: 23px;

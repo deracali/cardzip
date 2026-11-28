@@ -10,7 +10,7 @@ const sections = {
   overview: { title: "Operations overview", description: "A live view of marketplace activity and moderation." },
   jobs: { title: "Job listings", description: "Post platform listings and review employer submissions." },
   applications: { title: "Applications", description: "Review candidate applications across the marketplace." },
-  accounts: { title: "Accounts", description: "View registered candidates, employers, and administrators." },
+  users: { title: "User management", description: "Search registered accounts and manage access to the marketplace." },
 };
 
 export default function AdminPortal({ section = "overview" }) {
@@ -20,6 +20,10 @@ export default function AdminPortal({ section = "overview" }) {
   const [loading, setLoading] = useState(true);
   const [busyJob, setBusyJob] = useState("");
   const [busyApplication, setBusyApplication] = useState("");
+  const [busyUser, setBusyUser] = useState("");
+  const [userSearch, setUserSearch] = useState("");
+  const [userRoleFilter, setUserRoleFilter] = useState("all");
+  const [userStatusFilter, setUserStatusFilter] = useState("all");
   const [creating, setCreating] = useState(false);
   const activeSection = sections[section] ? section : "overview";
 
@@ -95,6 +99,25 @@ export default function AdminPortal({ section = "overview" }) {
     }
   }
 
+  async function updateUserStatus(user, status) {
+    setError("");
+    setBusyUser(user.id);
+    try {
+      const result = await apiRequest(`/admin/users/${encodeURIComponent(user.id)}`, {
+        method: "PATCH",
+        body: { status },
+      });
+      setData((current) => ({
+        ...current,
+        users: current.users.map((item) => item.id === user.id ? result.user : item),
+      }));
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setBusyUser("");
+    }
+  }
+
   function signOut() {
     clearToken();
     router.replace("/admin/login");
@@ -104,8 +127,14 @@ export default function AdminPortal({ section = "overview" }) {
     { key: "overview", label: "Overview", href: "/admin", icon: ShieldCheck },
     { key: "jobs", label: "Job listings", href: "/admin/jobs", icon: BriefcaseBusiness },
     { key: "applications", label: "Applications", href: "/admin/applications", icon: CheckCircle2 },
-    { key: "accounts", label: "Accounts", href: "/admin/accounts", icon: Users },
+    { key: "users", label: "Users", href: "/admin/users", icon: Users },
   ];
+  const filteredUsers = data?.users.filter((user) => {
+    const query = userSearch.trim().toLowerCase();
+    return (!query || `${user.name} ${user.email}`.toLowerCase().includes(query))
+      && (userRoleFilter === "all" || user.role === userRoleFilter)
+      && (userStatusFilter === "all" || (user.status || "active") === userStatusFilter);
+  }) || [];
 
   return (
     <div className="remote-admin-layout">
@@ -132,7 +161,7 @@ export default function AdminPortal({ section = "overview" }) {
           <section className="remote-admin-shortcuts">
             <Link href="/admin/jobs"><BriefcaseBusiness /><span><strong>Manage job listings</strong><small>Post a platform job or review employer submissions.</small></span><ArrowRight /></Link>
             <Link href="/admin/applications"><CheckCircle2 /><span><strong>Review applications</strong><small>Inspect and update candidate application statuses.</small></span><ArrowRight /></Link>
-            <Link href="/admin/accounts"><Users /><span><strong>Browse accounts</strong><small>View all registered user roles and contact details.</small></span><ArrowRight /></Link>
+            <Link href="/admin/users"><Users /><span><strong>Manage users</strong><small>Search accounts and suspend or restore marketplace access.</small></span><ArrowRight /></Link>
           </section>
         </>}
         {data && activeSection === "jobs" && <>
@@ -157,7 +186,33 @@ export default function AdminPortal({ section = "overview" }) {
           <section className="info-panel account-panel"><h2>Job listings</h2>{data.jobs.length === 0 ? <p className="empty-account">No job listings have been submitted.</p> : <div className="account-record-list">{data.jobs.map((job) => <article key={job.id} className="account-record account-record-admin"><div><strong>{job.title}</strong><small>{job.employerName} · {job.category} · {job.location}</small><span className={`status-pill status-${job.status}`}>{job.status.replaceAll("_", " ")}</span>{job.paymentStatus === "not_required" && <small>Platform listing; no employer payment required.</small>}</div><div className="admin-actions"><button className="button button-outline" disabled={busyJob === job.id} onClick={() => reviewJob(job.id, "rejected")}>Reject</button><button className="button button-purple" disabled={busyJob === job.id} onClick={() => reviewJob(job.id, "approved")}>{busyJob === job.id ? "Saving..." : "Approve"}</button></div></article>)}</div>}</section>
         </>}
         {data && activeSection === "applications" && <section className="info-panel account-panel"><h2>Candidate applications</h2>{data.applications.length === 0 ? <p className="empty-account">No applications have been submitted.</p> : <div className="account-record-list">{data.applications.map((application) => <article key={application.id} className="account-record account-record-admin"><div><strong>{application.jobTitle}</strong><small>{application.candidateName} · {application.candidateEmail} · {new Date(application.createdAt).toLocaleDateString()}</small><span className={`status-pill status-${application.status}`}>{application.status}</span></div><div className="admin-actions"><button className="button button-outline" disabled={busyApplication === application.id} onClick={() => updateApplication(application.id, "rejected")}>Reject</button><button className="button button-purple" disabled={busyApplication === application.id} onClick={() => updateApplication(application.id, "reviewed")}>{busyApplication === application.id ? "Saving..." : "Mark reviewed"}</button></div></article>)}</div>}</section>}
-        {data && activeSection === "accounts" && <section className="info-panel account-panel"><h2>Registered accounts</h2>{data.users.length === 0 ? <p className="empty-account">No accounts have been registered.</p> : <div className="account-record-list">{data.users.map((user) => <article key={user.id} className="account-record"><div><strong>{user.name}</strong><small>{user.email}</small></div><span className="status-pill">{user.role}</span></article>)}</div>}</section>}
+        {data && activeSection === "users" && <>
+          <section className="account-summary admin-summary">
+            <article><Users /><strong>{data.users.length}</strong><span>All accounts</span></article>
+            <article><CheckCircle2 /><strong>{data.users.filter((user) => (user.status || "active") === "active").length}</strong><span>Active</span></article>
+            <article><ShieldCheck /><strong>{data.users.filter((user) => user.status === "suspended").length}</strong><span>Suspended</span></article>
+          </section>
+          <section className="info-panel account-panel">
+            <div className="section-title-row user-management-heading"><div><h2>Registered users</h2><p>Suspend an account to revoke current sessions, or restore access at any time.</p></div></div>
+            <div className="remote-admin-user-filters">
+              <label className="field-label">Search users<input type="search" value={userSearch} onChange={(event) => setUserSearch(event.target.value)} placeholder="Name or email" /></label>
+              <label className="field-label">Account type<select value={userRoleFilter} onChange={(event) => setUserRoleFilter(event.target.value)}><option value="all">All roles</option><option value="candidate">Candidate</option><option value="employer">Employer</option><option value="admin">Administrator</option></select></label>
+              <label className="field-label">Status<select value={userStatusFilter} onChange={(event) => setUserStatusFilter(event.target.value)}><option value="all">All statuses</option><option value="active">Active</option><option value="suspended">Suspended</option></select></label>
+            </div>
+            {filteredUsers.length === 0 ? <p className="empty-account">{data.users.length ? "No users match these filters." : "No accounts have been registered."}</p> : <div className="account-record-list">{filteredUsers.map((user) => {
+              const status = user.status || "active";
+              const isCurrentAdmin = user.id === data.currentAdminId;
+              const isProtected = user.role === "admin" || isCurrentAdmin;
+              return <article key={user.id} className="account-record account-record-admin remote-admin-user-record">
+                <div><strong>{user.name}</strong><small>{user.email}</small><small>Joined {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "date unavailable"}</small></div>
+                <div className="remote-admin-user-meta"><span className="status-pill">{user.role}</span><span className={`status-pill status-${status}`}>{status}</span></div>
+                {isProtected
+                  ? <span className="remote-admin-user-protected">{isCurrentAdmin ? "Your account" : "Protected admin"}</span>
+                  : <button className="button button-outline remote-admin-user-action" disabled={busyUser === user.id} onClick={() => updateUserStatus(user, status === "active" ? "suspended" : "active")}>{busyUser === user.id ? "Saving..." : status === "active" ? "Suspend access" : "Restore access"}</button>}
+              </article>;
+            })}</div>}
+          </section>
+        </>}
       </main>
     </div>
   );

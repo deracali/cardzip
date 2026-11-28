@@ -384,9 +384,15 @@ img { display: block; max-width: 100%; }
 .social-proof strong { font-size: 9px; }
 .social-proof small { color: #adb6c9; font-size: 9px; }
 .auth-card { width: 100%; max-width: 430px; justify-self: start; padding: 24px; border: 1px solid #e1e6ee; border-radius: 11px; background: #fff; }
-.auth-home { display: inline-flex; align-items: center; gap: 5px; margin-bottom: 15px; color: #78859a; font-size: 9px; }
+.auth-card > .auth-home, .auth-card > .brand { display: flex; width: fit-content; align-items: center; }
+.auth-card > .auth-home { gap: 5px; margin-bottom: 15px; color: #78859a; font-size: 9px; }
+.auth-card > .brand { margin: 0; }
 .auth-card > h2 { margin: 15px 0 4px; font-size: 23px; letter-spacing: -.04em; }
 .auth-subtitle { margin: 0 0 15px; color: #7a879b; font-size: 10px; }
+.local-demo-credentials { display: grid; gap: 6px; margin: 0 0 13px; padding: 11px; color: #58667c; font-size: 9px; }
+.local-demo-credentials > strong { color: #2b3750; font-size: 10px; }
+.local-demo-credentials code { color: #39319b; font-size: 9px; }
+.local-demo-credentials small { color: #7a879b; font-size: 8px; line-height: 1.5; }
 .social-auth { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .social-auth button { display: flex; min-height: 31px; align-items: center; justify-content: center; gap: 5px; border: 1px solid #e2e6ed; border-radius: 6px; color: #425069; background: #fff; font-size: 9px; font-weight: 650; }
 .social-auth button:hover { border-color: #aaa4fa; }
@@ -414,6 +420,8 @@ img { display: block; max-width: 100%; }
 .remember-row { justify-content: space-between; }
 .auth-submit { min-height: 36px; margin-top: 2px; }
 .auth-switch { margin: 13px 0 0; color: #758197; font-size: 9px; text-align: center; }
+.text-button { padding: 0; border: 0; color: var(--purple); background: transparent; font-size: inherit; font-weight: 700; }
+.text-button:hover { color: #3026ba; text-decoration: underline; }
 .auth-security { display: flex; align-items: center; justify-content: center; gap: 5px; margin: 12px 0 0; color: #38835b; font-size: 8px; }
 .reset-page { grid-template-columns: minmax(0, 430px); }
 .reset-page .auth-card > .service-icon { margin-top: 12px; }

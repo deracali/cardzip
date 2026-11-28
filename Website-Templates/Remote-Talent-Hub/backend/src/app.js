@@ -2,7 +2,7 @@ import cors from "cors";
 import express from "express";
 import { createApiRoutes } from "./routes/api-routes.js";
 
-export function createApp({ store, jwtSecret, corsOrigins = [] }) {
+export function createApp({ store, jwtSecret, corsOrigins = [], paymentOptions = {} }) {
   if (!store) throw new Error("A data store is required.");
   if (typeof jwtSecret !== "string" || jwtSecret.length < 32) {
     throw new Error("JWT_SECRET must be at least 32 characters.");
@@ -16,7 +16,7 @@ export function createApp({ store, jwtSecret, corsOrigins = [] }) {
     },
   }));
   app.use(express.json({ limit: "50kb" }));
-  app.use("/api", createApiRoutes({ store, jwtSecret }));
+  app.use("/api", createApiRoutes({ store, jwtSecret, paymentOptions }));
   app.use((_request, _response, next) => {
     next(Object.assign(new Error("API route not found."), { status: 404 }));
   });

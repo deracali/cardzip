@@ -1,13 +1,12 @@
 import { useState } from 'react'
-import { useEffect } from 'react'
 import { ArrowLeft, ShieldCheck, Star } from 'lucide-react'
 import PageShell from '../components/PageShell'
-import { getDefaultDates, imageUrl, stays } from '../data/stays'
-import { escapesApi, getSession } from '../services/escapesApi'
+import { getDefaultDates, imageUrl } from '../data/stays'
+import { escapesLocalStore, getSession, getStays } from '../services/escapesLocalStore'
 
 export default function CheckoutPage() {
   const params = new URLSearchParams(window.location.search)
-  const stay = stays.find((item) => item.slug === params.get('stay')) || stays[0]
+  const stay = getStays().find((item) => item.slug === params.get('stay')) || getStays()[0]
   const dates = getDefaultDates()
   const checkIn = params.get('checkIn') || dates.checkIn
   const checkOut = params.get('checkOut') || dates.checkOut
@@ -15,19 +14,7 @@ export default function CheckoutPage() {
   const [session] = useState(getSession)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [provider, setProvider] = useState('')
-  const [loadingProviders, setLoadingProviders] = useState(() => session?.user.role === 'client')
   const total = stay.price * nights + 42
-
-  useEffect(() => {
-    if (!session || session.user.role !== 'client') return
-    escapesApi.paymentProviders()
-      .then((result) => {
-        setProvider(result.providers[0] || '')
-      })
-      .catch((requestError) => setError(requestError instanceof Error ? requestError.message : 'Payment options could not be loaded.'))
-      .finally(() => setLoadingProviders(false))
-  }, [session])
 
   async function submit(event) {
     event.preventDefault()
@@ -39,16 +26,15 @@ export default function CheckoutPage() {
     setSubmitting(true)
     const form = Object.fromEntries(new FormData(event.currentTarget).entries())
     try {
-      const result = await escapesApi.createBooking({
+      const result = await escapesLocalStore.createBooking({
         staySlug: stay.slug,
         checkIn,
         checkOut,
         guests: Number(params.get('guests') || 2),
         guestName: `${form.firstName} ${form.lastName}`.trim(),
         guestEmail: form.email,
-        provider,
       })
-      window.location.assign(result.redirectUrl)
+      window.location.assign(`/client/reservations?reference=${encodeURIComponent(result.reservation.reference)}`)
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Your reservation request could not be submitted.')
     } finally {
@@ -72,7 +58,7 @@ export default function CheckoutPage() {
             {!session && <p className="checkout-notice">Sign in or create a guest account before submitting. <a href={`/signin?next=${encodeURIComponent(window.location.pathname + window.location.search)}`}>Sign in</a> · <a href={`/signup?next=${encodeURIComponent(window.location.pathname + window.location.search)}`}>Create account</a></p>}
             {session && session.user.role !== 'client' && <p className="form-error" role="alert">Admin accounts cannot create guest reservations. Sign in with a guest account.</p>}
             {error && <p className="form-error" role="alert">{error}</p>}
-            <button className="button button-primary full-button" type="submit" disabled={submitting || loadingProviders || !session || session.user.role !== 'client'}>{submitting ? 'Saving reservation request…' : `Submit reservation request · $${total} USD`}</button>
+            <button className="button button-primary full-button" type="submit" disabled={submitting || !session || session.user.role !== 'client'}>{submitting ? 'Saving reservation request…' : `Submit reservation request · $${total} USD`}</button>
             <p className="terms-note">This local demo does not charge a payment method or confirm a reservation.</p>
           </form>
           <aside className="checkout-summary"><img src={imageUrl(stay.image, 600)} alt={stay.name} /><div className="checkout-summary-content"><span className="stay-tag inline-tag">{stay.type}</span><h2>{stay.shortName}</h2><p className="rating"><Star size={14} fill="currentColor" /> {stay.rating} · {stay.reviews} reviews</p><hr /><div className="summary-cost"><p><span>${stay.price} × {nights} nights</span><span>${stay.price * nights}</span></p><p><span>Cleaning fee</span><span>$24</span></p><p><span>Service fee</span><span>$18</span></p><div className="summary-total"><strong>Estimated total (USD)</strong><strong>${total}</strong></div></div><div className="secure-box"><ShieldCheck size={18} /><span><strong>Local demo</strong><br />No payment is collected.</span></div></div></aside>

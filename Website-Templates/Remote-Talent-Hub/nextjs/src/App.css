@@ -1024,6 +1024,18 @@ h1, h2, h3, h4, h5, h6 { font-family: var(--website-template-heading-font) !impo
 .remote-admin-job-fields select,
 .remote-admin-job-fields textarea { width: 100%; min-width: 0; margin-top: 6px; }
 .remote-admin-job-wide { grid-column: 1 / -1; }
+.remote-admin-user-filters { display: grid; grid-template-columns: minmax(200px, 1fr) repeat(2, minmax(140px, .55fr)); gap: 12px; margin: 0 0 15px; }
+.remote-admin-user-filters .field-label { min-width: 0; }
+.remote-admin-user-filters input,
+.remote-admin-user-filters select { width: 100%; min-width: 0; margin-top: 6px; }
+.user-management-heading { margin-bottom: 12px; }
+.user-management-heading p { margin: 4px 0 0; color: var(--muted); font-size: 11px; }
+.remote-admin-user-record { align-items: center; }
+.remote-admin-user-meta { display: flex; flex: 0 0 auto; gap: 6px; }
+.remote-admin-user-protected { flex: 0 0 auto; color: var(--muted); font-size: 10px; }
+.status-active { color: #187447; background: #e7f8ef; }
+.status-suspended { color: #a52c3b; background: #ffeded; }
+.remote-admin-user-action { min-height: 34px; flex: 0 0 auto; }
 .remote-admin-content section[id] { scroll-margin-top: 20px; }
 
 @media (max-width: 900px) {
@@ -1044,5 +1056,6 @@ h1, h2, h3, h4, h5, h6 { font-family: var(--website-template-heading-font) !impo
 @media (max-width: 520px) {
   .admin-summary,
   .remote-admin-job-fields { grid-template-columns: 1fr; }
+  .remote-admin-user-filters { grid-template-columns: 1fr; }
   .remote-admin-job-wide { grid-column: auto; }
 }

@@ -9,7 +9,7 @@ This guide covers the Travel Stay template's separate Vite storefront, Next.js A
 - `backend/` - Express API organized into routes, controllers, middleware, services, and data stores.
 - `docs/` - this guide, its PDF, branded assets, and the PDF generator.
 
-The frontends are alternatives, not one combined application. The backend is required for customer authentication, reservations, payment verification, and the protected admin dashboard.
+The frontends are alternatives, not one combined application. The Next.js edition requires the backend for live authentication, reservations, payment verification, and protected admin tools. Vite is a localStorage-only demo and does not connect to the API.
 
 ## 2. Prerequisites
 
@@ -20,7 +20,7 @@ node --version
 npm --version
 ```
 
-Keep the API and selected frontend in separate terminals. Do not copy real secrets into public frontend environment variables or commit `.env` files.
+When using Next.js, keep the API and frontend in separate terminals. Vite can run without the API. Do not copy real secrets into public frontend environment variables or commit `.env` files.
 
 ## 3. Configure and run the API
 
@@ -31,7 +31,7 @@ Set-Location .\backend
 Copy-Item .env.example .env
 ```
 
-Edit `backend/.env` and set `MONGODB_URI`, a strong private `JWT_SECRET`, and `ADMIN_SIGNUP_CODE`. Set `ALLOWED_ORIGINS` to the exact origins of the frontend(s) you will run, and set `FRONTEND_URL` to the selected storefront origin so hosted-checkout returns to the correct app. For local Next.js, use `http://localhost:3000`; for Vite, use `http://localhost:5173`. The API defaults to port `5000`.
+Edit `backend/.env` and set `MONGODB_URI`, a strong private `JWT_SECRET`, and `ADMIN_SIGNUP_CODE`. MongoDB Atlas SRV lookups use Cloudflare and Google DNS by default. If the operating-system hostname lookup returns `ENOTFOUND` for an Atlas node, the MongoDB socket lookup retries through those DNS resolvers; override them with a comma-separated `MONGODB_DNS_SERVERS` list if your network requires different resolvers. Set `ALLOWED_ORIGINS` to the exact Next.js origin and set `FRONTEND_URL` so hosted-checkout returns to the correct app. For local Next.js, use `http://localhost:3000`. The API defaults to port `5000`.
 
 ```powershell
 npm install
@@ -53,18 +53,17 @@ npm run dev
 
 Open `http://localhost:3000`. The default `NEXT_PUBLIC_API_BASE_URL` is `http://localhost:5000/api`. The App Router has independent route entry points for the home page, stay search/details, reservation, checkout, payment return, authentication, and dashboards. Its UI components live inside `nextjs/src`.
 
-### React + Vite
+### React + Vite local preview
 
 ```powershell
 Set-Location .\travel-stay-platform
-Copy-Item .env.example .env
 npm install
 npm run dev
 ```
 
-Open the URL Vite prints (normally `http://localhost:5173`). Configure `VITE_API_BASE_URL` to the API origin if it differs from the default. Vite variables are public; never place provider credentials there.
+Open the URL Vite prints (normally `http://localhost:5173`). This edition is intentionally browser-local: sample accounts, stays, and reservation requests are stored in localStorage; it does not use the API or process payments. Do not enter real customer information.
 
-## 5. Customer and reservation flow
+## 5. Next.js customer and reservation flow
 
 1. A visitor browses the sample stays and selects dates and guest count.
 2. The visitor signs in or creates a customer account before checkout.
@@ -73,7 +72,7 @@ Open the URL Vite prints (normally `http://localhost:5173`). Configure `VITE_API
 5. The browser returns to `/payment/callback`; the frontend asks the API to verify the provider reference.
 6. Only a verified payment can confirm the reservation. Customers can view only their own reservation data in `/client/dashboard`.
 
-The client dashboard and admin dashboard require backend-issued bearer-token sessions. Hiding a link in the frontend is not the security boundary; API middleware checks identity and role on every protected request.
+The Next.js client dashboard and admin dashboard require backend-issued bearer-token sessions. Hiding a link in the frontend is not the security boundary; API middleware checks identity and role on every protected request. Vite’s dashboard is a local preview only.
 
 ## 6. Paystack and Stripe
 

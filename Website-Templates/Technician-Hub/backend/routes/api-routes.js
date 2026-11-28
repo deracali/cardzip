@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { createAuthController } from "../controllers/auth-controller.js";
 import { createBookingController } from "../controllers/booking-controller.js";
+import { createCatalogController } from "../controllers/catalog-controller.js";
 import { createMembershipController } from "../controllers/membership-controller.js";
 import { createAuthMiddleware } from "../middleware/auth.js";
 import { createRateLimiter } from "../utils/http.js";
@@ -9,6 +10,7 @@ export function createApiRouter({ store, secret, env, payments, allowedOrigins }
   const router = Router();
   const auth = createAuthController(store, { secret, env });
   const bookings = createBookingController(store);
+  const catalog = createCatalogController(store);
   const memberships = createMembershipController({ store, payments, env, allowedOrigins });
   const { attachUserIfPresent, requireUser, requireClient, requireAdmin } = createAuthMiddleware(store, secret);
   const client = [requireUser, requireClient];
@@ -23,6 +25,7 @@ export function createApiRouter({ store, secret, env, payments, allowedOrigins }
   router.post("/auth/login", authRateLimit, auth.login);
   router.get("/auth/me", requireUser, auth.me);
 
+  router.get("/public/catalog", catalog.publicCatalog);
   router.post("/public/bookings", bookingRateLimit, attachUserIfPresent, bookings.create);
   router.get("/client/dashboard", ...client, bookings.clientDashboard);
   router.get("/client/membership/providers", ...client, memberships.providers);
@@ -31,6 +34,11 @@ export function createApiRouter({ store, secret, env, payments, allowedOrigins }
 
   router.get("/admin/dashboard", ...admin, bookings.adminDashboard);
   router.patch("/admin/bookings/:id", ...admin, bookings.updateBooking);
+  router.get("/admin/catalog", ...admin, catalog.adminCatalog);
+  router.post("/admin/catalog/services", ...admin, catalog.createService);
+  router.patch("/admin/catalog/services/:id", ...admin, catalog.updateService);
+  router.post("/admin/catalog/technicians", ...admin, catalog.createTechnician);
+  router.patch("/admin/catalog/technicians/:id", ...admin, catalog.updateTechnician);
   router.webhooks = {
     stripe: (req, res) => memberships.webhook(req, res, "stripe"),
     paystack: (req, res) => memberships.webhook(req, res, "paystack"),

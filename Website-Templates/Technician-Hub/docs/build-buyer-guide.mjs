@@ -252,7 +252,7 @@ y += 104;
 y = bulletBlock("2. Choose a frontend", [
   "Vite: copy technician-hub/.env.example to .env.local and run npm install, then npm run dev in technician-hub/.",
   "Next.js: copy nextjs/.env.example to .env.local and run npm install, then npm run dev in nextjs/.",
-  "Both default to http://localhost:5000/api. Update VITE_TECHNICIAN_API_URL or NEXT_PUBLIC_TECHNICIAN_API_URL for a different API host.",
+  "The API and Next.js default to http://localhost:5001/api to avoid port conflicts. A legacy PORT=5000 setting is remapped to port 5001.",
 ], y);
 callout("Next.js payment return", "Set the backend FRONTEND_URL to the selected frontend origin before starting a checkout. For a Next.js run on localhost:3000, set that exact URL and allow it in ALLOWED_ORIGINS.", y, { height: 64 });
 

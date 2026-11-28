@@ -11,9 +11,14 @@ const initialData = {
   [JOBS_KEY]: [
     { id: "demo-job-001", ownerId: "demo-employer-001", employerName: "Northstar Studio", title: "Senior Product Designer", category: "Design", type: "Full-time", workMode: "Remote", location: "Worldwide", currency: "USD", minSalary: 110000, maxSalary: 145000, description: "Shape clear, accessible product experiences for a distributed team.", skills: ["Product design", "Figma", "Research"], questions: "", plan: "featured", status: "pending_review", paymentStatus: "demo", createdAt: "2026-10-24T15:00:00.000Z" },
     { id: "demo-job-002", ownerId: "demo-employer-001", employerName: "Northstar Studio", title: "Frontend Engineer", category: "Engineering", type: "Full-time", workMode: "Remote", location: "North America", currency: "USD", minSalary: 125000, maxSalary: 165000, description: "Build reliable, responsive web applications alongside a collaborative product team.", skills: ["React", "TypeScript", "Accessibility"], questions: "", plan: "standard", status: "approved", paymentStatus: "demo", createdAt: "2026-10-20T15:00:00.000Z" },
+    { id: "demo-job-003", ownerId: "demo-employer-001", employerName: "Northstar Studio", title: "Data Analyst", category: "AI & Data", type: "Full-time", workMode: "Remote", location: "Europe / Africa", currency: "USD", minSalary: 95000, maxSalary: 125000, description: "Turn product and customer data into clear insights that help our distributed teams make better decisions.", skills: ["SQL", "Analytics", "Python"], questions: "", plan: "standard", status: "approved", paymentStatus: "demo", createdAt: "2026-10-18T15:00:00.000Z" },
+    { id: "demo-job-004", ownerId: "demo-employer-001", employerName: "Northstar Studio", title: "Technical Product Manager", category: "Product Management", type: "Full-time", workMode: "Remote", location: "Worldwide", currency: "USD", minSalary: 130000, maxSalary: 170000, description: "Coordinate product strategy and delivery across a global engineering and design team.", skills: ["Product strategy", "Roadmaps", "Agile"], questions: "", plan: "featured", status: "pending_review", paymentStatus: "demo", createdAt: "2026-10-16T15:00:00.000Z" },
+    { id: "demo-job-005", ownerId: "demo-employer-001", employerName: "Northstar Studio", title: "Customer Success Specialist", category: "Customer Success", type: "Full-time", workMode: "Remote", location: "Americas", currency: "USD", minSalary: 70000, maxSalary: 90000, description: "Help customers get long-term value from our product through thoughtful onboarding and support.", skills: ["Customer success", "Communication", "SaaS"], questions: "", plan: "standard", status: "approved", paymentStatus: "demo", createdAt: "2026-10-14T15:00:00.000Z" },
   ],
   [APPLICATIONS_KEY]: [
     { id: "demo-application-001", candidateId: "demo-candidate-001", candidateName: "Avery Morgan", candidateEmail: "avery@example.demo", employerId: "demo-employer-001", jobId: "demo-job-001", jobTitle: "Senior Product Designer", message: "I bring six years of product design experience across collaborative remote teams.", portfolioUrl: "", status: "submitted", createdAt: "2026-10-25T15:00:00.000Z" },
+    { id: "demo-application-002", candidateId: "demo-candidate-001", candidateName: "Avery Morgan", candidateEmail: "avery@example.demo", employerId: "demo-employer-001", jobId: "demo-job-002", jobTitle: "Frontend Engineer", message: "I have built accessible React products and design systems for distributed teams.", portfolioUrl: "https://example.demo/avery", status: "shortlisted", createdAt: "2026-10-22T15:00:00.000Z" },
+    { id: "demo-application-003", candidateId: "demo-candidate-001", candidateName: "Avery Morgan", candidateEmail: "avery@example.demo", employerId: "demo-employer-001", jobId: "demo-job-003", jobTitle: "Data Analyst", message: "My background combines product analytics, SQL, and clear stakeholder communication.", portfolioUrl: "", status: "reviewed", createdAt: "2026-10-19T15:00:00.000Z" },
   ],
   [SESSIONS_KEY]: [],
 };
@@ -90,8 +95,11 @@ async function authenticate(body) {
   const role = body.role;
   let users = readList(USERS_KEY);
   if (role === "admin" && email === demoAdmin.email && password === demoAdmin.password) {
-    let admin = users.find((user) => user.email === demoAdmin.email);
+    let admin = users.find((user) => user.email === demoAdmin.email && user.role === "admin");
     if (!admin) {
+      if (users.some((user) => user.email === demoAdmin.email)) {
+        throw new Error("The demo administrator email is already assigned to a non-admin account.");
+      }
       admin = {
         id: demoAdmin.id,
         name: demoAdmin.name,
@@ -110,16 +118,20 @@ async function authenticate(body) {
   return createSession(user);
 }
 
-async function register(body) {
+async function register(body, { admin = false } = {}) {
   const email = String(body.email || "").trim().toLowerCase();
   const name = String(body.name || "").trim();
   const password = String(body.password || "");
   const role = body.role;
-  if (!email || !name || password.length < 8 || !["candidate", "employer"].includes(role)) {
-    throw new Error("Enter your name, a valid email address, and choose a candidate or employer account.");
+  const allowedRoles = admin ? ["admin"] : ["candidate", "employer"];
+  if (!email || name.length < 2 || password.length < 8 || !allowedRoles.includes(role)) {
+    throw new Error(admin
+      ? "Enter your name, a valid email address, and a password of at least 8 characters."
+      : "Enter your name, a valid email address, and choose a candidate or employer account.");
   }
   const users = readList(USERS_KEY);
   if (users.some((user) => user.email === email)) throw new Error("An account with this email already exists.");
+  if (!admin && email === demoAdmin.email) throw new Error("This email is reserved for the local demo administrator.");
   const user = {
     id: createId("user"),
     name,
@@ -158,6 +170,9 @@ export async function apiRequest(path, { method = "GET", body, token = getToken(
 
   if (normalizedPath === "/auth/signup" && verb === "POST") return register(cleanBody);
   if (normalizedPath === "/auth/login" && verb === "POST") return authenticate(cleanBody);
+  if (normalizedPath === "/admin/local-signup" && verb === "POST") {
+    return register({ ...cleanBody, role: "admin" }, { admin: true });
+  }
 
   if (normalizedPath === "/public/jobs" && verb === "GET") return { jobs: publicJobList() };
   const publicJobMatch = normalizedPath.match(/^\/public\/jobs\/([^/]+)$/);

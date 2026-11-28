@@ -20,7 +20,7 @@ export function createAuthMiddleware(store, jwtSecret) {
     } catch (error) {
       return next(error);
     }
-    if (!user || user.role !== identity.role) {
+    if (!user || user.role !== identity.role || user.status === "suspended") {
       return next(httpError(401, "Your session is no longer valid. Sign in again."));
     }
     request.user = user;

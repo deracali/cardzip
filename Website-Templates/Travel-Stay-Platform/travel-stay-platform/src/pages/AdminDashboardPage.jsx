@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react'
-import { ArrowRight, Building2, CalendarDays, LogOut, MapPin, ShieldCheck } from 'lucide-react'
-import { clearSession, escapesApi, getSession } from '../services/escapesApi'
+import { ArrowRight, BarChart3, Building2, CalendarDays, CreditCard, LogOut, MapPin, Settings, ShieldCheck } from 'lucide-react'
+import { clearSession, escapesLocalStore, getSession } from '../services/escapesLocalStore'
 import { stays } from '../data/stays'
 
 const adminSections = {
-  overview: { title: 'Reservation dashboard', description: 'A live view of reservation activity and guest accounts.' },
+  overview: { title: 'Reservation dashboard', description: 'A local preview of reservation activity and guest accounts.' },
   reservations: { title: 'Reservations', description: 'Review guest stays and update request statuses.' },
   guests: { title: 'Guest accounts', description: 'Browse guest accounts and reservation history.' },
   properties: { title: 'Property listings', description: 'Add properties and manage the stays offered to guests.' },
+  payments: { title: 'Payments', description: 'Review payment states for local demo reservations.' },
+  reports: { title: 'Reports', description: 'A summary of sample booking and property activity.' },
+  settings: { title: 'Workspace settings', description: 'Review local demo workspace details.' },
 }
 
 export default function AdminDashboardPage({ section = 'overview' }) {
@@ -22,7 +25,7 @@ export default function AdminDashboardPage({ section = 'overview' }) {
 
   useEffect(() => {
     if (!session || session.user.role !== 'admin') return
-    escapesApi.adminDashboard()
+    escapesLocalStore.adminDashboard()
       .then(setDashboard)
       .catch((requestError) => setError(requestError instanceof Error ? requestError.message : 'Admin dashboard could not be loaded.'))
       .finally(() => setLoading(false))
@@ -37,8 +40,8 @@ export default function AdminDashboardPage({ section = 'overview' }) {
     setUpdating(reservationId)
     setError('')
     try {
-      await escapesApi.updateBooking(reservationId, status)
-      setDashboard(await escapesApi.adminDashboard())
+      await escapesLocalStore.updateBooking(reservationId, status)
+      setDashboard(await escapesLocalStore.adminDashboard())
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Reservation status could not be updated.')
     } finally {
@@ -53,7 +56,7 @@ export default function AdminDashboardPage({ section = 'overview' }) {
     const form = event.currentTarget
     const body = Object.fromEntries(new FormData(form).entries())
     try {
-      const { stay } = await escapesApi.createStay(body)
+      const { stay } = await escapesLocalStore.createStay(body)
       setDashboard((current) => ({ ...current, stays: [...current.stays, stay] }))
       form.reset()
     } catch (requestError) {
@@ -74,6 +77,9 @@ export default function AdminDashboardPage({ section = 'overview' }) {
             <a className={activeSection === 'reservations' ? 'is-active' : ''} href="/admin/reservations"><CalendarDays size={17} /> Reservations</a>
             <a className={activeSection === 'properties' ? 'is-active' : ''} href="/admin/stays"><Building2 size={17} /> Properties</a>
             <a className={activeSection === 'guests' ? 'is-active' : ''} href="/admin/guests"><MapPin size={17} /> Guest accounts</a>
+            <a className={activeSection === 'payments' ? 'is-active' : ''} href="/admin/payments"><CreditCard size={17} /> Payments</a>
+            <a className={activeSection === 'reports' ? 'is-active' : ''} href="/admin/reports"><BarChart3 size={17} /> Reports</a>
+            <a className={activeSection === 'settings' ? 'is-active' : ''} href="/admin/settings"><Settings size={17} /> Settings</a>
           </nav>
           <div className="dashboard-sidebar-footer"><a href="/">Back to Escapes <ArrowRight size={14} /></a><span><i /> Operations workspace</span></div>
         </aside>
@@ -98,6 +104,8 @@ export default function AdminDashboardPage({ section = 'overview' }) {
             <a href="/admin/reservations"><CalendarDays size={18} /><span><strong>Reservations</strong><small>Review guest stays and update statuses.</small></span><ArrowRight size={15} /></a>
             <a href="/admin/stays"><Building2 size={18} /><span><strong>Properties</strong><small>Add and manage available stays.</small></span><ArrowRight size={15} /></a>
             <a href="/admin/guests"><MapPin size={18} /><span><strong>Guest accounts</strong><small>Browse guest account details.</small></span><ArrowRight size={15} /></a>
+            <a href="/admin/payments"><CreditCard size={18} /><span><strong>Payments</strong><small>Review local demo payment states.</small></span><ArrowRight size={15} /></a>
+            <a href="/admin/reports"><BarChart3 size={18} /><span><strong>Reports</strong><small>View booking and property summaries.</small></span><ArrowRight size={15} /></a>
           </div>
           </>}
           {activeSection === 'properties' && <>
@@ -148,6 +156,23 @@ export default function AdminDashboardPage({ section = 'overview' }) {
             {dashboard.customers.length === 0 ? <p className="dashboard-loading">No guest accounts yet.</p> : <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Name</th><th>Email</th><th>Joined</th></tr></thead><tbody>
               {dashboard.customers.map((customer) => <tr key={customer.id}><td>{customer.name}</td><td>{customer.email}</td><td>{new Date(customer.createdAt).toLocaleDateString()}</td></tr>)}
             </tbody></table></div>}
+          </section>}
+          {activeSection === 'payments' && <section className="dashboard-panel admin-reservations">
+            <div className="dashboard-panel-heading"><div><h2>Payment status</h2><p>The Vite edition is a local preview; no payments are collected.</p></div></div>
+            <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Reference</th><th>Guest</th><th>Stay</th><th>Amount</th><th>Payment</th></tr></thead><tbody>
+              {dashboard.reservations.map((reservation) => <tr key={reservation.id}><td>{reservation.reference}{reservation.demoData && <small>Sample</small>}</td><td>{reservation.guestName}<small>{reservation.guestEmail}</small></td><td>{reservation.stayName}</td><td>${reservation.total} USD</td><td>Not collected</td></tr>)}
+              {!dashboard.reservations.length && <tr><td colSpan="5">No reservation requests yet.</td></tr>}
+            </tbody></table></div>
+          </section>}
+          {activeSection === 'reports' && <section className="dashboard-panel">
+            <div className="dashboard-panel-heading"><div><h2>Activity summary</h2><p>Figures are calculated from the browser’s local demo data.</p></div></div>
+            <div className="dashboard-metrics"><article><span>Total requests</span><strong>{dashboard.reservations.length}</strong></article><article><span>Confirmed requests</span><strong>{dashboard.reservations.filter((item) => item.status === 'confirmed').length}</strong></article><article><span>Properties</span><strong>{dashboard.stays.length}</strong></article><article><span>Guest accounts</span><strong>{dashboard.customers.length}</strong></article></div>
+            <p className="payment-disclaimer">Booking totals are demo estimates, not collected revenue.</p>
+          </section>}
+          {activeSection === 'settings' && <section className="dashboard-panel">
+            <div className="dashboard-panel-heading"><div><h2>Workspace information</h2><p>This Vite dashboard stores updates in this browser only.</p></div></div>
+            <dl className="profile-details"><div><dt>Signed in as</dt><dd>{session.user.name}</dd></div><div><dt>Email</dt><dd>{session.user.email}</dd></div><div><dt>Mode</dt><dd>Local demo</dd></div><div><dt>Payments</dt><dd>Disabled in Vite</dd></div></dl>
+            <p className="payment-disclaimer">For live authentication, bookings and Paystack checkout, use the Next.js app and configure the backend.</p>
           </section>}
         </>}
         </div>

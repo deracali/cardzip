@@ -228,7 +228,7 @@ export function createBookingController({ store, payments, env, allowedOrigins }
       if (!Number.isFinite(price) || price < 1 || price > 100000) {
         throw new HttpError(400, "Enter a nightly rate between 1 and 100000.");
       }
-      const image = requiredText(req.body.image, "Image URL", 8, 1000);
+      const image = requiredText(req.body.image, "Image URL", 1000);
       let parsedImage;
       try {
         parsedImage = new URL(image);

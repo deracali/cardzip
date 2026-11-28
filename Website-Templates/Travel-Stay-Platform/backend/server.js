@@ -1,16 +1,22 @@
 import "dotenv/config";
+import { configureMongoDns } from "./utils/mongodb-dns.js";
 import { createServer } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import express from "express";
-import { createMongoStore } from "./models/store.js";
-import { createPaymentService } from "./services/payment-service.js";
-import { createApiRouter } from "./routes/api-routes.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+configureMongoDns(process.env);
+const [{ createMongoStore }, { createPaymentService }, { createApiRouter }] = await Promise.all([
+  import("./models/store.js"),
+  import("./services/payment-service.js"),
+  import("./routes/api-routes.js"),
+]);
+
 export function createApp(options = {}) {
   const env = options.env || process.env;
+  configureMongoDns(env);
   const production = (env.NODE_ENV || "development") === "production";
   if (production && (!env.JWT_SECRET || env.JWT_SECRET.length < 32)) {
     throw new Error("JWT_SECRET must be set to at least 32 characters in production.");

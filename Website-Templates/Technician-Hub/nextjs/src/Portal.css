@@ -387,6 +387,23 @@ button:disabled {
   white-space: nowrap;
 }
 
+.catalog-active-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0;
+  color: #c6d1e1;
+  font-size: 12px;
+}
+
+.catalog-active-toggle input {
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #87b6ff;
+}
+
 .dashboard-record {
   padding: 17px 0;
   border-color: rgba(154, 168, 191, .14);

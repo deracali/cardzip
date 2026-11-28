@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ArrowLeft, ShieldCheck } from 'lucide-react'
 import Logo from '../components/Logo'
-import { escapesApi, saveSession } from '../services/escapesApi'
+import { escapesLocalStore, saveSession } from '../services/escapesLocalStore'
 
 export default function AdminAuthPage({ signup = false }) {
   const [error, setError] = useState('')
@@ -14,8 +14,8 @@ export default function AdminAuthPage({ signup = false }) {
     const values = Object.fromEntries(new FormData(event.currentTarget).entries())
     try {
       const session = signup
-        ? await escapesApi.signupAdmin(values)
-        : await escapesApi.login({ email: values.email, password: values.password, expectedRole: 'admin' })
+        ? await escapesLocalStore.signupAdmin(values)
+        : await escapesLocalStore.login({ email: values.email, password: values.password, expectedRole: 'admin' })
       saveSession(session)
       window.location.assign('/admin/dashboard')
     } catch (requestError) {
